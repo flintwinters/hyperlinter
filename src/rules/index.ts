@@ -1,4 +1,5 @@
 import type { HyperlintRule } from './Rule';
+import { agentInstructionsRule } from './agentInstructions';
 import { dependencyCyclesRule } from './dependencyCycles';
 import { moduleCouplingRule } from './moduleCoupling';
 import { moduleEntrypointRule } from './moduleEntrypoint';
@@ -10,6 +11,7 @@ import { publicSurfaceLimitRule } from './publicSurfaceLimit';
 import { singlePublicMethodRule } from './singlePublicMethod';
 
 export const rules: readonly HyperlintRule[] = [
+  agentInstructionsRule,
   dependencyCyclesRule,
   publicSurfaceRule,
   publicSurfaceLimitRule,

@@ -10,14 +10,28 @@ export const moduleCouplingRule: HyperlintRule = {
   },
 };
 
-function couplingDiagnostics(module: ModuleMetrics, allMetrics: readonly ModuleMetrics[]): HyperlintDiagnostic[] {
+function couplingDiagnostics(
+  module: ModuleMetrics,
+  allMetrics: readonly ModuleMetrics[],
+): HyperlintDiagnostic[] {
   const diagnostics: HyperlintDiagnostic[] = [];
-  for (const [label, value] of [['fan-in', module.dependents], ['fan-out', module.dependencies], ['cross-module references', module.crossModuleReferences]] as const) {
-    const values = allMetrics.map((metrics) => label === 'fan-in' ? metrics.dependents : label === 'fan-out' ? metrics.dependencies : metrics.crossModuleReferences);
+  const measures = [
+    ['fan-in', module.dependents, (metrics: ModuleMetrics) => metrics.dependents],
+    ['fan-out', module.dependencies, (metrics: ModuleMetrics) => metrics.dependencies],
+    ['cross-module references', module.crossModuleReferences, (metrics: ModuleMetrics) => metrics.crossModuleReferences],
+  ] as const;
+  for (const [label, value, getValue] of measures) {
+    const values = allMetrics.map(getValue);
     const mean = values.reduce((sum, current) => sum + current, 0) / values.length;
     const deviation = Math.sqrt(values.reduce((sum, current) => sum + (current - mean) ** 2, 0) / values.length);
     if (value >= 3 && deviation > 0 && (value - mean) / deviation >= 2) {
-      diagnostics.push({ rule: 'HL103', severity: 'smell', module: module.module, score: value, message: `${label} of ${value} is a repository outlier.` });
+      diagnostics.push({
+        rule: 'HL103',
+        severity: 'smell',
+        module: module.module,
+        score: value,
+        message: `${label} of ${value} is a repository outlier.`,
+      });
     }
   }
   return diagnostics;

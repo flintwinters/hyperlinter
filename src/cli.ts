@@ -17,7 +17,11 @@ const result = analyze();
 const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath))];
 
 if (arguments_.includes('--write-baseline')) {
-  fs.writeFileSync(baselinePath, `${JSON.stringify({ metrics: Object.fromEntries(result.metrics.map((metric) => [metric.module, { publicSurface: metric.publicSurface }])) }, null, 2)}\n`);
+  const metrics = Object.fromEntries(result.metrics.map((metric) => [
+    metric.module,
+    { publicSurface: metric.publicSurface },
+  ]));
+  fs.writeFileSync(baselinePath, `${JSON.stringify({ metrics }, null, 2)}\n`);
 }
 
 if (json) {
@@ -50,7 +54,11 @@ function printMetrics(metrics: readonly ModuleMetrics[]): void {
   process.stdout.write('Module | Public surface | Declarations | Ratio | Dependencies | Dependents | Cross-module refs\n');
   process.stdout.write('--- | ---: | ---: | ---: | ---: | ---: | ---:\n');
   for (const metric of metrics) {
-    process.stdout.write(`${metric.module} | ${metric.publicSurface} | ${metric.declarations} | ${Math.round(metric.publicSurfaceRatio * 100)}% | ${metric.dependencies} | ${metric.dependents} | ${metric.crossModuleReferences}\n`);
+    const ratio = Math.round(metric.publicSurfaceRatio * 100);
+    process.stdout.write(
+      `${metric.module} | ${metric.publicSurface} | ${metric.declarations} | ${ratio}% | ` +
+      `${metric.dependencies} | ${metric.dependents} | ${metric.crossModuleReferences}\n`,
+    );
   }
 }
 

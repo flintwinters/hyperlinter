@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { HyperlintDiagnostic } from './diagnostics/Diagnostic';
 import type { ModuleMetrics } from './project/ProjectModel';
+import { RuntimeStore, type RuntimeRun } from './runtime/RuntimeStore';
 import { analyze } from './runner';
 
 interface Baseline {
@@ -13,8 +14,21 @@ interface Baseline {
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes('--format=json') || arguments_.at(arguments_.indexOf('--format') + 1) === 'json';
 const baselinePath = path.resolve('tools/hyperlint/baseline.json');
+const runtime = new RuntimeStore();
+
+if (arguments_.includes('--history')) {
+  const history = runtime.history();
+  if (json) process.stdout.write(`${JSON.stringify({ runs: history }, null, 2)}\n`);
+  else printHistory(history);
+  runtime.close();
+  process.exit();
+}
+
+const startedAt = Date.now();
 const result = analyze();
 const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath))];
+const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
+runtime.close();
 
 if (arguments_.includes('--write-baseline')) {
   const metrics = Object.fromEntries(result.metrics.map((metric) => [
@@ -25,7 +39,7 @@ if (arguments_.includes('--write-baseline')) {
 }
 
 if (json) {
-  process.stdout.write(`${JSON.stringify({ diagnostics, metrics: result.metrics }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ run, diagnostics, metrics: result.metrics }, null, 2)}\n`);
 } else {
   printMetrics(result.metrics);
   for (const diagnostic of diagnostics) process.stdout.write(`${formatDiagnostic(diagnostic)}\n`);
@@ -58,6 +72,19 @@ function printMetrics(metrics: readonly ModuleMetrics[]): void {
     process.stdout.write(
       `${metric.module} | ${metric.publicSurface} | ${metric.declarations} | ${ratio}% | ` +
       `${metric.dependencies} | ${metric.dependents} | ${metric.crossModuleReferences}\n`,
+    );
+  }
+}
+
+function printHistory(runs: readonly RuntimeRun[]): void {
+  process.stdout.write('Run | Started | Duration | Revision | Modules | Diagnostics | Errors | Smells\n');
+  process.stdout.write('---: | --- | ---: | --- | ---: | ---: | ---: | ---:\n');
+  for (const run of runs) {
+    const revision = run.revision?.slice(0, 12) ?? 'unknown';
+    const startedAt = new Date(run.startedAt * 1000).toISOString();
+    process.stdout.write(
+      `${run.id} | ${startedAt} | ${run.durationMs}ms | ${revision} | ` +
+      `${run.modules} | ${run.diagnostics} | ${run.errors} | ${run.smells}\n`,
     );
   }
 }

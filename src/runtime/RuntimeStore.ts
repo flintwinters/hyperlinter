@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import Database from 'better-sqlite3';
@@ -27,6 +28,18 @@ export interface VerificationRun {
   command: string;
   status: 'running' | 'passed' | 'failed';
   error: string | null;
+  host: VerificationHost | null;
+}
+
+export interface VerificationHost {
+  hostname: string;
+  platform: NodeJS.Platform;
+  release: string;
+  architecture: string;
+  nodeVersion: string;
+  cpuModel: string | null;
+  cpuCount: number;
+  totalMemoryBytes: number;
 }
 
 export interface VerificationStep {
@@ -91,7 +104,8 @@ export class RuntimeStore {
         revision TEXT,
         command TEXT NOT NULL,
         status TEXT NOT NULL,
-        error TEXT
+        error TEXT,
+        host_json TEXT
       );
       CREATE TABLE IF NOT EXISTS verification_steps (
         id INTEGER PRIMARY KEY,
@@ -110,6 +124,7 @@ export class RuntimeStore {
       );
       CREATE INDEX IF NOT EXISTS verification_steps_by_run ON verification_steps(verification_run_id);
     `);
+    this.ensureColumn('verification_runs', 'host_json', 'TEXT');
     this.database.prepare(`
       UPDATE verification_runs
       SET
@@ -179,9 +194,9 @@ export class RuntimeStore {
 
   startVerification(command: string, startedAt = Date.now()): number {
     const inserted = this.database.prepare(`
-      INSERT INTO verification_runs (started_at, revision, command, status)
-      VALUES (?, ?, ?, 'running')
-    `).run(Math.floor(startedAt / 1000), gitRevision(), command);
+      INSERT INTO verification_runs (started_at, revision, command, status, host_json)
+      VALUES (?, ?, ?, 'running', ?)
+    `).run(Math.floor(startedAt / 1000), gitRevision(), command, JSON.stringify(verificationHost()));
     return Number(inserted.lastInsertRowid);
   }
 
@@ -211,12 +226,13 @@ export class RuntimeStore {
   }
 
   verificationHistory(limit = 20): readonly VerificationRun[] {
-    return this.database.prepare(`
-      SELECT id, started_at AS startedAt, duration_ms AS durationMs, revision, command, status, error
+    const rows = this.database.prepare(`
+      SELECT id, started_at AS startedAt, duration_ms AS durationMs, revision, command, status, error, host_json AS hostJson
       FROM verification_runs
       ORDER BY id DESC
       LIMIT ?
-    `).all(limit) as VerificationRun[];
+    `).all(limit) as Array<Omit<VerificationRun, 'host'> & { hostJson: string | null }>;
+    return rows.map(({ hostJson, ...run }) => ({ ...run, host: hostJson ? JSON.parse(hostJson) as VerificationHost : null }));
   }
 
   verificationSteps(verificationRunId: number): readonly VerificationStep[] {
@@ -246,6 +262,13 @@ export class RuntimeStore {
   close(): void {
     this.database.close();
   }
+
+  private ensureColumn(table: string, column: string, definition: string): void {
+    const columns = this.database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (!columns.some((existing) => existing.name === column)) {
+      this.database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    }
+  }
 }
 
 function toDiagnosticRow(runId: number, diagnostic: HyperlintDiagnostic) {
@@ -265,4 +288,18 @@ function gitRevision(): string | null {
   } catch {
     return null;
   }
+}
+
+function verificationHost(): VerificationHost {
+  const cpus = os.cpus();
+  return {
+    hostname: os.hostname(),
+    platform: process.platform,
+    release: os.release(),
+    architecture: process.arch,
+    nodeVersion: process.version,
+    cpuModel: cpus[0]?.model ?? null,
+    cpuCount: cpus.length,
+    totalMemoryBytes: os.totalmem(),
+  };
 }

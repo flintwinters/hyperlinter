@@ -42,4 +42,4 @@ candidates, anti-unification confirms at least 90% shared structure across a
 cluster of three or more methods, and each occurrence is retained in the local
 SQLite diagnostic ledger. It intentionally makes no source changes.
 
-Clone thresholds live in the versioned [`hyperlinter.config.json`](./hyperlinter.config.json).
+Detection thresholds live in the versioned [`hyperlinter.config.json`](./hyperlinter.config.json).

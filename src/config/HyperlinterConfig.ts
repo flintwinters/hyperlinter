@@ -9,6 +9,10 @@ export interface HyperlinterConfig {
     readonly nearMinimumClusterMethods: number;
     readonly nearMinimumSharedSubtreeHashes: number;
   };
+  readonly coupling: {
+    readonly minimumOutlierValue: number;
+    readonly minimumZScore: number;
+  };
 }
 
 /** Loads versioned engine policy from the Hyperlinter root, never target-project policy. */
@@ -25,8 +29,9 @@ function hyperlinterRoot(): string {
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value) || !isObject(value.clones)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  if (!isObject(value) || !isObject(value.clones) || !isObject(value.coupling)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const clones = value.clones;
+  const coupling = value.coupling;
   return {
     clones: {
       exactMinimumMeaningfulNodes: positiveInteger(clones.exactMinimumMeaningfulNodes, fileName, 'clones.exactMinimumMeaningfulNodes'),
@@ -34,6 +39,10 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       nearMinimumSimilarity: fraction(clones.nearMinimumSimilarity, fileName, 'clones.nearMinimumSimilarity'),
       nearMinimumClusterMethods: positiveInteger(clones.nearMinimumClusterMethods, fileName, 'clones.nearMinimumClusterMethods'),
       nearMinimumSharedSubtreeHashes: positiveInteger(clones.nearMinimumSharedSubtreeHashes, fileName, 'clones.nearMinimumSharedSubtreeHashes'),
+    },
+    coupling: {
+      minimumOutlierValue: positiveInteger(coupling.minimumOutlierValue, fileName, 'coupling.minimumOutlierValue'),
+      minimumZScore: positiveNumber(coupling.minimumZScore, fileName, 'coupling.minimumZScore'),
     },
   };
 }
@@ -49,5 +58,10 @@ function positiveInteger(value: unknown, fileName: string, key: string): number 
 
 function fraction(value: unknown, fileName: string, key: string): number {
   if (typeof value !== 'number' || value <= 0 || value > 1) throw new Error(`${fileName}: ${key} must be within (0, 1].`);
+  return value;
+}
+
+function positiveNumber(value: unknown, fileName: string, key: string): number {
+  if (typeof value !== 'number' || value <= 0) throw new Error(`${fileName}: ${key} must be positive.`);
   return value;
 }

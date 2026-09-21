@@ -15,6 +15,11 @@ import { analyze } from './runner';
 import { applyExactCloneRefactors } from './clones/exactDuplicates';
 import { loadHyperlinterConfig, type HyperlinterConfig } from './config/HyperlinterConfig';
 import { applyPrivateUnusedExportFixes } from './fixes/privateExports';
+import {
+  agentInstructions,
+  agentInstructionsMessage,
+  MAX_AGENT_INSTRUCTION_LINES,
+} from './project/agentInstructions';
 import { cssFiles } from './project/cssFiles';
 
 interface Baseline {
@@ -33,6 +38,17 @@ if (arguments_.includes('--check-no-css')) {
   if (json) process.stdout.write(`${JSON.stringify({ files }, null, 2)}\n`);
   else if (files.length) process.stderr.write(`CSS files are forbidden: ${files.join(', ')}\n`);
   process.exitCode = files.length ? 1 : 0;
+  process.exit();
+}
+
+if (arguments_.includes('--check-agents')) {
+  const violations = agentInstructions(process.cwd())
+    .filter((instructions) => instructions.lines > MAX_AGENT_INSTRUCTION_LINES);
+  if (json) process.stdout.write(`${JSON.stringify({ violations }, null, 2)}\n`);
+  else for (const violation of violations) {
+    process.stderr.write(`${agentInstructionsMessage(violation.lines)}\n`);
+  }
+  process.exitCode = violations.length ? 1 : 0;
   process.exit();
 }
 

@@ -20,6 +20,8 @@ Run the command from the target repository root. It reads that repository's
 uses `tools/hyperlint/baseline.json` for public-surface trend checks. Every
 module is also subject to the configured maximum exported-symbol count.
 Standalone `.css` files are forbidden; code-native styles are the sole styling system.
+The root `AGENTS.md` is capped at 150 lines so it remains a broad-strokes,
+semantic entrypoint for agents rather than an all-encompassing project map.
 An architectural module is the source-owning directory: it must have exactly
 one `index.*` public entrypoint, and every other file in that directory is
 private to that module. Internal files may use TypeScript exports for internal

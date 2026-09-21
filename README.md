@@ -36,3 +36,8 @@ target-project policy and should be reviewed with the target project's code.
 functions with at least 20 meaningful AST nodes. Detection alpha-renames local
 symbols, hashes normalized trees, and anti-unifies literal differences into
 helper parameters; broader similarities remain diagnostics.
+
+Near-duplicate tracking is advisory (`HL105`): normalized subtree hashes select
+candidates, anti-unification confirms at least 90% shared structure across a
+cluster of three or more methods, and each occurrence is retained in the local
+SQLite diagnostic ledger. It intentionally makes no source changes.

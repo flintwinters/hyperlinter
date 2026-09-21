@@ -3,5 +3,6 @@ import { dependencyCyclesRule } from './dependencyCycles';
 import { moduleCouplingRule } from './moduleCoupling';
 import { publicSurfaceRule } from './publicSurface';
 import { exactDuplicatesRule } from './exactDuplicates';
+import { nearDuplicatesRule } from './nearDuplicates';
 
-export const rules: readonly HyperlintRule[] = [dependencyCyclesRule, publicSurfaceRule, moduleCouplingRule, exactDuplicatesRule];
+export const rules: readonly HyperlintRule[] = [dependencyCyclesRule, publicSurfaceRule, moduleCouplingRule, exactDuplicatesRule, nearDuplicatesRule];

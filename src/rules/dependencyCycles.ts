@@ -1,16 +1,17 @@
 import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
+import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ModuleId, ModuleGraph } from '../project/ModuleGraph';
 import type { ProjectModel } from '../project/ProjectModel';
 import type { HyperlintRule } from './Rule';
 
 export const dependencyCyclesRule: HyperlintRule = {
   id: 'HL101',
-  analyze(project: ProjectModel): readonly HyperlintDiagnostic[] {
+  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     return stronglyConnectedComponents(project.getDependencyGraph())
       .filter((component) => component.length > 1)
       .map((component) => ({
         rule: 'HL101',
-        severity: 'error' as const,
+        severity: config.rules.dependencyCycles,
         module: component[0],
         message: `Circular dependency: ${component.join(' -> ')} -> ${component[0]}.`,
       }));

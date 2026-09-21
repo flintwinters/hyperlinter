@@ -8,7 +8,7 @@ export const exactDuplicatesRule: HyperlintRule = {
   id: 'HL104',
   analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     return findExactClones(project, config).map((clone): HyperlintDiagnostic => ({
-      rule: 'HL104', severity: 'smell', file: clone.file,
+      rule: 'HL104', severity: config.rules.exactDuplicates, file: clone.file,
       line: clone.first.getSourceFile().getLineAndCharacterOfPosition(clone.first.getStart()).line + 1,
       message: `Exact AST clone (${clone.meaningfulNodes} meaningful nodes) with ${clone.second.name?.text}; run with --fix to extract it.`,
     }));

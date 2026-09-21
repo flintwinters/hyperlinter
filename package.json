@@ -1,0 +1,24 @@
+{
+  "name": "hyperlinter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Repository-scale TypeScript architecture linter",
+  "type": "module",
+  "scripts": {
+    "hyperlint": "tsx src/cli.ts",
+    "baseline": "tsx src/cli.ts --write-baseline"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "ts-morph": "^28.0.0",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

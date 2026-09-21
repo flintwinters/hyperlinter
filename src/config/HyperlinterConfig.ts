@@ -12,6 +12,8 @@ export interface HyperlinterConfig {
     readonly nearDuplicates: DiagnosticSeverity;
     readonly publicSurfaceGrowth: DiagnosticSeverity;
     readonly publicSurfaceLimit: DiagnosticSeverity;
+    readonly moduleEntrypoint: DiagnosticSeverity;
+    readonly singlePublicMethod: DiagnosticSeverity;
     readonly moduleScore: DiagnosticSeverity;
   };
   readonly clones: {
@@ -65,6 +67,8 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       nearDuplicates: severity(rules.nearDuplicates, fileName, 'rules.nearDuplicates'),
       publicSurfaceGrowth: severity(rules.publicSurfaceGrowth, fileName, 'rules.publicSurfaceGrowth'),
       publicSurfaceLimit: severity(rules.publicSurfaceLimit, fileName, 'rules.publicSurfaceLimit'),
+      moduleEntrypoint: severity(rules.moduleEntrypoint, fileName, 'rules.moduleEntrypoint'),
+      singlePublicMethod: severity(rules.singlePublicMethod, fileName, 'rules.singlePublicMethod'),
       moduleScore: severity(rules.moduleScore, fileName, 'rules.moduleScore'),
     },
     clones: {

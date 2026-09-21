@@ -3,12 +3,26 @@ import ts from 'typescript';
 
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
 
-interface ProjectModule {
+export interface ProjectModule {
   id: ModuleId;
-  sourceFile: ts.SourceFile;
+  sourceFiles: readonly ts.SourceFile[];
+  entryPoint: ts.SourceFile | null;
 }
 
-interface PublicSymbol {
+export interface ModuleFileMetrics {
+  file: string;
+  declarations: number;
+  exports: number;
+}
+
+export interface PrivateModuleImport {
+  module: ModuleId;
+  file: string;
+  targetModule: ModuleId;
+  targetFile: string;
+}
+
+export interface PublicSymbol {
   name: string;
   symbol: ts.Symbol;
   externalReferences: number;
@@ -32,6 +46,7 @@ export class ProjectModel {
   private readonly moduleIdsByFile: Map<string, ModuleId>;
   private readonly graph: ModuleGraph;
   private readonly externalReferences = new Map<ts.Symbol, Set<ModuleId>>();
+  private readonly externalFileReferences = new Map<ts.Symbol, Set<string>>();
 
   private constructor(program: ts.Program, rootDir: string, sourceFiles: readonly string[]) {
     this.program = program;
@@ -40,12 +55,23 @@ export class ProjectModel {
     this.modulesById = new Map();
     this.moduleIdsByFile = new Map();
 
+    const filesByModule = new Map<ModuleId, ts.SourceFile[]>();
     for (const fileName of sourceFiles) {
       const sourceFile = program.getSourceFile(fileName);
       if (!sourceFile) continue;
       const id = this.moduleId(fileName);
-      this.modulesById.set(id, { id, sourceFile });
+      const files = filesByModule.get(id) ?? [];
+      files.push(sourceFile);
+      filesByModule.set(id, files);
       this.moduleIdsByFile.set(this.normalizedPath(fileName), id);
+    }
+    for (const [id, files] of filesByModule) {
+      const entryPoints = files.filter((file) => this.isEntryPoint(file));
+      this.modulesById.set(id, {
+        id,
+        sourceFiles: files.sort((left, right) => left.fileName.localeCompare(right.fileName)),
+        entryPoint: entryPoints.length === 1 ? entryPoints[0] : null,
+      });
     }
 
     this.graph = this.buildGraph();
@@ -89,16 +115,81 @@ export class ProjectModel {
   getExports(module: ProjectModule | ModuleId): readonly PublicSymbol[] {
     const projectModule = this.getModule(module);
     if (!projectModule) return [];
-    const moduleSymbol = this.checker.getSymbolAtLocation(projectModule.sourceFile);
-    if (!moduleSymbol) return [];
+    return this.exportsOfFiles(projectModule.sourceFiles);
+  }
 
-    return this.checker.getExportsOfModule(moduleSymbol)
-      .map((symbol) => ({ name: symbol.getName(), symbol, externalReferences: this.getExternalReferences(symbol).length }))
-      .sort((left, right) => left.name.localeCompare(right.name));
+  getPublicSurface(module: ProjectModule | ModuleId): readonly PublicSymbol[] {
+    const projectModule = this.getModule(module);
+    return projectModule?.entryPoint ? this.exportsOfFiles([projectModule.entryPoint]) : [];
+  }
+
+  getFileMetrics(module: ProjectModule | ModuleId): readonly ModuleFileMetrics[] {
+    const projectModule = this.getModule(module);
+    if (!projectModule) return [];
+    return projectModule.sourceFiles.map((sourceFile) => ({
+      file: this.fileId(sourceFile.fileName),
+      declarations: this.topLevelSymbols(sourceFile).size,
+      exports: this.exportsOfFiles([sourceFile]).length,
+    }));
+  }
+
+  getEntrypointFiles(module: ProjectModule | ModuleId): readonly string[] {
+    const projectModule = this.getModule(module);
+    if (!projectModule) return [];
+    return projectModule.sourceFiles
+      .filter((sourceFile) => this.isEntryPoint(sourceFile))
+      .map((sourceFile) => this.fileId(sourceFile.fileName));
+  }
+
+  getPrivateModuleImports(): readonly PrivateModuleImport[] {
+    const imports: PrivateModuleImport[] = [];
+    for (const module of this.modulesById.values()) {
+      for (const sourceFile of module.sourceFiles) {
+        const visit = (node: ts.Node): void => {
+          if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+            const target = this.resolvedModule(node, sourceFile);
+            const targetModuleId = target && this.moduleIdsByFile.get(this.normalizedPath(target.resolvedFileName));
+            const targetModule = targetModuleId && this.modulesById.get(targetModuleId);
+            if (targetModule && targetModule.id !== module.id && targetModule.entryPoint?.fileName !== target.resolvedFileName) {
+              imports.push({
+                module: module.id,
+                file: this.fileId(sourceFile.fileName),
+                targetModule: targetModule.id,
+                targetFile: this.fileId(target.resolvedFileName),
+              });
+            }
+          }
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile);
+      }
+    }
+    return imports;
+  }
+
+  private exportsOfFiles(sourceFiles: readonly ts.SourceFile[]): readonly PublicSymbol[] {
+    const symbols = new Map<ts.Symbol, PublicSymbol>();
+    for (const sourceFile of sourceFiles) {
+      const moduleSymbol = this.checker.getSymbolAtLocation(sourceFile);
+      if (!moduleSymbol) continue;
+      for (const symbol of this.checker.getExportsOfModule(moduleSymbol)) {
+        const target = this.unaliasedSymbol(symbol);
+        symbols.set(target, {
+          name: symbol.getName(),
+          symbol: target,
+          externalReferences: this.getExternalReferences(target).length,
+        });
+      }
+    }
+    return [...symbols.values()].sort((left, right) => left.name.localeCompare(right.name));
   }
 
   getExternalReferences(symbol: ts.Symbol): readonly ModuleId[] {
     return [...(this.externalReferences.get(this.unaliasedSymbol(symbol)) ?? [])].sort();
+  }
+
+  getExternalFileReferences(symbol: ts.Symbol): readonly string[] {
+    return [...(this.externalFileReferences.get(this.unaliasedSymbol(symbol)) ?? [])].sort();
   }
 
   getType(symbol: ts.Symbol): ts.Type {
@@ -111,14 +202,10 @@ export class ProjectModel {
     return this.graph;
   }
 
-  getPublicSurface(module: ProjectModule | ModuleId): readonly PublicSymbol[] {
-    return this.getExports(module);
-  }
-
   getMetrics(module: ProjectModule | ModuleId): ModuleMetrics {
     const projectModule = this.getModule(module);
     if (!projectModule) throw new Error(`Unknown module: ${this.moduleIdOf(module)}`);
-    const declarations = this.topLevelSymbols(projectModule.sourceFile).size;
+    const declarations = this.topLevelSymbolsAcross(projectModule.sourceFiles).size;
     const publicSurface = this.getPublicSurface(projectModule).length;
     const imports = this.getImports(projectModule);
     const references = this.crossModuleReferenceCount(projectModule);
@@ -145,22 +232,19 @@ export class ProjectModel {
 
     for (const projectModule of this.modulesById.values()) {
       const imports = new Set<ModuleId>();
-      const visit = (node: ts.Node): void => {
-        if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
-          if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-            const resolved = ts.resolveModuleName(
-              node.moduleSpecifier.text,
-              projectModule.sourceFile.fileName,
-              this.program.getCompilerOptions(),
-              ts.sys,
-            ).resolvedModule;
-            const target = resolved && this.moduleIdsByFile.get(this.normalizedPath(resolved.resolvedFileName));
-            if (target && target !== projectModule.id) imports.add(target);
+      for (const sourceFile of projectModule.sourceFiles) {
+        const visit = (node: ts.Node): void => {
+          if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
+            const resolved = this.resolvedModule(node, sourceFile);
+            if (resolved) {
+              const target = this.moduleIdsByFile.get(this.normalizedPath(resolved.resolvedFileName));
+              if (target && target !== projectModule.id) imports.add(target);
+            }
           }
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(projectModule.sourceFile);
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile);
+      }
       const sortedImports = [...imports].sort();
       dependencies.set(projectModule.id, sortedImports);
       for (const imported of sortedImports) dependents.get(imported)?.add(projectModule.id);
@@ -174,21 +258,28 @@ export class ProjectModel {
 
   private indexExternalReferences(): void {
     for (const projectModule of this.modulesById.values()) {
-      const visit = (node: ts.Node): void => {
-        if (ts.isIdentifier(node) && !this.isDeclarationName(node)) {
-          const symbol = this.checker.getSymbolAtLocation(node);
-          if (symbol) {
-            const target = this.unaliasedSymbol(symbol);
-            if (this.symbolDeclaredOutsideModule(target, projectModule.id)) {
-              const references = this.externalReferences.get(target) ?? new Set<ModuleId>();
-              references.add(projectModule.id);
-              this.externalReferences.set(target, references);
+      for (const sourceFile of projectModule.sourceFiles) {
+        const visit = (node: ts.Node): void => {
+          if (ts.isIdentifier(node) && !this.isDeclarationName(node)) {
+            const symbol = this.checker.getSymbolAtLocation(node);
+            if (symbol) {
+              const target = this.unaliasedSymbol(symbol);
+              if (this.symbolDeclaredOutsideModule(target, projectModule.id)) {
+                const references = this.externalReferences.get(target) ?? new Set<ModuleId>();
+                references.add(projectModule.id);
+                this.externalReferences.set(target, references);
+              }
+              if (this.symbolDeclaredOutsideFile(target, sourceFile)) {
+                const references = this.externalFileReferences.get(target) ?? new Set<string>();
+                references.add(this.fileId(sourceFile.fileName));
+                this.externalFileReferences.set(target, references);
+              }
             }
           }
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(projectModule.sourceFile);
+          ts.forEachChild(node, visit);
+        };
+        visit(sourceFile);
+      }
     }
   }
 
@@ -201,7 +292,7 @@ export class ProjectModel {
       }
       ts.forEachChild(node, visit);
     };
-    visit(projectModule.sourceFile);
+    for (const sourceFile of projectModule.sourceFiles) visit(sourceFile);
     return count;
   }
 
@@ -220,6 +311,14 @@ export class ProjectModel {
     return symbols;
   }
 
+  private topLevelSymbolsAcross(sourceFiles: readonly ts.SourceFile[]): Set<ts.Symbol> {
+    const symbols = new Set<ts.Symbol>();
+    for (const sourceFile of sourceFiles) {
+      for (const symbol of this.topLevelSymbols(sourceFile)) symbols.add(symbol);
+    }
+    return symbols;
+  }
+
   private getModule(module: ProjectModule | ModuleId): ProjectModule | undefined {
     return typeof module === 'string' ? this.modulesById.get(module) : module;
   }
@@ -229,7 +328,28 @@ export class ProjectModel {
   }
 
   private moduleId(fileName: string): ModuleId {
+    return path.dirname(path.relative(this.rootDir, fileName)).split(path.sep).join('/');
+  }
+
+  private fileId(fileName: string): string {
     return path.relative(this.rootDir, fileName).split(path.sep).join('/');
+  }
+
+  private isEntryPoint(sourceFile: ts.SourceFile): boolean {
+    return /^index\.(?:[cm]?ts|tsx)$/.test(path.basename(sourceFile.fileName));
+  }
+
+  private resolvedModule(
+    node: ts.ImportDeclaration | ts.ExportDeclaration,
+    sourceFile: ts.SourceFile,
+  ): ts.ResolvedModuleFull | undefined {
+    if (!node.moduleSpecifier || !ts.isStringLiteral(node.moduleSpecifier)) return undefined;
+    return ts.resolveModuleName(
+      node.moduleSpecifier.text,
+      sourceFile.fileName,
+      this.program.getCompilerOptions(),
+      ts.sys,
+    ).resolvedModule;
   }
 
   private normalizedPath(fileName: string): string {
@@ -244,6 +364,10 @@ export class ProjectModel {
     return symbol.declarations?.some((declaration) => (
       this.moduleIdsByFile.get(this.normalizedPath(declaration.getSourceFile().fileName)) !== moduleId
     )) ?? false;
+  }
+
+  private symbolDeclaredOutsideFile(symbol: ts.Symbol, sourceFile: ts.SourceFile): boolean {
+    return symbol.declarations?.some((declaration) => declaration.getSourceFile() !== sourceFile) ?? false;
   }
 
   private isDeclarationName(node: ts.Identifier): boolean {

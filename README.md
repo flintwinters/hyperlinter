@@ -26,7 +26,13 @@ npx tsx tools/hyperlint/src/cli.ts
 npx tsx tools/hyperlint/src/cli.ts --write-baseline
 npx tsx tools/hyperlint/src/cli.ts --history
 npx tsx tools/hyperlint/src/cli.ts --format=json
+npx tsx tools/hyperlint/src/cli.ts --fix
 ```
 
 The evidence ledger is intentionally local and ignored by Git. Baselines are
 target-project policy and should be reviewed with the target project's code.
+
+`--fix` extracts eligible exact AST clones: non-exported, synchronous top-level
+functions with at least 20 meaningful AST nodes. Detection alpha-renames local
+symbols, hashes normalized trees, and anti-unifies literal differences into
+helper parameters; broader similarities remain diagnostics.

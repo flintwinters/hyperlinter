@@ -4,6 +4,7 @@ import path from 'node:path';
 
 import type { HyperlintDiagnostic } from './diagnostics/Diagnostic';
 import type { ModuleMetrics } from './project/ProjectModel';
+import { ProjectModel } from './project/ProjectModel';
 import {
   RuntimeStore,
   type RuntimeRun,
@@ -11,6 +12,7 @@ import {
   type VerificationStep,
 } from './runtime/RuntimeStore';
 import { analyze } from './runner';
+import { applyExactCloneRefactors } from './clones/exactDuplicates';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -40,7 +42,11 @@ if (arguments_.includes('--history')) {
 }
 
 const startedAt = Date.now();
-const result = analyze();
+let result = analyze();
+if (arguments_.includes('--fix')) {
+  const project = ProjectModel.fromTsConfig();
+  if (applyExactCloneRefactors(project).length > 0) result = analyze();
+}
 const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath))];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
 runtime.close();

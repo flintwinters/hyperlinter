@@ -2,6 +2,7 @@ import type { HyperlintRule } from './Rule';
 import { dependencyCyclesRule } from './dependencyCycles';
 import { moduleCouplingRule } from './moduleCoupling';
 import { moduleEntrypointRule } from './moduleEntrypoint';
+import { noCssFilesRule } from './noCssFiles';
 import { publicSurfaceRule } from './publicSurface';
 import { exactDuplicatesRule } from './exactDuplicates';
 import { nearDuplicatesRule } from './nearDuplicates';
@@ -14,6 +15,7 @@ export const rules: readonly HyperlintRule[] = [
   publicSurfaceLimitRule,
   moduleEntrypointRule,
   singlePublicMethodRule,
+  noCssFilesRule,
   moduleCouplingRule,
   exactDuplicatesRule,
   nearDuplicatesRule,

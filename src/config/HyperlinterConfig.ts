@@ -14,6 +14,7 @@ export interface HyperlinterConfig {
     readonly publicSurfaceLimit: DiagnosticSeverity;
     readonly moduleEntrypoint: DiagnosticSeverity;
     readonly singlePublicMethod: DiagnosticSeverity;
+    readonly noCssFiles: DiagnosticSeverity;
     readonly moduleScore: DiagnosticSeverity;
   };
   readonly clones: {
@@ -69,6 +70,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       publicSurfaceLimit: severity(rules.publicSurfaceLimit, fileName, 'rules.publicSurfaceLimit'),
       moduleEntrypoint: severity(rules.moduleEntrypoint, fileName, 'rules.moduleEntrypoint'),
       singlePublicMethod: severity(rules.singlePublicMethod, fileName, 'rules.singlePublicMethod'),
+      noCssFiles: severity(rules.noCssFiles, fileName, 'rules.noCssFiles'),
       moduleScore: severity(rules.moduleScore, fileName, 'rules.moduleScore'),
     },
     clones: {

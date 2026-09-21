@@ -2,10 +2,8 @@ import crypto from 'node:crypto';
 
 import ts from 'typescript';
 
+import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ProjectModel } from '../project/ProjectModel';
-
-/** Small clones are usually clearer in place; this is deliberately a structural floor. */
-export const MINIMUM_CLONE_NODES = 20;
 
 export interface ExactClone {
   readonly file: string;
@@ -29,7 +27,7 @@ interface NormalizationState {
 }
 
 /** Finds alpha-renamed exact AST clones and anti-unifies literal differences. */
-export function findExactClones(project: ProjectModel): readonly ExactClone[] {
+export function findExactClones(project: ProjectModel, config: HyperlinterConfig): readonly ExactClone[] {
   const clones: ExactClone[] = [];
   for (const module of project.getModules()) {
     const functions = module.sourceFile.statements.filter(isEligibleFunction);
@@ -37,7 +35,7 @@ export function findExactClones(project: ProjectModel): readonly ExactClone[] {
       const first = functions[left];
       const second = functions[right];
       const meaningfulNodes = countMeaningfulNodes(first.body);
-      if (meaningfulNodes < MINIMUM_CLONE_NODES || meaningfulNodes !== countMeaningfulNodes(second.body)) continue;
+      if (meaningfulNodes < config.clones.exactMinimumMeaningfulNodes || meaningfulNodes !== countMeaningfulNodes(second.body)) continue;
       const differences: CloneDifference[] = [];
       const matches = antiUnify(first.body, second.body, first, second, project.checker, differences);
       if (!matches) continue;
@@ -54,8 +52,8 @@ export function findExactClones(project: ProjectModel): readonly ExactClone[] {
   return clones;
 }
 
-export function applyExactCloneRefactors(project: ProjectModel): readonly ExactClone[] {
-  const selected = findExactClones(project);
+export function applyExactCloneRefactors(project: ProjectModel, config: HyperlinterConfig): readonly ExactClone[] {
+  const selected = findExactClones(project, config);
   const byFile = new Map<string, ExactClone[]>();
   for (const clone of selected) {
     const existing = byFile.get(clone.first.getSourceFile().fileName) ?? [];

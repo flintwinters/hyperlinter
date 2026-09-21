@@ -13,6 +13,7 @@ import {
 } from './runtime/RuntimeStore';
 import { analyze } from './runner';
 import { applyExactCloneRefactors } from './clones/exactDuplicates';
+import { loadHyperlinterConfig } from './config/HyperlinterConfig';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -45,7 +46,7 @@ const startedAt = Date.now();
 let result = analyze();
 if (arguments_.includes('--fix')) {
   const project = ProjectModel.fromTsConfig();
-  if (applyExactCloneRefactors(project).length > 0) result = analyze();
+  if (applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0) result = analyze();
 }
 const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath))];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);

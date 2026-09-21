@@ -1,7 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import type { DiagnosticSeverity } from '../diagnostics/Diagnostic';
+
 export interface HyperlinterConfig {
+  readonly rules: {
+    readonly dependencyCycles: DiagnosticSeverity;
+    readonly unusedPublicSurface: DiagnosticSeverity;
+    readonly couplingOutliers: DiagnosticSeverity;
+    readonly exactDuplicates: DiagnosticSeverity;
+    readonly nearDuplicates: DiagnosticSeverity;
+    readonly publicSurfaceGrowth: DiagnosticSeverity;
+  };
   readonly clones: {
     readonly exactMinimumMeaningfulNodes: number;
     readonly nearMinimumMeaningfulNodes: number;
@@ -29,10 +39,19 @@ function hyperlinterRoot(): string {
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value) || !isObject(value.clones) || !isObject(value.coupling)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  const rules = value.rules;
   const clones = value.clones;
   const coupling = value.coupling;
   return {
+    rules: {
+      dependencyCycles: severity(rules.dependencyCycles, fileName, 'rules.dependencyCycles'),
+      unusedPublicSurface: severity(rules.unusedPublicSurface, fileName, 'rules.unusedPublicSurface'),
+      couplingOutliers: severity(rules.couplingOutliers, fileName, 'rules.couplingOutliers'),
+      exactDuplicates: severity(rules.exactDuplicates, fileName, 'rules.exactDuplicates'),
+      nearDuplicates: severity(rules.nearDuplicates, fileName, 'rules.nearDuplicates'),
+      publicSurfaceGrowth: severity(rules.publicSurfaceGrowth, fileName, 'rules.publicSurfaceGrowth'),
+    },
     clones: {
       exactMinimumMeaningfulNodes: positiveInteger(clones.exactMinimumMeaningfulNodes, fileName, 'clones.exactMinimumMeaningfulNodes'),
       nearMinimumMeaningfulNodes: positiveInteger(clones.nearMinimumMeaningfulNodes, fileName, 'clones.nearMinimumMeaningfulNodes'),
@@ -63,5 +82,10 @@ function fraction(value: unknown, fileName: string, key: string): number {
 
 function positiveNumber(value: unknown, fileName: string, key: string): number {
   if (typeof value !== 'number' || value <= 0) throw new Error(`${fileName}: ${key} must be positive.`);
+  return value;
+}
+
+function severity(value: unknown, fileName: string, key: string): DiagnosticSeverity {
+  if (value !== 'info' && value !== 'smell' && value !== 'error') throw new Error(`${fileName}: ${key} must be info, smell, or error.`);
   return value;
 }

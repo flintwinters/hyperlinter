@@ -13,7 +13,7 @@ import {
 } from './runtime/RuntimeStore';
 import { analyze } from './runner';
 import { applyExactCloneRefactors } from './clones/exactDuplicates';
-import { loadHyperlinterConfig } from './config/HyperlinterConfig';
+import { loadHyperlinterConfig, type HyperlinterConfig } from './config/HyperlinterConfig';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -48,7 +48,7 @@ if (arguments_.includes('--fix')) {
   const project = ProjectModel.fromTsConfig();
   if (applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0) result = analyze();
 }
-const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath))];
+const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath), loadHyperlinterConfig())];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
 runtime.close();
 
@@ -74,13 +74,17 @@ function readBaseline(fileName: string): Baseline | undefined {
   return JSON.parse(fs.readFileSync(fileName, 'utf8')) as Baseline;
 }
 
-function baselineDiagnostics(metrics: readonly ModuleMetrics[], baseline: Baseline | undefined): HyperlintDiagnostic[] {
+function baselineDiagnostics(
+  metrics: readonly ModuleMetrics[],
+  baseline: Baseline | undefined,
+  config: HyperlinterConfig,
+): HyperlintDiagnostic[] {
   if (!baseline) return [];
   return metrics.flatMap((metric) => {
     const prior = baseline.metrics[metric.module];
     if (!prior || metric.publicSurface <= prior.publicSurface) return [];
     return [{
-      rule: 'HL102', severity: 'smell' as const, module: metric.module,
+      rule: 'HL102', severity: config.rules.publicSurfaceGrowth, module: metric.module,
       message: `Public surface increased from ${prior.publicSurface} to ${metric.publicSurface} symbols since the baseline.`,
     }];
   });

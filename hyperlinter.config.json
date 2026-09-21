@@ -1,4 +1,12 @@
 {
+  "rules": {
+    "dependencyCycles": "error",
+    "unusedPublicSurface": "smell",
+    "couplingOutliers": "smell",
+    "exactDuplicates": "smell",
+    "nearDuplicates": "info",
+    "publicSurfaceGrowth": "smell"
+  },
   "clones": {
     "exactMinimumMeaningfulNodes": 20,
     "nearMinimumMeaningfulNodes": 15,

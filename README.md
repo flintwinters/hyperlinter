@@ -37,9 +37,10 @@ functions with the configured minimum meaningful AST nodes. Detection alpha-rena
 symbols, hashes normalized trees, and anti-unifies literal differences into
 helper parameters; broader similarities remain diagnostics.
 
-Near-duplicate tracking is advisory (`HL105`): normalized subtree hashes select
-candidates, anti-unification confirms at least 90% shared structure across a
-cluster of three or more methods, and each occurrence is retained in the local
+Near-duplicate tracking defaults to advisory (`HL105`): normalized subtree hashes select
+candidates, anti-unification confirms the configured shared-structure threshold across a
+configured minimum cluster size, and each occurrence is retained in the local
 SQLite diagnostic ledger. It intentionally makes no source changes.
 
-Detection thresholds live in the versioned [`hyperlinter.config.json`](./hyperlinter.config.json).
+Rule enforcement levels and detection thresholds live in the versioned
+[`hyperlinter.config.json`](./hyperlinter.config.json).

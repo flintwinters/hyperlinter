@@ -29,7 +29,7 @@ function couplingDiagnostics(
     if (value >= config.coupling.minimumOutlierValue && deviation > 0 && (value - mean) / deviation >= config.coupling.minimumZScore) {
       diagnostics.push({
         rule: 'HL103',
-        severity: 'smell',
+        severity: config.rules.couplingOutliers,
         module: module.module,
         score: value,
         message: `${label} of ${value} is a repository outlier.`,

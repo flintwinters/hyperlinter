@@ -1,0 +1,457 @@
+{
+  "metrics": {
+    "drizzle.config.ts": {
+      "publicSurface": 1
+    },
+    "next-env.d.ts": {
+      "publicSurface": 0
+    },
+    "scripts/db/verify-schema-owner.ts": {
+      "publicSurface": 0
+    },
+    "src/app/api/account/me/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/account/zimbra/route.ts": {
+      "publicSurface": 4
+    },
+    "src/app/api/admin/boards/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/auth/login/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/auth/logout/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/auth/sso/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/calendar/events/[id]/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/calendar/events/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/events/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/files/[id]/raw/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/files/[id]/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/files/[id]/share/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/files/[id]/thumbnail/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/files/route.ts": {
+      "publicSurface": 3
+    },
+    "src/app/api/import/zimbra/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/kanban/cards/[id]/contacts/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/kanban/cards/[id]/notes/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/kanban/cards/[id]/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/kanban/cards/archive/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/kanban/cards/merge/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/kanban/cards/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/kanban/contacts/[linkId]/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/kanban/notes/[noteId]/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/kanban/tags/[id]/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/kanban/tags/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/salespro/contacts/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/share-links/[token]/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/share-links/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/share/f/[token]/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/share/resource/route.ts": {
+      "publicSurface": 4
+    },
+    "src/app/api/share/u/[token]/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/state/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/sticky/[id]/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/api/sticky/route.ts": {
+      "publicSurface": 1
+    },
+    "src/app/api/users/route.ts": {
+      "publicSurface": 2
+    },
+    "src/app/App.tsx": {
+      "publicSurface": 1
+    },
+    "src/app/layout.tsx": {
+      "publicSurface": 2
+    },
+    "src/app/login/LoginForm.tsx": {
+      "publicSurface": 1
+    },
+    "src/app/login/page.tsx": {
+      "publicSurface": 2
+    },
+    "src/app/page.tsx": {
+      "publicSurface": 1
+    },
+    "src/app/s/f/[token]/page.tsx": {
+      "publicSurface": 2
+    },
+    "src/app/s/f/[token]/SharedFileView.tsx": {
+      "publicSurface": 1
+    },
+    "src/app/s/u/[token]/page.tsx": {
+      "publicSurface": 2
+    },
+    "src/app/s/u/[token]/SharedUploadView.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/account/AccountModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/admin/AllBoardsGallery.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/admin/TagManagerModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/calendar/EventAddModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/calendar/EventViewModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/email/ImportModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/files/FilePreview.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/files/FilePreviewModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/files/ShareLinkPanel.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/files/UploadProgress.tsx": {
+      "publicSurface": 2
+    },
+    "src/components/kanban/AssigneeEditor.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/kanban/CardContactEditor.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/kanban/CardContextMenu.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/kanban/CardModal.tsx": {
+      "publicSurface": 4
+    },
+    "src/components/kanban/CardSharePopover.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/kanban/MergeCardsModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/kanban/PrintBoardModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/ui/AppMark.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/ui/BottomTabBar.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/ui/Modal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/ui/Select.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/ui/Toast.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/CalendarView.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/KanbanView.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/ModalDispatcher.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/NoteBody.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/SettingsModal.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/StickyOverlay.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/UploadView.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/WorkspacePopovers.tsx": {
+      "publicSurface": 1
+    },
+    "src/components/workspace/WorkspaceShell.tsx": {
+      "publicSurface": 1
+    },
+    "src/db/defaults.ts": {
+      "publicSurface": 1
+    },
+    "src/db/index.ts": {
+      "publicSurface": 2
+    },
+    "src/db/managedTables.ts": {
+      "publicSurface": 1
+    },
+    "src/db/schema.ts": {
+      "publicSurface": 26
+    },
+    "src/db/scripts/import-legacy-sqlite.ts": {
+      "publicSurface": 0
+    },
+    "src/db/seed.ts": {
+      "publicSurface": 0
+    },
+    "src/hooks/useCardModalDraft.ts": {
+      "publicSurface": 1
+    },
+    "src/hooks/useCardShareState.ts": {
+      "publicSurface": 1
+    },
+    "src/hooks/useKeyboardShortcuts.ts": {
+      "publicSurface": 1
+    },
+    "src/hooks/usePaneState.ts": {
+      "publicSurface": 1
+    },
+    "src/hooks/useWorkspaceActions.ts": {
+      "publicSurface": 1
+    },
+    "src/hooks/useWorkspaceBootstrap.ts": {
+      "publicSurface": 1
+    },
+    "src/hooks/useWorkspaceUtilities.tsx": {
+      "publicSurface": 1
+    },
+    "src/hooks/useWorkspaceViews.tsx": {
+      "publicSurface": 1
+    },
+    "src/lib/animations.stylex.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/archive.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/auth-constants.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/auth.ts": {
+      "publicSurface": 9
+    },
+    "src/lib/authz.ts": {
+      "publicSurface": 6
+    },
+    "src/lib/cardAge.ts": {
+      "publicSurface": 4
+    },
+    "src/lib/cardLink.ts": {
+      "publicSurface": 2
+    },
+    "src/lib/cardPriority.ts": {
+      "publicSurface": 2
+    },
+    "src/lib/cardShare.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/cardSort.ts": {
+      "publicSurface": 12
+    },
+    "src/lib/cardTag.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/client.ts": {
+      "publicSurface": 3
+    },
+    "src/lib/clientId.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/cursor.ts": {
+      "publicSurface": 4
+    },
+    "src/lib/employeesDb.ts": {
+      "publicSurface": 6
+    },
+    "src/lib/events.ts": {
+      "publicSurface": 5
+    },
+    "src/lib/format.ts": {
+      "publicSurface": 3
+    },
+    "src/lib/formControlStyles.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/id.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/mappers.ts": {
+      "publicSurface": 9
+    },
+    "src/lib/messenger.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/mimeSafety.ts": {
+      "publicSurface": 3
+    },
+    "src/lib/publicUrl.ts": {
+      "publicSurface": 2
+    },
+    "src/lib/rateLimit.ts": {
+      "publicSurface": 2
+    },
+    "src/lib/salesProDb.ts": {
+      "publicSurface": 2
+    },
+    "src/lib/scrollbars.stylex.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/share.ts": {
+      "publicSurface": 6
+    },
+    "src/lib/storage.ts": {
+      "publicSurface": 4
+    },
+    "src/lib/streamFile.ts": {
+      "publicSurface": 2
+    },
+    "src/lib/theme.ts": {
+      "publicSurface": 6
+    },
+    "src/lib/themeTokens.stylex.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/thumbnails.ts": {
+      "publicSurface": 3
+    },
+    "src/lib/types.ts": {
+      "publicSurface": 19
+    },
+    "src/lib/uploadMultipart.ts": {
+      "publicSurface": 4
+    },
+    "src/lib/useIsMobile.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/useLiveRefresh.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/useSsoBypass.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/useToast.ts": {
+      "publicSurface": 1
+    },
+    "src/lib/zimbra.ts": {
+      "publicSurface": 2
+    },
+    "src/middleware.ts": {
+      "publicSurface": 2
+    },
+    "tests/cardAge.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/cardLink.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/cardPriority.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/cardShare.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/cardSort.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/cardTag.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/formStyles.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/hyperlint.test.ts": {
+      "publicSurface": 0
+    },
+    "tests/performance.test.ts": {
+      "publicSurface": 0
+    },
+    "tools/hyperlint/src/cli.ts": {
+      "publicSurface": 0
+    },
+    "tools/hyperlint/src/diagnostics/Diagnostic.ts": {
+      "publicSurface": 2
+    },
+    "tools/hyperlint/src/project/ModuleGraph.ts": {
+      "publicSurface": 2
+    },
+    "tools/hyperlint/src/project/ProjectModel.ts": {
+      "publicSurface": 4
+    },
+    "tools/hyperlint/src/rules/dependencyCycles.ts": {
+      "publicSurface": 1
+    },
+    "tools/hyperlint/src/rules/index.ts": {
+      "publicSurface": 1
+    },
+    "tools/hyperlint/src/rules/moduleCoupling.ts": {
+      "publicSurface": 1
+    },
+    "tools/hyperlint/src/rules/publicSurface.ts": {
+      "publicSurface": 1
+    },
+    "tools/hyperlint/src/rules/Rule.ts": {
+      "publicSurface": 1
+    },
+    "tools/hyperlint/src/runner.ts": {
+      "publicSurface": 2
+    }
+  }
+}

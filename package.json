@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "hyperlint": "tsx src/cli.ts",
-    "baseline": "tsx src/cli.ts --write-baseline"
+    "baseline": "tsx src/cli.ts --write-baseline",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

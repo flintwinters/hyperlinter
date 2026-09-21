@@ -40,14 +40,16 @@ function directUnusedExport(module: ProjectModule, symbol: PublicSymbol): Privat
   if (symbol.name === 'default') return undefined;
   const declaration = singleDeclaration(symbol);
   if (!declaration) return undefined;
-  if (declaration.getSourceFile() !== module.sourceFile) return undefined;
+  const sourceFile = declaration.getSourceFile();
+  if (!module.sourceFiles.includes(sourceFile)) return undefined;
+  if (module.entryPoint === sourceFile) return undefined;
   const exportModifier = directExportModifier(declaration);
   if (!exportModifier) return undefined;
   let end = exportModifier.getEnd();
-  while (module.sourceFile.text[end] === ' ' || module.sourceFile.text[end] === '\t') end += 1;
+  while (sourceFile.text[end] === ' ' || sourceFile.text[end] === '\t') end += 1;
   return {
-    fileName: module.sourceFile.fileName,
-    start: exportModifier.getStart(module.sourceFile),
+    fileName: sourceFile.fileName,
+    start: exportModifier.getStart(sourceFile),
     end,
     module: module.id,
     symbol: symbol.name,
@@ -61,9 +63,10 @@ function directUnusedExport(module: ProjectModule, symbol: PublicSymbol): Privat
  */
 export function privateUnusedExportFixes(project: ProjectModel): readonly PrivateExportFix[] {
   return project.getModules().flatMap((module) => {
-    if (project.getDependents(module).length === 0) return [];
-    return project.getPublicSurface(module)
-      .filter((symbol) => symbol.externalReferences === 0)
+    // Without a directory entrypoint, this may be an externally loaded file.
+    if (!module.entryPoint) return [];
+    return project.getExports(module)
+      .filter((symbol) => project.getExternalFileReferences(symbol.symbol).length === 0)
       .flatMap((symbol) => {
         const fix = directUnusedExport(module, symbol);
         return fix ? [fix] : [];

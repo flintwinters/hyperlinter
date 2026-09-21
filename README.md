@@ -17,8 +17,15 @@ npx tsx tools/hyperlint/src/cli.ts
 
 Run the command from the target repository root. It reads that repository's
 `tsconfig.json`, persists local run evidence in `tools/hyperlint/runtime/`, and
+<<<<<<< HEAD
 uses `tools/hyperlint/baseline.json` for public-surface trend checks. Every
 module is also subject to the configured maximum exported-symbol count.
+An architectural module is the source-owning directory: it must have exactly
+one `index.*` public entrypoint, and every other file in that directory is
+private to that module. Internal files may use TypeScript exports for internal
+imports, but other modules must import the directory index. An entrypoint file
+with one top-level declaration and one export is rejected as an unnecessary
+architectural boundary.
 
 ## Commands
 

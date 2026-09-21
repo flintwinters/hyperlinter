@@ -4,7 +4,12 @@ import path from 'node:path';
 
 import type { HyperlintDiagnostic } from './diagnostics/Diagnostic';
 import type { ModuleMetrics } from './project/ProjectModel';
-import { RuntimeStore, type RuntimeRun } from './runtime/RuntimeStore';
+import {
+  RuntimeStore,
+  type RuntimeRun,
+  type VerificationRun,
+  type VerificationStep,
+} from './runtime/RuntimeStore';
 import { analyze } from './runner';
 
 interface Baseline {
@@ -18,8 +23,15 @@ const runtime = new RuntimeStore();
 
 if (arguments_.includes('--history')) {
   const history = runtime.history();
-  if (json) process.stdout.write(`${JSON.stringify({ runs: history }, null, 2)}\n`);
-  else printHistory(history);
+  const verifications = runtime.verificationHistory().map((verification) => ({
+    ...verification,
+    steps: runtime.verificationSteps(verification.id),
+  }));
+  if (json) process.stdout.write(`${JSON.stringify({ runs: history, verifications }, null, 2)}\n`);
+  else {
+    printHistory(history);
+    printVerificationHistory(verifications);
+  }
   runtime.close();
   process.exit();
 }
@@ -86,6 +98,20 @@ function printHistory(runs: readonly RuntimeRun[]): void {
       `${run.id} | ${startedAt} | ${run.durationMs}ms | ${revision} | ` +
       `${run.modules} | ${run.diagnostics} | ${run.errors} | ${run.smells}\n`,
     );
+  }
+}
+
+function printVerificationHistory(
+  runs: readonly (VerificationRun & { steps: readonly VerificationStep[] })[],
+): void {
+  if (runs.length === 0) return;
+  process.stdout.write('\nVerification run | Status | Duration | Revision | Steps\n');
+  process.stdout.write('---: | --- | ---: | --- | ---:\n');
+  for (const run of runs) {
+    const revision = run.revision?.slice(0, 12) ?? 'unknown';
+    const status = run.status;
+    const duration = run.durationMs === null ? 'running' : `${run.durationMs}ms`;
+    process.stdout.write(`${run.id} | ${status} | ${duration} | ${revision} | ${run.steps.length}\n`);
   }
 }
 

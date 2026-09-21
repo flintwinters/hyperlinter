@@ -59,7 +59,7 @@ export interface VerificationStep {
 export class RuntimeStore {
   private readonly database: Database.Database;
 
-  constructor(fileName = path.resolve('tools/hyperlint/runtime/hyperlint.sqlite')) {
+  constructor(fileName = defaultRuntimeFile()) {
     fs.mkdirSync(path.dirname(fileName), { recursive: true });
     this.database = new Database(fileName);
     this.database.pragma('journal_mode = WAL');
@@ -269,6 +269,14 @@ export class RuntimeStore {
       this.database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
     }
   }
+}
+
+function defaultRuntimeFile(): string {
+  const submoduleRoot = path.resolve('tools/hyperlint');
+  return path.resolve(
+    fs.existsSync(submoduleRoot) ? submoduleRoot : process.cwd(),
+    'runtime/hyperlint.sqlite',
+  );
 }
 
 function toDiagnosticRow(runId: number, diagnostic: HyperlintDiagnostic) {

@@ -18,7 +18,10 @@ interface Baseline {
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes('--format=json') || arguments_.at(arguments_.indexOf('--format') + 1) === 'json';
-const baselinePath = path.resolve('tools/hyperlint/baseline.json');
+const toolRoot = fs.existsSync(path.resolve('tools/hyperlint/src/cli.ts'))
+  ? path.resolve('tools/hyperlint')
+  : process.cwd();
+const baselinePath = path.join(toolRoot, 'baseline.json');
 const runtime = new RuntimeStore();
 
 if (arguments_.includes('--history')) {

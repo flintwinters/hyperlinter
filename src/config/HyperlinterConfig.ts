@@ -11,6 +11,7 @@ export interface HyperlinterConfig {
     readonly exactDuplicates: DiagnosticSeverity;
     readonly nearDuplicates: DiagnosticSeverity;
     readonly publicSurfaceGrowth: DiagnosticSeverity;
+    readonly publicSurfaceLimit: DiagnosticSeverity;
     readonly moduleScore: DiagnosticSeverity;
   };
   readonly clones: {
@@ -23,6 +24,9 @@ export interface HyperlinterConfig {
   readonly coupling: {
     readonly minimumOutlierValue: number;
     readonly minimumZScore: number;
+  };
+  readonly publicSurface: {
+    readonly maximum: number;
   };
   readonly scoring: {
     readonly severityWeights: Readonly<Record<DiagnosticSeverity, number>>;
@@ -44,10 +48,11 @@ function hyperlinterRoot(): string {
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling) || !isObject(value.scoring)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling) || !isObject(value.publicSurface) || !isObject(value.scoring)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const rules = value.rules;
   const clones = value.clones;
   const coupling = value.coupling;
+  const publicSurface = value.publicSurface;
   const scoring = value.scoring;
   if (!isObject(scoring.severityWeights)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const severityWeights = scoring.severityWeights;
@@ -59,6 +64,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       exactDuplicates: severity(rules.exactDuplicates, fileName, 'rules.exactDuplicates'),
       nearDuplicates: severity(rules.nearDuplicates, fileName, 'rules.nearDuplicates'),
       publicSurfaceGrowth: severity(rules.publicSurfaceGrowth, fileName, 'rules.publicSurfaceGrowth'),
+      publicSurfaceLimit: severity(rules.publicSurfaceLimit, fileName, 'rules.publicSurfaceLimit'),
       moduleScore: severity(rules.moduleScore, fileName, 'rules.moduleScore'),
     },
     clones: {
@@ -71,6 +77,9 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
     coupling: {
       minimumOutlierValue: positiveInteger(coupling.minimumOutlierValue, fileName, 'coupling.minimumOutlierValue'),
       minimumZScore: positiveNumber(coupling.minimumZScore, fileName, 'coupling.minimumZScore'),
+    },
+    publicSurface: {
+      maximum: positiveInteger(publicSurface.maximum, fileName, 'publicSurface.maximum'),
     },
     scoring: {
       severityWeights: {

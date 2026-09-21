@@ -16,7 +16,10 @@ export const nearDuplicatesRule: HyperlintRule = {
         module: project.getModuleIdForFile(first.getSourceFile().fileName),
         line: first.getSourceFile().getLineAndCharacterOfPosition(first.getStart()).line + 1,
         score: cluster.similarity,
-        message: `${cluster.methods.length} near-duplicate methods (${similarity}% shared normalized AST): ${names}.${cluster.parameterized ? ' Differences are parameter/literal-only.' : ''}`,
+        message: [
+          `${cluster.methods.length} near-duplicate methods (${similarity}% shared normalized AST): ${names}.`,
+          cluster.parameterized ? 'Differences are parameter/literal-only.' : '',
+        ].filter(Boolean).join(' '),
       };
     });
   },

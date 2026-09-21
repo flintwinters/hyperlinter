@@ -51,7 +51,9 @@ function hyperlinterRoot(): string {
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling) || !isObject(value.publicSurface) || !isObject(value.scoring)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  if (!hasConfigurationSections(value)) {
+    throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  }
   const rules = value.rules;
   const clones = value.clones;
   const coupling = value.coupling;
@@ -74,11 +76,19 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       moduleScore: severity(rules.moduleScore, fileName, 'rules.moduleScore'),
     },
     clones: {
-      exactMinimumMeaningfulNodes: positiveInteger(clones.exactMinimumMeaningfulNodes, fileName, 'clones.exactMinimumMeaningfulNodes'),
-      nearMinimumMeaningfulNodes: positiveInteger(clones.nearMinimumMeaningfulNodes, fileName, 'clones.nearMinimumMeaningfulNodes'),
+      exactMinimumMeaningfulNodes: positiveInteger(
+        clones.exactMinimumMeaningfulNodes, fileName, 'clones.exactMinimumMeaningfulNodes',
+      ),
+      nearMinimumMeaningfulNodes: positiveInteger(
+        clones.nearMinimumMeaningfulNodes, fileName, 'clones.nearMinimumMeaningfulNodes',
+      ),
       nearMinimumSimilarity: fraction(clones.nearMinimumSimilarity, fileName, 'clones.nearMinimumSimilarity'),
-      nearMinimumClusterMethods: positiveInteger(clones.nearMinimumClusterMethods, fileName, 'clones.nearMinimumClusterMethods'),
-      nearMinimumSharedSubtreeHashes: positiveInteger(clones.nearMinimumSharedSubtreeHashes, fileName, 'clones.nearMinimumSharedSubtreeHashes'),
+      nearMinimumClusterMethods: positiveInteger(
+        clones.nearMinimumClusterMethods, fileName, 'clones.nearMinimumClusterMethods',
+      ),
+      nearMinimumSharedSubtreeHashes: positiveInteger(
+        clones.nearMinimumSharedSubtreeHashes, fileName, 'clones.nearMinimumSharedSubtreeHashes',
+      ),
     },
     coupling: {
       minimumOutlierValue: positiveInteger(coupling.minimumOutlierValue, fileName, 'coupling.minimumOutlierValue'),
@@ -102,6 +112,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function hasConfigurationSections(value: unknown): value is Record<string, Record<string, unknown>> {
+  return isObject(value)
+    && isObject(value.rules)
+    && isObject(value.clones)
+    && isObject(value.coupling)
+    && isObject(value.publicSurface)
+    && isObject(value.scoring);
+}
+
 function positiveInteger(value: unknown, fileName: string, key: string): number {
   return integerAtLeast(value, 1, fileName, key, 'positive');
 }
@@ -110,8 +129,16 @@ function nonNegativeInteger(value: unknown, fileName: string, key: string): numb
   return integerAtLeast(value, 0, fileName, key, 'non-negative');
 }
 
-function integerAtLeast(value: unknown, minimum: number, fileName: string, key: string, description: string): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum) throw new Error(`${fileName}: ${key} must be a ${description} integer.`);
+function integerAtLeast(
+  value: unknown,
+  minimum: number,
+  fileName: string,
+  key: string,
+  description: string,
+): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum) {
+    throw new Error(`${fileName}: ${key} must be a ${description} integer.`);
+  }
   return value;
 }
 

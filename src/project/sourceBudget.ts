@@ -44,15 +44,22 @@ function readLedger(root: string): SourceBudgetLedger {
 
 function isLedger(value: unknown): value is SourceBudgetLedger {
   if (!isObject(value)) return false;
+  return hasLedgerFields(value) && hasValidOverride(value);
+}
+
+function hasLedgerFields(value: Record<string, unknown>): boolean {
   return value.version === 1
     && stringArray(value.sourceDirectories)
     && stringArray(value.extensions)
     && Array.isArray(value.checkpoints)
     && value.checkpoints.length > 0
-    && value.checkpoints.every((checkpoint) => isObject(checkpoint))
+    && value.checkpoints.every(isObject)
     && positiveInteger(value.growthIncrement)
-    && positiveInteger(value.requiredRefactorReduction)
-    && (value.currentThresholdOverride === undefined || nonNegativeInteger(value.currentThresholdOverride));
+    && positiveInteger(value.requiredRefactorReduction);
+}
+
+function hasValidOverride(value: Record<string, unknown>): boolean {
+  return value.currentThresholdOverride === undefined || nonNegativeInteger(value.currentThresholdOverride);
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -127,7 +134,11 @@ function currentBudget(ledger: SourceBudgetLedger) {
   const checkpoint = ledger.checkpoints.at(-1);
   if (!nonNegativeInteger(checkpoint?.threshold)) sourceBudgetError('latest checkpoint is invalid');
   const threshold = ledger.currentThresholdOverride ?? checkpoint.threshold + ledger.growthIncrement;
-  return { threshold, refactorTarget: threshold - ledger.requiredRefactorReduction, requiredReduction: ledger.requiredRefactorReduction };
+  return {
+    threshold,
+    refactorTarget: threshold - ledger.requiredRefactorReduction,
+    requiredReduction: ledger.requiredRefactorReduction,
+  };
 }
 
 function check(root: string, ledger: SourceBudgetLedger): void {
@@ -139,18 +150,27 @@ function check(root: string, ledger: SourceBudgetLedger): void {
   }
   sourceBudgetError(
     `The project has ${total.toLocaleString()} authored source lines, reaching the ${budget.threshold.toLocaleString()}-line checkpoint. ` +
-    `Refactor it down to ${budget.refactorTarget.toLocaleString()} lines or fewer (a ${budget.requiredReduction.toLocaleString()}-line reduction from this checkpoint) ` +
-    'as part of this task’s acceptance criteria. Do not treat this as separate or follow-up work: reduce the repository before reporting the task complete. ' +
-    'Prefer static analysis to intelligently and deterministically find duplicated logic that can be reused or centralized. Dynamic/manual/non-static analysis and reduction is permitted.',
+    `Refactor it down to ${budget.refactorTarget.toLocaleString()} lines or fewer ` +
+    `(a ${budget.requiredReduction.toLocaleString()}-line reduction from this checkpoint) ` +
+    'as part of this task’s acceptance criteria. Do not treat this as separate or follow-up work: ' +
+    'reduce the repository before reporting the task complete. Prefer static analysis to intelligently ' +
+    'and deterministically find duplicated logic that can be reused or centralized. ' +
+    'Dynamic/manual/non-static analysis and reduction is permitted.',
   );
 }
 
 function advance(root: string, ledger: SourceBudgetLedger): void {
-  if (git(root, ['status', '--porcelain'])) sourceBudgetError('record threshold reach and advance only from a clean committed worktree');
+  if (git(root, ['status', '--porcelain'])) {
+    sourceBudgetError('record threshold reach and advance only from a clean committed worktree');
+  }
   const budget = currentBudget(ledger);
   const total = authoredSourceLineCount(root, ledger);
-  if (total > budget.refactorTarget) sourceBudgetError(`refactor target is ${budget.refactorTarget} lines or fewer; current total is ${total}.`);
-  const checkpoint = { threshold: budget.threshold, commit: git(root, ['rev-parse', 'HEAD']), timestamp: new Date().toISOString() };
+  if (total > budget.refactorTarget) {
+    sourceBudgetError(`refactor target is ${budget.refactorTarget} lines or fewer; current total is ${total}.`);
+  }
+  const checkpoint = {
+    threshold: budget.threshold, commit: git(root, ['rev-parse', 'HEAD']), timestamp: new Date().toISOString(),
+  };
   const nextLedger = { ...ledger, checkpoints: [...ledger.checkpoints, checkpoint] };
   delete nextLedger.currentThresholdOverride;
   writeFileSync(resolve(root, 'source-line-budget.json'), `${JSON.stringify(nextLedger, null, 2)}\n`);

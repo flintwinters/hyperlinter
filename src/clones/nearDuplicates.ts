@@ -5,7 +5,10 @@ import ts from 'typescript';
 import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ProjectModel } from '../project/ProjectModel';
 
-type AnalyzableMethod = ts.FunctionLikeDeclarationBase & { readonly name: ts.Identifier; readonly body: ts.Block };
+type AnalyzableMethod = ts.FunctionLikeDeclarationBase & {
+  readonly name: ts.Identifier;
+  readonly body: ts.Block;
+};
 
 export interface NearDuplicateCluster {
   readonly methods: readonly AnalyzableMethod[];
@@ -33,11 +36,18 @@ interface Similarity {
  */
 export function findNearDuplicateClusters(project: ProjectModel, config: HyperlinterConfig): readonly NearDuplicateCluster[] {
   const methods = project.getModules().flatMap((module) => module.sourceFiles.flatMap(collectMethods));
-  const fingerprints = methods.map((method) => fingerprint(method, project.checker)).filter((entry) => entry.nodes >= config.clones.nearMinimumMeaningfulNodes);
-  const candidatePairs = candidatePairsFromAnchors(fingerprints, config.clones.nearMinimumSharedSubtreeHashes);
+  const fingerprints = methods
+    .map((method) => fingerprint(method, project.checker))
+    .filter((entry) => entry.nodes >= config.clones.nearMinimumMeaningfulNodes);
+  const candidatePairs = candidatePairsFromAnchors(
+    fingerprints,
+    config.clones.nearMinimumSharedSubtreeHashes,
+  );
   const edges: Array<{ left: number; right: number; similarity: Similarity }> = [];
   for (const [left, right] of candidatePairs) {
-    const similarity = antiUnifySimilarity(fingerprints[left], fingerprints[right], project.checker);
+    const similarity = antiUnifySimilarity(
+      fingerprints[left], fingerprints[right], project.checker,
+    );
     if (similarity.shared / similarity.total >= config.clones.nearMinimumSimilarity
       && (similarity.shared < similarity.total || similarity.parameterDifferences > 0)) {
       edges.push({ left, right, similarity });
@@ -72,7 +82,10 @@ function fingerprint(method: AnalyzableMethod, checker: ts.TypeChecker): MethodF
   return { method, nodes: countMeaningfulNodes(method.body), anchors, locals };
 }
 
-function candidatePairsFromAnchors(fingerprints: readonly MethodFingerprint[], minimumSharedAnchors: number): readonly (readonly [number, number])[] {
+function candidatePairsFromAnchors(
+  fingerprints: readonly MethodFingerprint[],
+  minimumSharedAnchors: number,
+): readonly (readonly [number, number])[] {
   const methodsByAnchor = new Map<string, number[]>();
   fingerprints.forEach((fingerprint, index) => {
     for (const anchor of fingerprint.anchors) (methodsByAnchor.get(anchor) ?? methodsByAnchor.set(anchor, []).get(anchor)!).push(index);
@@ -89,26 +102,57 @@ function candidatePairsFromAnchors(fingerprints: readonly MethodFingerprint[], m
     .map(([pair]) => pair.split(':').map(Number) as [number, number]);
 }
 
-function antiUnifySimilarity(left: MethodFingerprint, right: MethodFingerprint, checker: ts.TypeChecker): Similarity {
+function antiUnifySimilarity(
+  left: MethodFingerprint,
+  right: MethodFingerprint,
+  checker: ts.TypeChecker,
+): Similarity {
   const compare = (first: ts.Node, second: ts.Node): Similarity => {
-    if (first.kind !== second.kind) return { shared: 0, total: Math.max(nodeCount(first), nodeCount(second)), parameterDifferences: 0, semanticDifferences: 1 };
+    if (first.kind !== second.kind) return incompatibleNodes(first, second);
     if (ts.isIdentifier(first) && ts.isIdentifier(second)) {
       const matches = identifierKey(first, left.locals, checker) === identifierKey(second, right.locals, checker);
-      return { shared: matches ? 1 : 0, total: 1, parameterDifferences: 0, semanticDifferences: matches ? 0 : 1 };
+      return identifierSimilarity(matches);
     }
     if (isLiteral(first) && isLiteral(second)) {
-      return { shared: 1, total: 1, parameterDifferences: first.getText() === second.getText() ? 0 : 1, semanticDifferences: 0 };
+      return literalSimilarity(first, second);
     }
     const firstChildren: ts.Node[] = [];
     const secondChildren: ts.Node[] = [];
     ts.forEachChild(first, (child) => { firstChildren.push(child); });
     ts.forEachChild(second, (child) => { secondChildren.push(child); });
-    if (firstChildren.length !== secondChildren.length) return { shared: 0, total: Math.max(nodeCount(first), nodeCount(second)), parameterDifferences: 0, semanticDifferences: 1 };
+    if (firstChildren.length !== secondChildren.length) return incompatibleNodes(first, second);
     return firstChildren.reduce<Similarity>((result, child, index) => addSimilarity(result, compare(child, secondChildren[index])), {
       shared: 1, total: 1, parameterDifferences: 0, semanticDifferences: 0,
     });
   };
   return compare(left.method.body, right.method.body);
+}
+
+function incompatibleNodes(first: ts.Node, second: ts.Node): Similarity {
+  return {
+    shared: 0,
+    total: Math.max(nodeCount(first), nodeCount(second)),
+    parameterDifferences: 0,
+    semanticDifferences: 1,
+  };
+}
+
+function identifierSimilarity(matches: boolean): Similarity {
+  return {
+    shared: matches ? 1 : 0,
+    total: 1,
+    parameterDifferences: 0,
+    semanticDifferences: matches ? 0 : 1,
+  };
+}
+
+function literalSimilarity(first: ts.Expression, second: ts.Expression): Similarity {
+  return {
+    shared: 1,
+    total: 1,
+    parameterDifferences: first.getText() === second.getText() ? 0 : 1,
+    semanticDifferences: 0,
+  };
 }
 
 function clustersFromEdges(
@@ -127,15 +171,23 @@ function clustersFromEdges(
     if (seen.has(index)) continue;
     const members = connectedComponent(index, adjacent, seen).sort((left, right) => left - right);
     if (members.length < minimumClusterMethods) continue;
-    const componentEdges = edges.filter((edge) => members.includes(edge.left) && members.includes(edge.right));
+    const componentEdges = edges.filter(
+      (edge) => members.includes(edge.left) && members.includes(edge.right),
+    );
     const similarity = Math.min(...componentEdges.map((edge) => edge.similarity.shared / edge.similarity.total));
-    const parameterized = componentEdges.every((edge) => edge.similarity.semanticDifferences === 0 && edge.similarity.parameterDifferences > 0);
+    const parameterized = componentEdges.every(
+      (edge) => edge.similarity.semanticDifferences === 0 && edge.similarity.parameterDifferences > 0,
+    );
     clusters.push({ methods: members.map((member) => fingerprints[member].method), similarity, parameterized });
   }
   return clusters;
 }
 
-function connectedComponent(start: number, adjacent: ReadonlyMap<number, ReadonlySet<number>>, seen: Set<number>): number[] {
+function connectedComponent(
+  start: number,
+  adjacent: ReadonlyMap<number, ReadonlySet<number>>,
+  seen: Set<number>,
+): number[] {
   const pending = [start];
   const members: number[] = [];
   while (pending.length > 0) {
@@ -165,7 +217,13 @@ function localSymbols(method: AnalyzableMethod, checker: ts.TypeChecker): Readon
   return locals;
 }
 
-function nodeShape(node: ts.Node, locals: ReadonlyMap<ts.Symbol, number>, checker: ts.TypeChecker, normalizeLiterals: boolean, children: readonly string[]): string {
+function nodeShape(
+  node: ts.Node,
+  locals: ReadonlyMap<ts.Symbol, number>,
+  checker: ts.TypeChecker,
+  normalizeLiterals: boolean,
+  children: readonly string[],
+): string {
   if (ts.isIdentifier(node)) return `id:${identifierKey(node, locals, checker)}`;
   if (isLiteral(node)) return normalizeLiterals ? `literal:${ts.SyntaxKind[node.kind]}` : `literal:${node.getText()}`;
   return `${ts.SyntaxKind[node.kind]}(${children.join(',')})`;
@@ -203,7 +261,8 @@ function nodeCount(root: ts.Node): number {
 
 function isLiteral(node: ts.Node): node is ts.Expression {
   return ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)
-    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword;
+    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword
+    || node.kind === ts.SyntaxKind.NullKeyword;
 }
 
 function addSimilarity(left: Similarity, right: Similarity): Similarity {

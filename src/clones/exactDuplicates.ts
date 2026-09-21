@@ -19,7 +19,10 @@ interface CloneDifference {
   readonly second: ts.Expression;
 }
 
-type EligibleFunction = ts.FunctionDeclaration & { readonly name: ts.Identifier; readonly body: ts.Block };
+type EligibleFunction = ts.FunctionDeclaration & {
+  readonly name: ts.Identifier;
+  readonly body: ts.Block;
+};
 
 interface NormalizationState {
   readonly locals: Map<ts.Symbol, number>;
@@ -32,22 +35,27 @@ export function findExactClones(project: ProjectModel, config: HyperlinterConfig
   for (const module of project.getModules()) {
     for (const sourceFile of module.sourceFiles) {
       const functions = sourceFile.statements.filter(isEligibleFunction);
-      for (let left = 0; left < functions.length; left += 1) for (let right = left + 1; right < functions.length; right += 1) {
-        const first = functions[left];
-        const second = functions[right];
-        const meaningfulNodes = countMeaningfulNodes(first.body);
-        if (meaningfulNodes < config.clones.exactMinimumMeaningfulNodes || meaningfulNodes !== countMeaningfulNodes(second.body)) continue;
-        const differences: CloneDifference[] = [];
-        const matches = antiUnify(first.body, second.body, first, second, project.checker, differences);
-        if (!matches) continue;
-        clones.push({
-          file: project.getModuleIdForFile(sourceFile.fileName) ?? module.id,
-          first,
-          second,
-          meaningfulNodes,
-          hash: normalizedHash(first.body, localNormalizationState(first, project.checker), project.checker),
-          differences,
-        });
+      for (let left = 0; left < functions.length; left += 1) {
+        for (let right = left + 1; right < functions.length; right += 1) {
+          const first = functions[left];
+          const second = functions[right];
+          const meaningfulNodes = countMeaningfulNodes(first.body);
+          if (
+            meaningfulNodes < config.clones.exactMinimumMeaningfulNodes
+            || meaningfulNodes !== countMeaningfulNodes(second.body)
+          ) continue;
+          const differences: CloneDifference[] = [];
+          const matches = antiUnify(first.body, second.body, first, second, project.checker, differences);
+          if (!matches) continue;
+          clones.push({
+            file: project.getModuleIdForFile(sourceFile.fileName) ?? module.id,
+            first,
+            second,
+            meaningfulNodes,
+            hash: normalizedHash(first.body, localNormalizationState(first, project.checker), project.checker),
+            differences,
+          });
+        }
       }
     }
   }
@@ -70,7 +78,9 @@ export function applyExactCloneRefactors(project: ProjectModel, config: Hyperlin
       const helper = `_hyperlintClone${index}`;
       const rendered = renderHelper(clone, helper, project.checker);
       if (!rendered) continue;
-      edits.push({ start: clone.first.getFullStart(), end: clone.first.getFullStart(), text: `${rendered.helper}\n\n` });
+      edits.push({
+        start: clone.first.getFullStart(), end: clone.first.getFullStart(), text: `${rendered.helper}\n\n`,
+      });
       edits.push({ start: clone.first.body.getStart(source), end: clone.first.body.end, text: rendered.firstBody });
       edits.push({ start: clone.second.body.getStart(source), end: clone.second.body.end, text: rendered.secondBody });
     }
@@ -81,9 +91,18 @@ export function applyExactCloneRefactors(project: ProjectModel, config: Hyperlin
 
 function isEligibleFunction(statement: ts.Statement): statement is EligibleFunction {
   return ts.isFunctionDeclaration(statement) && !!statement.name && !!statement.body
-    && !statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword || modifier.kind === ts.SyntaxKind.DeclareKeyword || modifier.kind === ts.SyntaxKind.AsyncKeyword)
+    && !statement.modifiers?.some((modifier) => (
+      modifier.kind === ts.SyntaxKind.ExportKeyword
+      || modifier.kind === ts.SyntaxKind.DeclareKeyword
+      || modifier.kind === ts.SyntaxKind.AsyncKeyword
+    ))
     && !statement.asteriskToken && statement.typeParameters === undefined
-    && statement.parameters.every((parameter) => ts.isIdentifier(parameter.name) && !parameter.dotDotDotToken && !parameter.questionToken && !parameter.initializer);
+    && statement.parameters.every((parameter) => (
+      ts.isIdentifier(parameter.name)
+      && !parameter.dotDotDotToken
+      && !parameter.questionToken
+      && !parameter.initializer
+    ));
 }
 
 function countMeaningfulNodes(root: ts.Node): number {
@@ -123,7 +142,9 @@ function antiUnify(
   const secondState = localNormalizationState(secondFunction, checker);
   const visit = (left: ts.Node, right: ts.Node): boolean => {
     if (left.kind !== right.kind) return recordDifference(left, right, differences);
-    if (ts.isIdentifier(left) && ts.isIdentifier(right)) return identifierKey(left, checker, firstState) === identifierKey(right, checker, secondState);
+    if (ts.isIdentifier(left) && ts.isIdentifier(right)) {
+      return identifierKey(left, checker, firstState) === identifierKey(right, checker, secondState);
+    }
     if (isLiteral(left) && isLiteral(right)) {
       return left.getText() === right.getText() || recordDifference(left, right, differences);
     }
@@ -145,7 +166,8 @@ function recordDifference(first: ts.Node, second: ts.Node, differences: CloneDif
 
 function isLiteral(node: ts.Node): node is ts.Expression {
   return ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)
-    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword;
+    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword
+    || node.kind === ts.SyntaxKind.NullKeyword;
 }
 
 function identifierKey(node: ts.Identifier, checker: ts.TypeChecker, state: NormalizationState): string {
@@ -180,18 +202,32 @@ function overlaps(left: ExactClone, right: ExactClone): boolean {
   return left.first === right.first || left.first === right.second || left.second === right.first || left.second === right.second;
 }
 
-function renderHelper(clone: ExactClone, helper: string, checker: ts.TypeChecker): { helper: string; firstBody: string; secondBody: string } {
+function renderHelper(
+  clone: ExactClone,
+  helper: string,
+  checker: ts.TypeChecker,
+): { helper: string; firstBody: string; secondBody: string } {
   const parameters = clone.first.parameters.map((parameter) => parameter.getText()).join(', ');
   const firstArguments = clone.first.parameters.map((parameter) => parameter.name.getText());
   const secondArguments = clone.second.parameters.map((parameter) => parameter.name.getText());
-  const differenceParameters = clone.differences.map((difference, index) => `${helper}Value${index}: ${literalType(difference.first)}`);
+  const differenceParameters = clone.differences.map(
+    (difference, index) => `${helper}Value${index}: ${literalType(difference.first)}`,
+  );
   const helperParameters = [parameters, ...differenceParameters].filter(Boolean).join(', ');
-  const body = replaceLiterals(clone.first.body.getText(), clone.first.body.getStart(), clone.differences.map((difference, index) => ({ node: difference.first, text: `${helper}Value${index}` })));
+  const body = replaceLiterals(
+    clone.first.body.getText(),
+    clone.first.body.getStart(),
+    clone.differences.map((difference, index) => ({ node: difference.first, text: `${helper}Value${index}` })),
+  );
   const signature = checker.getSignatureFromDeclaration(clone.first)!;
   const returnsVoid = (checker.getReturnTypeOfSignature(signature).flags & ts.TypeFlags.Void) !== 0;
   const firstCall = `${helper}(${[...firstArguments, ...clone.differences.map((difference) => difference.first.getText())].join(', ')})`;
   const secondCall = `${helper}(${[...secondArguments, ...clone.differences.map((difference) => difference.second.getText())].join(', ')})`;
-  return { helper: `function ${helper}(${helperParameters}) ${body}`, firstBody: `{ ${returnsVoid ? `${firstCall};` : `return ${firstCall};`} }`, secondBody: `{ ${returnsVoid ? `${secondCall};` : `return ${secondCall};`} }` };
+  return {
+    helper: `function ${helper}(${helperParameters}) ${body}`,
+    firstBody: `{ ${returnsVoid ? `${firstCall};` : `return ${firstCall};`} }`,
+    secondBody: `{ ${returnsVoid ? `${secondCall};` : `return ${secondCall};`} }`,
+  };
 }
 
 function literalType(node: ts.Expression): string {
@@ -203,11 +239,16 @@ function literalType(node: ts.Expression): string {
 }
 
 function replaceLiterals(text: string, offset: number, replacements: readonly { node: ts.Node; text: string }[]): string {
-  return applyEdits(text, replacements.map(({ node, text: replacement }) => ({ start: node.getStart() - offset, end: node.end - offset, text: replacement })));
+  return applyEdits(text, replacements.map(({ node, text: replacement }) => ({
+    start: node.getStart() - offset, end: node.end - offset, text: replacement,
+  })));
 }
 
 interface TextEdit { start: number; end: number; text: string; }
 
 function applyEdits(text: string, edits: readonly TextEdit[]): string {
-  return [...edits].sort((left, right) => right.start - left.start).reduce((result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end), text);
+  return [...edits].sort((left, right) => right.start - left.start).reduce(
+    (result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end),
+    text,
+  );
 }

@@ -9,6 +9,7 @@
     "publicSurfaceLimit": "error",
     "moduleEntrypoint": "error",
     "singlePublicMethod": "error",
+    "noCssFiles": "error",
     "moduleScore": "error"
   },
   "clones": {

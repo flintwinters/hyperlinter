@@ -15,6 +15,7 @@ import { analyze } from './runner';
 import { applyExactCloneRefactors } from './clones/exactDuplicates';
 import { loadHyperlinterConfig, type HyperlinterConfig } from './config/HyperlinterConfig';
 import { applyPrivateUnusedExportFixes } from './fixes/privateExports';
+import { cssFiles } from './project/cssFiles';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -26,6 +27,15 @@ const toolRoot = fs.existsSync(path.resolve('tools/hyperlint/src/cli.ts'))
   ? path.resolve('tools/hyperlint')
   : process.cwd();
 const baselinePath = path.join(toolRoot, 'baseline.json');
+
+if (arguments_.includes('--check-no-css')) {
+  const files = cssFiles(process.cwd());
+  if (json) process.stdout.write(`${JSON.stringify({ files }, null, 2)}\n`);
+  else if (files.length) process.stderr.write(`CSS files are forbidden: ${files.join(', ')}\n`);
+  process.exitCode = files.length ? 1 : 0;
+  process.exit();
+}
+
 const runtime = new RuntimeStore();
 
 if (arguments_.includes('--history')) {

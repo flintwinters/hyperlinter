@@ -104,6 +104,10 @@ export class ProjectModel {
     return this.moduleIdsByFile.get(this.normalizedPath(fileName));
   }
 
+  getRootDir(): string {
+    return this.rootDir;
+  }
+
   getImports(module: ProjectModule | ModuleId): readonly ModuleId[] {
     return this.graph.dependencies.get(this.moduleIdOf(module)) ?? [];
   }

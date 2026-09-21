@@ -144,7 +144,12 @@ export class ProjectModel {
       const visit = (node: ts.Node): void => {
         if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
           if (node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-            const resolved = ts.resolveModuleName(node.moduleSpecifier.text, projectModule.sourceFile.fileName, this.program.getCompilerOptions(), ts.sys).resolvedModule;
+            const resolved = ts.resolveModuleName(
+              node.moduleSpecifier.text,
+              projectModule.sourceFile.fileName,
+              this.program.getCompilerOptions(),
+              ts.sys,
+            ).resolvedModule;
             const target = resolved && this.moduleIdsByFile.get(this.normalizedPath(resolved.resolvedFileName));
             if (target && target !== projectModule.id) imports.add(target);
           }
@@ -232,7 +237,9 @@ export class ProjectModel {
   }
 
   private symbolDeclaredOutsideModule(symbol: ts.Symbol, moduleId: ModuleId): boolean {
-    return symbol.declarations?.some((declaration) => this.moduleIdsByFile.get(this.normalizedPath(declaration.getSourceFile().fileName)) !== moduleId) ?? false;
+    return symbol.declarations?.some((declaration) => (
+      this.moduleIdsByFile.get(this.normalizedPath(declaration.getSourceFile().fileName)) !== moduleId
+    )) ?? false;
   }
 
   private isDeclarationName(node: ts.Identifier): boolean {

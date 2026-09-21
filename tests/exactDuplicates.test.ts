@@ -13,7 +13,11 @@ const config = loadHyperlinterConfig();
 function projectFor(fileName: string) {
   const program = ts.createProgram([fileName], { strict: true });
   const sourceFile = program.getSourceFile(fileName)!;
-  return { checker: program.getTypeChecker(), getModules: () => [{ id: 'clones.ts', sourceFile }] } as never;
+  return {
+    checker: program.getTypeChecker(),
+    getModuleIdForFile: () => 'clones.ts',
+    getModules: () => [{ id: 'clones.ts', sourceFiles: [sourceFile] }],
+  } as never;
 }
 
 function find(fileName: string) {

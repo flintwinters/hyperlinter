@@ -30,23 +30,25 @@ interface NormalizationState {
 export function findExactClones(project: ProjectModel, config: HyperlinterConfig): readonly ExactClone[] {
   const clones: ExactClone[] = [];
   for (const module of project.getModules()) {
-    const functions = module.sourceFile.statements.filter(isEligibleFunction);
-    for (let left = 0; left < functions.length; left += 1) for (let right = left + 1; right < functions.length; right += 1) {
-      const first = functions[left];
-      const second = functions[right];
-      const meaningfulNodes = countMeaningfulNodes(first.body);
-      if (meaningfulNodes < config.clones.exactMinimumMeaningfulNodes || meaningfulNodes !== countMeaningfulNodes(second.body)) continue;
-      const differences: CloneDifference[] = [];
-      const matches = antiUnify(first.body, second.body, first, second, project.checker, differences);
-      if (!matches) continue;
-      clones.push({
-        file: module.id,
-        first,
-        second,
-        meaningfulNodes,
-        hash: normalizedHash(first.body, localNormalizationState(first, project.checker), project.checker),
-        differences,
-      });
+    for (const sourceFile of module.sourceFiles) {
+      const functions = sourceFile.statements.filter(isEligibleFunction);
+      for (let left = 0; left < functions.length; left += 1) for (let right = left + 1; right < functions.length; right += 1) {
+        const first = functions[left];
+        const second = functions[right];
+        const meaningfulNodes = countMeaningfulNodes(first.body);
+        if (meaningfulNodes < config.clones.exactMinimumMeaningfulNodes || meaningfulNodes !== countMeaningfulNodes(second.body)) continue;
+        const differences: CloneDifference[] = [];
+        const matches = antiUnify(first.body, second.body, first, second, project.checker, differences);
+        if (!matches) continue;
+        clones.push({
+          file: project.getModuleIdForFile(sourceFile.fileName) ?? module.id,
+          first,
+          second,
+          meaningfulNodes,
+          hash: normalizedHash(first.body, localNormalizationState(first, project.checker), project.checker),
+          differences,
+        });
+      }
     }
   }
   return clones;

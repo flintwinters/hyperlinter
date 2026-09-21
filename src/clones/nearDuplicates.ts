@@ -32,7 +32,7 @@ interface Similarity {
  * candidates with anti-unification. Reporting requires a three-method cluster.
  */
 export function findNearDuplicateClusters(project: ProjectModel, config: HyperlinterConfig): readonly NearDuplicateCluster[] {
-  const methods = project.getModules().flatMap((module) => collectMethods(module.sourceFile));
+  const methods = project.getModules().flatMap((module) => module.sourceFiles.flatMap(collectMethods));
   const fingerprints = methods.map((method) => fingerprint(method, project.checker)).filter((entry) => entry.nodes >= config.clones.nearMinimumMeaningfulNodes);
   const candidatePairs = candidatePairsFromAnchors(fingerprints, config.clones.nearMinimumSharedSubtreeHashes);
   const edges: Array<{ left: number; right: number; similarity: Similarity }> = [];

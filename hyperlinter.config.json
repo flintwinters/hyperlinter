@@ -5,7 +5,8 @@
     "couplingOutliers": "smell",
     "exactDuplicates": "smell",
     "nearDuplicates": "info",
-    "publicSurfaceGrowth": "smell"
+    "publicSurfaceGrowth": "smell",
+    "moduleScore": "error"
   },
   "clones": {
     "exactMinimumMeaningfulNodes": 20,
@@ -17,5 +18,13 @@
   "coupling": {
     "minimumOutlierValue": 3,
     "minimumZScore": 2
+  },
+  "scoring": {
+    "severityWeights": {
+      "error": 4,
+      "smell": 2,
+      "info": 1
+    },
+    "moduleErrorThreshold": 4
   }
 }

@@ -3,12 +3,12 @@ import ts from 'typescript';
 
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
 
-export interface ProjectModule {
+interface ProjectModule {
   id: ModuleId;
   sourceFile: ts.SourceFile;
 }
 
-export interface PublicSymbol {
+interface PublicSymbol {
   name: string;
   symbol: ts.Symbol;
   externalReferences: number;
@@ -72,6 +72,10 @@ export class ProjectModel {
 
   getModules(): readonly ProjectModule[] {
     return [...this.modulesById.values()].sort((left, right) => left.id.localeCompare(right.id));
+  }
+
+  getModuleIdForFile(fileName: string): ModuleId | undefined {
+    return this.moduleIdsByFile.get(this.normalizedPath(fileName));
   }
 
   getImports(module: ProjectModule | ModuleId): readonly ModuleId[] {

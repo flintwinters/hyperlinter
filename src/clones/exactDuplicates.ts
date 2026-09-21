@@ -5,7 +5,7 @@ import ts from 'typescript';
 import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ProjectModel } from '../project/ProjectModel';
 
-export interface ExactClone {
+interface ExactClone {
   readonly file: string;
   readonly first: EligibleFunction;
   readonly second: EligibleFunction;

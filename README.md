@@ -17,7 +17,8 @@ npx tsx tools/hyperlint/src/cli.ts
 
 Run the command from the target repository root. It reads that repository's
 `tsconfig.json`, persists local run evidence in `tools/hyperlint/runtime/`, and
-uses `tools/hyperlint/baseline.json` for public-surface trend checks.
+uses `tools/hyperlint/baseline.json` for public-surface trend checks. Every
+module is also subject to the configured maximum exported-symbol count.
 
 ## Commands
 

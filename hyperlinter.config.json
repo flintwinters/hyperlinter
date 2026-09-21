@@ -6,6 +6,7 @@
     "exactDuplicates": "smell",
     "nearDuplicates": "info",
     "publicSurfaceGrowth": "smell",
+    "publicSurfaceLimit": "error",
     "moduleScore": "error"
   },
   "clones": {
@@ -18,6 +19,9 @@
   "coupling": {
     "minimumOutlierValue": 3,
     "minimumZScore": 2
+  },
+  "publicSurface": {
+    "maximum": 40
   },
   "scoring": {
     "severityWeights": {

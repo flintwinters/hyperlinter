@@ -38,6 +38,7 @@ npx tsx tools/hyperlint/src/cli.ts --fix-private-exports
 npx tsx tools/hyperlint/src/cli.ts --history
 npx tsx tools/hyperlint/src/cli.ts --format=json
 npx tsx tools/hyperlint/src/cli.ts --fix
+npx tsx tools/hyperlint/src/cli.ts --source-budget check
 ```
 
 The evidence ledger is intentionally local and ignored by Git. Baselines are
@@ -55,6 +56,11 @@ SQLite diagnostic ledger. It intentionally makes no source changes.
 
 Rule enforcement levels and detection thresholds live in the versioned
 [`hyperlinter.config.json`](./hyperlinter.config.json).
+
+Projects may opt into a source-line budget by adding a `source-line-budget.json`
+at their root and invoking `--source-budget check`, `advance`, or
+`advance-if-pending`. Its checkpoints, source directories, and reductions are
+target-project policy; Hyperlinter supplies only the reusable enforcement.
 
 Each module also accumulates configured severity weights. A module meeting the
 configured threshold emits refactor-blocking `HL106`.

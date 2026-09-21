@@ -21,6 +21,7 @@ import {
   MAX_AGENT_INSTRUCTION_LINES,
 } from './project/agentInstructions';
 import { cssFiles } from './project/cssFiles';
+import { runSourceBudget } from './project/sourceBudget';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -32,6 +33,17 @@ const toolRoot = fs.existsSync(path.resolve('tools/hyperlint/src/cli.ts'))
   ? path.resolve('tools/hyperlint')
   : process.cwd();
 const baselinePath = path.join(toolRoot, 'baseline.json');
+
+const sourceBudgetIndex = arguments_.indexOf('--source-budget');
+if (sourceBudgetIndex !== -1) {
+  try {
+    runSourceBudget(arguments_[sourceBudgetIndex + 1]);
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
+  process.exit();
+}
 
 if (arguments_.includes('--check-no-css')) {
   const files = cssFiles(process.cwd());

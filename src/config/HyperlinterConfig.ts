@@ -11,6 +11,7 @@ export interface HyperlinterConfig {
     readonly exactDuplicates: DiagnosticSeverity;
     readonly nearDuplicates: DiagnosticSeverity;
     readonly publicSurfaceGrowth: DiagnosticSeverity;
+    readonly moduleScore: DiagnosticSeverity;
   };
   readonly clones: {
     readonly exactMinimumMeaningfulNodes: number;
@@ -22,6 +23,10 @@ export interface HyperlinterConfig {
   readonly coupling: {
     readonly minimumOutlierValue: number;
     readonly minimumZScore: number;
+  };
+  readonly scoring: {
+    readonly severityWeights: Readonly<Record<DiagnosticSeverity, number>>;
+    readonly moduleErrorThreshold: number;
   };
 }
 
@@ -39,10 +44,13 @@ function hyperlinterRoot(): string {
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling) || !isObject(value.scoring)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const rules = value.rules;
   const clones = value.clones;
   const coupling = value.coupling;
+  const scoring = value.scoring;
+  if (!isObject(scoring.severityWeights)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  const severityWeights = scoring.severityWeights;
   return {
     rules: {
       dependencyCycles: severity(rules.dependencyCycles, fileName, 'rules.dependencyCycles'),
@@ -51,6 +59,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       exactDuplicates: severity(rules.exactDuplicates, fileName, 'rules.exactDuplicates'),
       nearDuplicates: severity(rules.nearDuplicates, fileName, 'rules.nearDuplicates'),
       publicSurfaceGrowth: severity(rules.publicSurfaceGrowth, fileName, 'rules.publicSurfaceGrowth'),
+      moduleScore: severity(rules.moduleScore, fileName, 'rules.moduleScore'),
     },
     clones: {
       exactMinimumMeaningfulNodes: positiveInteger(clones.exactMinimumMeaningfulNodes, fileName, 'clones.exactMinimumMeaningfulNodes'),
@@ -63,6 +72,14 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       minimumOutlierValue: positiveInteger(coupling.minimumOutlierValue, fileName, 'coupling.minimumOutlierValue'),
       minimumZScore: positiveNumber(coupling.minimumZScore, fileName, 'coupling.minimumZScore'),
     },
+    scoring: {
+      severityWeights: {
+        error: nonNegativeInteger(severityWeights.error, fileName, 'scoring.severityWeights.error'),
+        smell: nonNegativeInteger(severityWeights.smell, fileName, 'scoring.severityWeights.smell'),
+        info: nonNegativeInteger(severityWeights.info, fileName, 'scoring.severityWeights.info'),
+      },
+      moduleErrorThreshold: positiveInteger(scoring.moduleErrorThreshold, fileName, 'scoring.moduleErrorThreshold'),
+    },
   };
 }
 
@@ -71,7 +88,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
 }
 
 function positiveInteger(value: unknown, fileName: string, key: string): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) throw new Error(`${fileName}: ${key} must be a positive integer.`);
+  return integerAtLeast(value, 1, fileName, key, 'positive');
+}
+
+function nonNegativeInteger(value: unknown, fileName: string, key: string): number {
+  return integerAtLeast(value, 0, fileName, key, 'non-negative');
+}
+
+function integerAtLeast(value: unknown, minimum: number, fileName: string, key: string, description: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum) throw new Error(`${fileName}: ${key} must be a ${description} integer.`);
   return value;
 }
 

@@ -44,3 +44,6 @@ SQLite diagnostic ledger. It intentionally makes no source changes.
 
 Rule enforcement levels and detection thresholds live in the versioned
 [`hyperlinter.config.json`](./hyperlinter.config.json).
+
+Each module also accumulates configured severity weights. A module meeting the
+configured threshold emits refactor-blocking `HL106`.

@@ -5,5 +5,9 @@
     "nearMinimumSimilarity": 0.9,
     "nearMinimumClusterMethods": 3,
     "nearMinimumSharedSubtreeHashes": 3
+  },
+  "coupling": {
+    "minimumOutlierValue": 3,
+    "minimumZScore": 2
   }
 }

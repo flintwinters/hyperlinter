@@ -1,18 +1,20 @@
 import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
+import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ModuleMetrics, ProjectModel } from '../project/ProjectModel';
 import type { HyperlintRule } from './Rule';
 
 export const moduleCouplingRule: HyperlintRule = {
   id: 'HL103',
-  analyze(project: ProjectModel): readonly HyperlintDiagnostic[] {
+  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     const metrics = project.getAllMetrics();
-    return metrics.flatMap((module) => couplingDiagnostics(module, metrics));
+    return metrics.flatMap((module) => couplingDiagnostics(module, metrics, config));
   },
 };
 
 function couplingDiagnostics(
   module: ModuleMetrics,
   allMetrics: readonly ModuleMetrics[],
+  config: HyperlinterConfig,
 ): HyperlintDiagnostic[] {
   const diagnostics: HyperlintDiagnostic[] = [];
   const measures = [
@@ -24,7 +26,7 @@ function couplingDiagnostics(
     const values = allMetrics.map(getValue);
     const mean = values.reduce((sum, current) => sum + current, 0) / values.length;
     const deviation = Math.sqrt(values.reduce((sum, current) => sum + (current - mean) ** 2, 0) / values.length);
-    if (value >= 3 && deviation > 0 && (value - mean) / deviation >= 2) {
+    if (value >= config.coupling.minimumOutlierValue && deviation > 0 && (value - mean) / deviation >= config.coupling.minimumZScore) {
       diagnostics.push({
         rule: 'HL103',
         severity: 'smell',

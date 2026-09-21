@@ -14,6 +14,7 @@ import {
 import { analyze } from './runner';
 import { applyExactCloneRefactors } from './clones/exactDuplicates';
 import { loadHyperlinterConfig, type HyperlinterConfig } from './config/HyperlinterConfig';
+import { applyPrivateUnusedExportFixes } from './fixes/privateExports';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -44,6 +45,10 @@ if (arguments_.includes('--history')) {
 
 const startedAt = Date.now();
 let result = analyze();
+const fixProject = arguments_.includes('--fix-private-exports')
+  ? ProjectModel.fromTsConfig()
+  : undefined;
+const fixes = fixProject ? applyPrivateUnusedExportFixes(fixProject) : [];
 if (arguments_.includes('--fix')) {
   const project = ProjectModel.fromTsConfig();
   if (applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0) result = analyze();
@@ -61,8 +66,10 @@ if (arguments_.includes('--write-baseline')) {
 }
 
 if (json) {
-  process.stdout.write(`${JSON.stringify({ run, diagnostics, metrics: result.metrics }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ run, diagnostics, metrics: result.metrics, fixes }, null, 2)}\n`);
 } else {
+  if (fixes.length > 0)
+    process.stdout.write(`Privatized ${fixes.length} unused export${fixes.length === 1 ? '' : 's'}.\n`);
   printMetrics(result.metrics);
   for (const diagnostic of diagnostics) process.stdout.write(`${formatDiagnostic(diagnostic)}\n`);
 }

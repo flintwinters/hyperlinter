@@ -24,6 +24,7 @@ uses `tools/hyperlint/baseline.json` for public-surface trend checks.
 ```bash
 npx tsx tools/hyperlint/src/cli.ts
 npx tsx tools/hyperlint/src/cli.ts --write-baseline
+npx tsx tools/hyperlint/src/cli.ts --fix-private-exports
 npx tsx tools/hyperlint/src/cli.ts --history
 npx tsx tools/hyperlint/src/cli.ts --format=json
 npx tsx tools/hyperlint/src/cli.ts --fix
@@ -47,3 +48,8 @@ Rule enforcement levels and detection thresholds live in the versioned
 
 Each module also accumulates configured severity weights. A module meeting the
 configured threshold emits refactor-blocking `HL106`.
+
+`--fix-private-exports` removes direct named exports with no in-project
+consumer when their module already has an in-project dependent. It deliberately
+skips possible entrypoints, default exports, re-exports, overloads, and
+multi-declaration variable statements; those require human judgement.

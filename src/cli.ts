@@ -105,13 +105,14 @@ function printVerificationHistory(
   runs: readonly (VerificationRun & { steps: readonly VerificationStep[] })[],
 ): void {
   if (runs.length === 0) return;
-  process.stdout.write('\nVerification run | Status | Duration | Revision | Steps\n');
-  process.stdout.write('---: | --- | ---: | --- | ---:\n');
+  process.stdout.write('\nVerification run | Status | Duration | Revision | Host | Steps\n');
+  process.stdout.write('---: | --- | ---: | --- | --- | ---:\n');
   for (const run of runs) {
     const revision = run.revision?.slice(0, 12) ?? 'unknown';
     const status = run.status;
     const duration = run.durationMs === null ? 'running' : `${run.durationMs}ms`;
-    process.stdout.write(`${run.id} | ${status} | ${duration} | ${revision} | ${run.steps.length}\n`);
+    const host = run.host?.hostname ?? 'unknown';
+    process.stdout.write(`${run.id} | ${status} | ${duration} | ${revision} | ${host} | ${run.steps.length}\n`);
   }
 }
 

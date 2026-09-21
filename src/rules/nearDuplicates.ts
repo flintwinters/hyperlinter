@@ -1,12 +1,13 @@
 import { findNearDuplicateClusters } from '../clones/nearDuplicates';
+import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
 import type { ProjectModel } from '../project/ProjectModel';
 import type { HyperlintRule } from './Rule';
 
 export const nearDuplicatesRule: HyperlintRule = {
   id: 'HL105',
-  analyze(project: ProjectModel): readonly HyperlintDiagnostic[] {
-    return findNearDuplicateClusters(project).map((cluster): HyperlintDiagnostic => {
+  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+    return findNearDuplicateClusters(project, config).map((cluster): HyperlintDiagnostic => {
       const first = cluster.methods[0];
       const names = cluster.methods.map((method) => method.name.text).join(', ');
       const similarity = Math.round(cluster.similarity * 100);

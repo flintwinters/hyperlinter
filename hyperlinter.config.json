@@ -1,0 +1,9 @@
+{
+  "clones": {
+    "exactMinimumMeaningfulNodes": 20,
+    "nearMinimumMeaningfulNodes": 15,
+    "nearMinimumSimilarity": 0.9,
+    "nearMinimumClusterMethods": 3,
+    "nearMinimumSharedSubtreeHashes": 3
+  }
+}

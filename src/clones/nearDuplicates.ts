@@ -2,12 +2,8 @@ import crypto from 'node:crypto';
 
 import ts from 'typescript';
 
+import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ProjectModel } from '../project/ProjectModel';
-
-export const MINIMUM_NEAR_CLONE_NODES = 15;
-export const NEAR_CLONE_SIMILARITY = 0.9;
-export const MINIMUM_NEAR_CLONE_CLUSTER = 3;
-const MINIMUM_SHARED_ANCHORS = 3;
 
 type AnalyzableMethod = ts.FunctionLikeDeclarationBase & { readonly name: ts.Identifier; readonly body: ts.Block };
 
@@ -35,19 +31,19 @@ interface Similarity {
  * Uses normalized subtree hashes as an LSH-style candidate index, then confirms
  * candidates with anti-unification. Reporting requires a three-method cluster.
  */
-export function findNearDuplicateClusters(project: ProjectModel): readonly NearDuplicateCluster[] {
+export function findNearDuplicateClusters(project: ProjectModel, config: HyperlinterConfig): readonly NearDuplicateCluster[] {
   const methods = project.getModules().flatMap((module) => collectMethods(module.sourceFile));
-  const fingerprints = methods.map((method) => fingerprint(method, project.checker)).filter((entry) => entry.nodes >= MINIMUM_NEAR_CLONE_NODES);
-  const candidatePairs = candidatePairsFromAnchors(fingerprints);
+  const fingerprints = methods.map((method) => fingerprint(method, project.checker)).filter((entry) => entry.nodes >= config.clones.nearMinimumMeaningfulNodes);
+  const candidatePairs = candidatePairsFromAnchors(fingerprints, config.clones.nearMinimumSharedSubtreeHashes);
   const edges: Array<{ left: number; right: number; similarity: Similarity }> = [];
   for (const [left, right] of candidatePairs) {
     const similarity = antiUnifySimilarity(fingerprints[left], fingerprints[right], project.checker);
-    if (similarity.shared / similarity.total >= NEAR_CLONE_SIMILARITY
+    if (similarity.shared / similarity.total >= config.clones.nearMinimumSimilarity
       && (similarity.shared < similarity.total || similarity.parameterDifferences > 0)) {
       edges.push({ left, right, similarity });
     }
   }
-  return clustersFromEdges(fingerprints, edges);
+  return clustersFromEdges(fingerprints, edges, config.clones.nearMinimumClusterMethods);
 }
 
 function collectMethods(sourceFile: ts.SourceFile): AnalyzableMethod[] {
@@ -76,7 +72,7 @@ function fingerprint(method: AnalyzableMethod, checker: ts.TypeChecker): MethodF
   return { method, nodes: countMeaningfulNodes(method.body), anchors, locals };
 }
 
-function candidatePairsFromAnchors(fingerprints: readonly MethodFingerprint[]): readonly (readonly [number, number])[] {
+function candidatePairsFromAnchors(fingerprints: readonly MethodFingerprint[], minimumSharedAnchors: number): readonly (readonly [number, number])[] {
   const methodsByAnchor = new Map<string, number[]>();
   fingerprints.forEach((fingerprint, index) => {
     for (const anchor of fingerprint.anchors) (methodsByAnchor.get(anchor) ?? methodsByAnchor.set(anchor, []).get(anchor)!).push(index);
@@ -89,7 +85,7 @@ function candidatePairsFromAnchors(fingerprints: readonly MethodFingerprint[]): 
     }
   }
   return [...sharedAnchorsByPair]
-    .filter(([, sharedAnchors]) => sharedAnchors >= MINIMUM_SHARED_ANCHORS)
+    .filter(([, sharedAnchors]) => sharedAnchors >= minimumSharedAnchors)
     .map(([pair]) => pair.split(':').map(Number) as [number, number]);
 }
 
@@ -118,6 +114,7 @@ function antiUnifySimilarity(left: MethodFingerprint, right: MethodFingerprint, 
 function clustersFromEdges(
   fingerprints: readonly MethodFingerprint[],
   edges: readonly { left: number; right: number; similarity: Similarity }[],
+  minimumClusterMethods: number,
 ): readonly NearDuplicateCluster[] {
   const adjacent = new Map<number, Set<number>>();
   for (const { left, right } of edges) {
@@ -129,7 +126,7 @@ function clustersFromEdges(
   for (const index of adjacent.keys()) {
     if (seen.has(index)) continue;
     const members = connectedComponent(index, adjacent, seen).sort((left, right) => left - right);
-    if (members.length < MINIMUM_NEAR_CLONE_CLUSTER) continue;
+    if (members.length < minimumClusterMethods) continue;
     const componentEdges = edges.filter((edge) => members.includes(edge.left) && members.includes(edge.right));
     const similarity = Math.min(...componentEdges.map((edge) => edge.similarity.shared / edge.similarity.total));
     const parameterized = componentEdges.every((edge) => edge.similarity.semanticDifferences === 0 && edge.similarity.parameterDifferences > 0);

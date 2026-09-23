@@ -6,8 +6,7 @@ The system should assume that coding models will often produce code that is vali
 
 ### Core principles
 
-* **Use ordinary ESLint for cheap local rules.** Magic literals, naming, unsafe patterns, simple AST checks, and local type-aware rules do not belong in the expensive hyperlinter.
-* **Use the hyperlinter only for repository-scale reasoning.** It should analyze dependency graphs, symbol visibility, module APIs, cross-file relationships, architectural boundaries, and accumulated structural smells.
+* **Choose rules by the feedback they provide.** Local checks and repository-scale analysis both belong when they give useful, deterministic pressure toward better code.
 * **Prefer simple primitive rules over architecture-specific rules.** Good rules should generalize across frontends, backends, CLIs, libraries, workers, and monorepos.
 * **Create pressure, not bureaucracy.** The objective is to make the easiest path for the coding agent also the cleanest path.
 * **Prefer privacy and small APIs.** Public surface should stay small; implementation details should remain private unless external use justifies exposure.
@@ -23,8 +22,7 @@ Write the hyperlinter itself in **TypeScript**, so it is analyzed by the same co
 
 ```text
 coding agent changes code
-→ ESLint catches cheap/local problems
-→ hyperlinter analyzes repository structure
+→ hyperlinter analyzes local code and repository structure
 → smells and violations are recorded
 → safe fixes are applied automatically
 → accumulated structural debt can trigger refactoring

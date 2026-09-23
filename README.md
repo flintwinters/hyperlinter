@@ -1,9 +1,8 @@
 # Hyperlinter
 
-Hyperlinter is a repository-scale TypeScript architecture linter. It uses the
-TypeScript compiler graph to report dependency cycles, unused public exports,
-and coupling outliers. It is intended to complement local ESLint rules, not
-replace them.
+Hyperlinter is a TypeScript linter for code and repository structure. It uses
+the TypeScript compiler graph to report dependency cycles, unused public
+exports, and coupling outliers, and also checks local source patterns.
 
 ## Add to a project
 

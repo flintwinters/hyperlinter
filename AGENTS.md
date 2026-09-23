@@ -6,9 +6,9 @@ the product manifesto and takes priority over convenience-driven changes.
 ## Mission
 
 Hyperlinter gives coding agents mechanical pressure toward small public APIs,
-low coupling, clear boundaries, and maintainable repository structure. It is
-not a replacement for ESLint: cheap local checks belong in ESLint; compiler- or
-repository-scale relationships belong here.
+low coupling, clear boundaries, and maintainable repository structure. Rules
+may inspect local code or repository-wide relationships when they provide
+useful, deterministic feedback.
 
 ## Guardrails
 

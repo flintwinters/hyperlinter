@@ -20,6 +20,11 @@ Run the command from the target repository root. It reads that repository's
 uses `tools/hyperlint/baseline.json` for public-surface trend checks. Every
 module is also subject to the configured maximum exported-symbol count.
 Standalone `.css` files are forbidden; code-native styles are the sole styling system.
+Inline JSX `style` attributes are also rejected in favor of StyleX. Existing
+attributes are recorded by file, printed syntax, and multiplicity in the
+baseline; changing or adding one requires migrating it to StyleX. Refresh that
+allowance deliberately with `--write-inline-style-baseline` only when adopting
+an existing codebase.
 The root `AGENTS.md` is capped at 150 lines so it remains a broad-strokes,
 semantic entrypoint for agents rather than an all-encompassing project map.
 An architectural module is the source-owning directory: it must have exactly
@@ -39,6 +44,7 @@ npx tsx tools/hyperlint/src/cli.ts --history
 npx tsx tools/hyperlint/src/cli.ts --format=json
 npx tsx tools/hyperlint/src/cli.ts --fix
 npx tsx tools/hyperlint/src/cli.ts --source-budget check
+npx tsx tools/hyperlint/src/cli.ts --check-styles
 ```
 
 The evidence ledger is intentionally local and ignored by Git. Baselines are

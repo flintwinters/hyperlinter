@@ -21,10 +21,12 @@ import {
   MAX_AGENT_INSTRUCTION_LINES,
 } from './project/agentInstructions';
 import { cssFiles } from './project/cssFiles';
+import { inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline } from './project/inlineStyles';
 import { runSourceBudget } from './project/sourceBudget';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
+  inlineStyles?: InlineStyleBaseline;
 }
 
 const arguments_ = process.argv.slice(2);
@@ -45,6 +47,21 @@ if (sourceBudgetIndex !== -1) {
   process.exit();
 }
 
+if (arguments_.includes('--check-styles')) {
+  const css = cssFiles(process.cwd());
+  const styles = newInlineStyles(
+    inlineStyles(ProjectModel.fromTsConfig()),
+    readBaseline(baselinePath)?.inlineStyles,
+  );
+  if (json) process.stdout.write(`${JSON.stringify({ css, styles }, null, 2)}\n`);
+  else {
+    for (const file of css) process.stderr.write(`CSS file forbidden: ${file}\n`);
+    for (const { file, line } of styles) process.stderr.write(`Inline JSX style forbidden: ${file}:${line}; use StyleX.\n`);
+  }
+  process.exitCode = css.length || styles.length ? 1 : 0;
+  process.exit();
+}
+
 if (arguments_.includes('--check-no-css')) {
   const files = cssFiles(process.cwd());
   if (json) process.stdout.write(`${JSON.stringify({ files }, null, 2)}\n`);
@@ -61,6 +78,13 @@ if (arguments_.includes('--check-agents')) {
     process.stderr.write(`${agentInstructionsMessage(violation.lines)}\n`);
   }
   process.exitCode = violations.length ? 1 : 0;
+  process.exit();
+}
+
+if (arguments_.includes('--write-inline-style-baseline')) {
+  const baseline = readBaseline(baselinePath);
+  const styles = inlineStyleBaseline(inlineStyles(ProjectModel.fromTsConfig()));
+  fs.writeFileSync(baselinePath, `${JSON.stringify({ ...baseline, inlineStyles: styles }, null, 2)}\n`);
   process.exit();
 }
 
@@ -91,7 +115,15 @@ if (arguments_.includes('--fix')) {
   const project = ProjectModel.fromTsConfig();
   if (applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0) result = analyze();
 }
-const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath), loadHyperlinterConfig())];
+const baseline = readBaseline(baselinePath);
+const styleDiagnostics = result.diagnostics.filter((diagnostic): diagnostic is HyperlintDiagnostic & {
+  file: string; line: number; signature: string;
+} => diagnostic.rule === 'HL111' && !!diagnostic.file && !!diagnostic.line && !!diagnostic.signature);
+const newStyles = new Set<HyperlintDiagnostic>(newInlineStyles(styleDiagnostics, baseline?.inlineStyles));
+const diagnostics = [
+  ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== 'HL111' || newStyles.has(diagnostic)),
+  ...baselineDiagnostics(result.metrics, baseline, loadHyperlinterConfig()),
+];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
 runtime.close();
 
@@ -100,7 +132,7 @@ if (arguments_.includes('--write-baseline')) {
     metric.module,
     { publicSurface: metric.publicSurface },
   ]));
-  fs.writeFileSync(baselinePath, `${JSON.stringify({ metrics }, null, 2)}\n`);
+  fs.writeFileSync(baselinePath, `${JSON.stringify({ ...baseline, metrics }, null, 2)}\n`);
 }
 
 if (json) {
@@ -176,5 +208,7 @@ function printVerificationHistory(
 }
 
 function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {
-  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${diagnostic.module ? ` ${diagnostic.module}` : ''}: ${diagnostic.message}`;
+  const location = diagnostic.file ? ` ${diagnostic.file}${diagnostic.line ? `:${diagnostic.line}` : ''}` : '';
+  const module = diagnostic.module ? ` ${diagnostic.module}` : '';
+  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${module}${location}: ${diagnostic.message}`;
 }

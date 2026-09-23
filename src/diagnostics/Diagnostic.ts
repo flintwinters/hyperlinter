@@ -6,6 +6,7 @@ export interface HyperlintDiagnostic {
   message: string;
   file?: string;
   line?: number;
+  signature?: string;
   module?: string;
   score?: number;
 }

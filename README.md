@@ -10,7 +10,7 @@ Add this repository as a submodule at `tools/hyperlint`, then install the host
 project's dependencies (or install this package's dependencies independently):
 
 ```bash
-git submodule add git@github.com:flintwinters/hyperlinter.git tools/hyperlint
+git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
 npx tsx tools/hyperlint/src/cli.ts
 ```
 

@@ -81,9 +81,16 @@ export function applyExactCloneRefactors(project: ProjectModel, config: Hyperlin
 
 function isEligibleFunction(statement: ts.Statement): statement is EligibleFunction {
   return ts.isFunctionDeclaration(statement) && !!statement.name && !!statement.body
-    && !statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword || modifier.kind === ts.SyntaxKind.DeclareKeyword || modifier.kind === ts.SyntaxKind.AsyncKeyword)
+    && !statement.modifiers?.some((modifier) =>
+      modifier.kind === ts.SyntaxKind.ExportKeyword
+      || modifier.kind === ts.SyntaxKind.DeclareKeyword
+      || modifier.kind === ts.SyntaxKind.AsyncKeyword)
     && !statement.asteriskToken && statement.typeParameters === undefined
-    && statement.parameters.every((parameter) => ts.isIdentifier(parameter.name) && !parameter.dotDotDotToken && !parameter.questionToken && !parameter.initializer);
+    && statement.parameters.every((parameter) =>
+      ts.isIdentifier(parameter.name)
+      && !parameter.dotDotDotToken
+      && !parameter.questionToken
+      && !parameter.initializer);
 }
 
 function countMeaningfulNodes(root: ts.Node): number {
@@ -123,7 +130,9 @@ function antiUnify(
   const secondState = localNormalizationState(secondFunction, checker);
   const visit = (left: ts.Node, right: ts.Node): boolean => {
     if (left.kind !== right.kind) return recordDifference(left, right, differences);
-    if (ts.isIdentifier(left) && ts.isIdentifier(right)) return identifierKey(left, checker, firstState) === identifierKey(right, checker, secondState);
+    if (ts.isIdentifier(left) && ts.isIdentifier(right)) {
+      return identifierKey(left, checker, firstState) === identifierKey(right, checker, secondState);
+    }
     if (isLiteral(left) && isLiteral(right)) {
       return left.getText() === right.getText() || recordDifference(left, right, differences);
     }
@@ -186,12 +195,20 @@ function renderHelper(clone: ExactClone, helper: string, checker: ts.TypeChecker
   const secondArguments = clone.second.parameters.map((parameter) => parameter.name.getText());
   const differenceParameters = clone.differences.map((difference, index) => `${helper}Value${index}: ${literalType(difference.first)}`);
   const helperParameters = [parameters, ...differenceParameters].filter(Boolean).join(', ');
-  const body = replaceLiterals(clone.first.body.getText(), clone.first.body.getStart(), clone.differences.map((difference, index) => ({ node: difference.first, text: `${helper}Value${index}` })));
+  const body = replaceLiterals(
+    clone.first.body.getText(),
+    clone.first.body.getStart(),
+    clone.differences.map((difference, index) => ({ node: difference.first, text: `${helper}Value${index}` })),
+  );
   const signature = checker.getSignatureFromDeclaration(clone.first)!;
   const returnsVoid = (checker.getReturnTypeOfSignature(signature).flags & ts.TypeFlags.Void) !== 0;
   const firstCall = `${helper}(${[...firstArguments, ...clone.differences.map((difference) => difference.first.getText())].join(', ')})`;
   const secondCall = `${helper}(${[...secondArguments, ...clone.differences.map((difference) => difference.second.getText())].join(', ')})`;
-  return { helper: `function ${helper}(${helperParameters}) ${body}`, firstBody: `{ ${returnsVoid ? `${firstCall};` : `return ${firstCall};`} }`, secondBody: `{ ${returnsVoid ? `${secondCall};` : `return ${secondCall};`} }` };
+  return {
+    helper: `function ${helper}(${helperParameters}) ${body}`,
+    firstBody: `{ ${returnsVoid ? `${firstCall};` : `return ${firstCall};`} }`,
+    secondBody: `{ ${returnsVoid ? `${secondCall};` : `return ${secondCall};`} }`,
+  };
 }
 
 function literalType(node: ts.Expression): string {
@@ -203,11 +220,15 @@ function literalType(node: ts.Expression): string {
 }
 
 function replaceLiterals(text: string, offset: number, replacements: readonly { node: ts.Node; text: string }[]): string {
-  return applyEdits(text, replacements.map(({ node, text: replacement }) => ({ start: node.getStart() - offset, end: node.end - offset, text: replacement })));
+  return applyEdits(text, replacements.map(({ node, text: replacement }) => ({
+    start: node.getStart() - offset, end: node.end - offset, text: replacement,
+  })));
 }
 
 interface TextEdit { start: number; end: number; text: string; }
 
 function applyEdits(text: string, edits: readonly TextEdit[]): string {
-  return [...edits].sort((left, right) => right.start - left.start).reduce((result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end), text);
+  return [...edits]
+    .sort((left, right) => right.start - left.start)
+    .reduce((result, edit) => result.slice(0, edit.start) + edit.text + result.slice(edit.end), text);
 }

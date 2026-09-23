@@ -33,7 +33,9 @@ interface Similarity {
  */
 export function findNearDuplicateClusters(project: ProjectModel, config: HyperlinterConfig): readonly NearDuplicateCluster[] {
   const methods = project.getModules().flatMap((module) => module.sourceFiles.flatMap(collectMethods));
-  const fingerprints = methods.map((method) => fingerprint(method, project.checker)).filter((entry) => entry.nodes >= config.clones.nearMinimumMeaningfulNodes);
+  const fingerprints = methods
+    .map((method) => fingerprint(method, project.checker))
+    .filter((entry) => entry.nodes >= config.clones.nearMinimumMeaningfulNodes);
   const candidatePairs = candidatePairsFromAnchors(fingerprints, config.clones.nearMinimumSharedSubtreeHashes);
   const edges: Array<{ left: number; right: number; similarity: Similarity }> = [];
   for (const [left, right] of candidatePairs) {
@@ -91,19 +93,24 @@ function candidatePairsFromAnchors(fingerprints: readonly MethodFingerprint[], m
 
 function antiUnifySimilarity(left: MethodFingerprint, right: MethodFingerprint, checker: ts.TypeChecker): Similarity {
   const compare = (first: ts.Node, second: ts.Node): Similarity => {
-    if (first.kind !== second.kind) return { shared: 0, total: Math.max(nodeCount(first), nodeCount(second)), parameterDifferences: 0, semanticDifferences: 1 };
+    if (first.kind !== second.kind) {
+      return { shared: 0, total: Math.max(nodeCount(first), nodeCount(second)), parameterDifferences: 0, semanticDifferences: 1 };
+    }
     if (ts.isIdentifier(first) && ts.isIdentifier(second)) {
       const matches = identifierKey(first, left.locals, checker) === identifierKey(second, right.locals, checker);
       return { shared: matches ? 1 : 0, total: 1, parameterDifferences: 0, semanticDifferences: matches ? 0 : 1 };
     }
-    if (isLiteral(first) && isLiteral(second)) {
+    // Equal syntax kinds above mean a literal on the left is a literal on the right.
+    if (isLiteral(first)) {
       return { shared: 1, total: 1, parameterDifferences: first.getText() === second.getText() ? 0 : 1, semanticDifferences: 0 };
     }
     const firstChildren: ts.Node[] = [];
     const secondChildren: ts.Node[] = [];
     ts.forEachChild(first, (child) => { firstChildren.push(child); });
     ts.forEachChild(second, (child) => { secondChildren.push(child); });
-    if (firstChildren.length !== secondChildren.length) return { shared: 0, total: Math.max(nodeCount(first), nodeCount(second)), parameterDifferences: 0, semanticDifferences: 1 };
+    if (firstChildren.length !== secondChildren.length) {
+      return { shared: 0, total: Math.max(nodeCount(first), nodeCount(second)), parameterDifferences: 0, semanticDifferences: 1 };
+    }
     return firstChildren.reduce<Similarity>((result, child, index) => addSimilarity(result, compare(child, secondChildren[index])), {
       shared: 1, total: 1, parameterDifferences: 0, semanticDifferences: 0,
     });
@@ -165,7 +172,13 @@ function localSymbols(method: AnalyzableMethod, checker: ts.TypeChecker): Readon
   return locals;
 }
 
-function nodeShape(node: ts.Node, locals: ReadonlyMap<ts.Symbol, number>, checker: ts.TypeChecker, normalizeLiterals: boolean, children: readonly string[]): string {
+function nodeShape(
+  node: ts.Node,
+  locals: ReadonlyMap<ts.Symbol, number>,
+  checker: ts.TypeChecker,
+  normalizeLiterals: boolean,
+  children: readonly string[],
+): string {
   if (ts.isIdentifier(node)) return `id:${identifierKey(node, locals, checker)}`;
   if (isLiteral(node)) return normalizeLiterals ? `literal:${ts.SyntaxKind[node.kind]}` : `literal:${node.getText()}`;
   return `${ts.SyntaxKind[node.kind]}(${children.join(',')})`;

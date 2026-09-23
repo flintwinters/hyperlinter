@@ -52,7 +52,14 @@ function hyperlinterRoot(): string {
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value) || !isObject(value.rules) || !isObject(value.clones) || !isObject(value.coupling) || !isObject(value.publicSurface) || !isObject(value.scoring)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  if (!isObject(value)
+    || !isObject(value.rules)
+    || !isObject(value.clones)
+    || !isObject(value.coupling)
+    || !isObject(value.publicSurface)
+    || !isObject(value.scoring)) {
+    throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
+  }
   const rules = value.rules;
   const clones = value.clones;
   const coupling = value.coupling;
@@ -113,7 +120,9 @@ function nonNegativeInteger(value: unknown, fileName: string, key: string): numb
 }
 
 function integerAtLeast(value: unknown, minimum: number, fileName: string, key: string, description: string): number {
-  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum) throw new Error(`${fileName}: ${key} must be a ${description} integer.`);
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < minimum) {
+    throw new Error(`${fileName}: ${key} must be a ${description} integer.`);
+  }
   return value;
 }
 

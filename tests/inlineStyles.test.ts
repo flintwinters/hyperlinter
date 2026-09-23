@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { inlineStyleBaseline, inlineStyles, newInlineStyles } from '../src/project/inlineStyles';
 import { ProjectModel } from '../src/project/ProjectModel';
@@ -39,7 +40,7 @@ test('writing a baseline keeps project paths inside private Git metadata', () =>
     }));
     fs.writeFileSync(path.join(fixture, 'private-view.tsx'), 'export const view = <div style={{ color: "red" }} />;\n');
     const cli = path.resolve('src/cli.ts');
-    const tsx = path.resolve('node_modules/tsx/dist/loader.mjs');
+    const tsx = fileURLToPath(import.meta.resolve('tsx'));
     const write = spawnSync(process.execPath, ['--import', tsx, cli, '--write-inline-style-baseline'], { cwd: fixture, encoding: 'utf8' });
     assert.equal(write.status, 0, write.stderr);
     const baseline = path.join(fixture, '.git/hyperlinter/baseline.json');

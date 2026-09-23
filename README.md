@@ -17,9 +17,13 @@ npx tsx tools/hyperlint/src/cli.ts
 
 Run the command from the target repository root. It reads that repository's
 `tsconfig.json`, persists local run evidence in `tools/hyperlint/runtime/`, and
-uses `tools/hyperlint/baseline.json` for public-surface trend checks. Every
+uses the target repository's local `.git/hyperlinter/baseline.json` for
+public-surface and inline-style baselines. This file stays outside Git history
+and cannot be committed with project or submodule source. Every
 module is also subject to the configured maximum exported-symbol count.
 Standalone `.css` files are forbidden; code-native styles are the sole styling system.
+Inline JSX styles are also rejected. Existing instances can be recorded in a
+local baseline so the check blocks new instances.
 The root `AGENTS.md` is capped at 150 lines so it remains a broad-strokes,
 semantic entrypoint for agents rather than an all-encompassing project map.
 An architectural module is the source-owning directory: it must have exactly
@@ -34,14 +38,17 @@ architectural boundary.
 ```bash
 npx tsx tools/hyperlint/src/cli.ts
 npx tsx tools/hyperlint/src/cli.ts --write-baseline
+npx tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline
+npx tsx tools/hyperlint/src/cli.ts --check-styles
+npx tsx tools/hyperlint/src/cli.ts --source-budget check
 npx tsx tools/hyperlint/src/cli.ts --fix-private-exports
 npx tsx tools/hyperlint/src/cli.ts --history
 npx tsx tools/hyperlint/src/cli.ts --format=json
 npx tsx tools/hyperlint/src/cli.ts --fix
 ```
 
-The evidence ledger is intentionally local and ignored by Git. Baselines are
-target-project policy and should be reviewed with the target project's code.
+The evidence ledger and baseline are local. Review baseline changes before
+writing them; a fresh checkout needs its own baseline provisioned.
 
 `--fix` extracts eligible exact AST clones: non-exported, synchronous top-level
 functions with the configured minimum meaningful AST nodes. Detection alpha-renames local

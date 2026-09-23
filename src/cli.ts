@@ -21,17 +21,42 @@ import {
   MAX_AGENT_INSTRUCTION_LINES,
 } from './project/agentInstructions';
 import { cssFiles } from './project/cssFiles';
+import { inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline } from './project/inlineStyles';
+import { runSourceBudget } from './project/sourceBudget';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
+  inlineStyles?: InlineStyleBaseline;
 }
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes('--format=json') || arguments_.at(arguments_.indexOf('--format') + 1) === 'json';
-const toolRoot = fs.existsSync(path.resolve('tools/hyperlint/src/cli.ts'))
-  ? path.resolve('tools/hyperlint')
-  : process.cwd();
-const baselinePath = path.join(toolRoot, 'baseline.json');
+// A baseline contains target paths and policy. Git's private metadata keeps it
+// local even when Hyperlinter is installed as a public submodule.
+const baselinePath = localBaselinePath();
+
+const sourceBudgetIndex = arguments_.indexOf('--source-budget');
+if (sourceBudgetIndex !== -1) {
+  try {
+    runSourceBudget(arguments_[sourceBudgetIndex + 1]);
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
+  process.exit();
+}
+
+if (arguments_.includes('--check-styles')) {
+  const css = cssFiles(process.cwd());
+  const styles = newInlineStyles(inlineStyles(ProjectModel.fromTsConfig()), readBaseline(baselinePath)?.inlineStyles);
+  if (json) process.stdout.write(`${JSON.stringify({ css, styles }, null, 2)}\n`);
+  else {
+    for (const file of css) process.stderr.write(`CSS file forbidden: ${file}\n`);
+    for (const { file, line } of styles) process.stderr.write(`Inline JSX style forbidden: ${file}:${line}.\n`);
+  }
+  process.exitCode = css.length || styles.length ? 1 : 0;
+  process.exit();
+}
 
 if (arguments_.includes('--check-no-css')) {
   const files = cssFiles(process.cwd());
@@ -49,6 +74,12 @@ if (arguments_.includes('--check-agents')) {
     process.stderr.write(`${agentInstructionsMessage(violation.lines)}\n`);
   }
   process.exitCode = violations.length ? 1 : 0;
+  process.exit();
+}
+
+if (arguments_.includes('--write-inline-style-baseline')) {
+  const baseline = readBaseline(baselinePath);
+  writeBaseline({ metrics: baseline?.metrics ?? {}, inlineStyles: inlineStyleBaseline(inlineStyles(ProjectModel.fromTsConfig())) });
   process.exit();
 }
 
@@ -79,7 +110,15 @@ if (arguments_.includes('--fix')) {
   const project = ProjectModel.fromTsConfig();
   if (applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0) result = analyze();
 }
-const diagnostics = [...result.diagnostics, ...baselineDiagnostics(result.metrics, readBaseline(baselinePath), loadHyperlinterConfig())];
+const baseline = readBaseline(baselinePath);
+const styleDiagnostics = result.diagnostics.filter((diagnostic): diagnostic is HyperlintDiagnostic & {
+  file: string; line: number; signature: string;
+} => diagnostic.rule === 'HL111' && !!diagnostic.file && !!diagnostic.line && !!diagnostic.signature);
+const newStyles = new Set<HyperlintDiagnostic>(newInlineStyles(styleDiagnostics, baseline?.inlineStyles));
+const diagnostics = [
+  ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== 'HL111' || newStyles.has(diagnostic)),
+  ...baselineDiagnostics(result.metrics, baseline, loadHyperlinterConfig()),
+];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
 runtime.close();
 
@@ -88,7 +127,7 @@ if (arguments_.includes('--write-baseline')) {
     metric.module,
     { publicSurface: metric.publicSurface },
   ]));
-  fs.writeFileSync(baselinePath, `${JSON.stringify({ metrics }, null, 2)}\n`);
+  writeBaseline({ ...baseline, metrics });
 }
 
 if (json) {
@@ -105,6 +144,19 @@ if (diagnostics.some((diagnostic) => diagnostic.severity === 'error')) process.e
 function readBaseline(fileName: string): Baseline | undefined {
   if (!fs.existsSync(fileName)) return undefined;
   return JSON.parse(fs.readFileSync(fileName, 'utf8')) as Baseline;
+}
+
+function localBaselinePath(): string {
+  const marker = path.resolve('.git');
+  if (fs.statSync(marker).isDirectory()) return path.join(marker, 'hyperlinter/baseline.json');
+  const match = /^gitdir: (.+)\s*$/m.exec(fs.readFileSync(marker, 'utf8'));
+  if (!match) throw new Error(`Invalid Git metadata pointer: ${marker}`);
+  return path.resolve(path.dirname(marker), match[1], 'hyperlinter/baseline.json');
+}
+
+function writeBaseline(baseline: Baseline): void {
+  fs.mkdirSync(path.dirname(baselinePath), { recursive: true });
+  fs.writeFileSync(baselinePath, `${JSON.stringify(baseline, null, 2)}\n`);
 }
 
 function baselineDiagnostics(

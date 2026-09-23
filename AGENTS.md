@@ -19,8 +19,9 @@ repository-scale relationships belong here.
   the same principles it applies to target repositories.
 - Preserve the local SQLite evidence ledger as append-only operational data;
   `runtime/` is intentionally ignored and is not source control history.
-- Keep target-project policy out of this repository. A project owns its own
-  baseline and invokes this tool from its repository root.
+- Keep target-project policy out of this repository. Local baselines live in
+  the target repository's private `.git/hyperlinter/` directory, never in the
+  public submodule. Invoke the tool from the target repository root.
 
 ## First commands
 

@@ -1,6 +1,7 @@
 {
   "rules": {
     "dependencyCycles": "error",
+    "deadImplementation": "error",
     "unusedPublicSurface": "smell",
     "couplingOutliers": "smell",
     "exactDuplicates": "smell",

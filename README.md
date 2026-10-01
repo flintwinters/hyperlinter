@@ -69,3 +69,18 @@ configured threshold emits refactor-blocking `HL106`.
 consumer when their module already has an in-project dependent. It deliberately
 skips possible entrypoints, default exports, re-exports, overloads, and
 multi-declaration variable statements; those require human judgement.
+
+Dead implementation detection (`HL114`, error) reports unreachable top-level
+functions and variables initialized with functions, including recursive groups
+and chains used only by dead implementations. Exports and references outside
+these candidate implementations are roots; callback references and shorthand
+properties count as uses. This is conservative symbol reachability, not proof
+of runtime execution. It does not detect dead exported APIs, whole modules,
+class members, or code accessed through runtime string lookup/eval. No deletion
+is applied automatically.
+
+Diagnostic IDs distinguish module entrypoints (`HL108`), agent instruction
+length (`HL112`), unused public exports (`HL102`), and public-surface growth
+(`HL113`). Historical ledger entries retain their original IDs.
+
+Run `python3 manage.py check` for typechecking and regression tests.

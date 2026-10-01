@@ -6,6 +6,7 @@ import type { DiagnosticSeverity } from '../diagnostics/Diagnostic';
 export interface HyperlinterConfig {
   readonly rules: {
     readonly dependencyCycles: DiagnosticSeverity;
+    readonly deadImplementation: DiagnosticSeverity;
     readonly unusedPublicSurface: DiagnosticSeverity;
     readonly couplingOutliers: DiagnosticSeverity;
     readonly exactDuplicates: DiagnosticSeverity;
@@ -69,6 +70,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   const severityWeights = scoring.severityWeights;
   return {
     rules: {
+      deadImplementation: severity(rules.deadImplementation, fileName, 'rules.deadImplementation'),
       dependencyCycles: severity(rules.dependencyCycles, fileName, 'rules.dependencyCycles'),
       unusedPublicSurface: severity(rules.unusedPublicSurface, fileName, 'rules.unusedPublicSurface'),
       couplingOutliers: severity(rules.couplingOutliers, fileName, 'rules.couplingOutliers'),

@@ -169,7 +169,7 @@ function baselineDiagnostics(
     const prior = baseline.metrics[metric.module];
     if (!prior || metric.publicSurface <= prior.publicSurface) return [];
     return [{
-      rule: 'HL102', severity: config.rules.publicSurfaceGrowth, module: metric.module,
+      rule: 'HL113', severity: config.rules.publicSurfaceGrowth, module: metric.module,
       message: `Public surface increased from ${prior.publicSurface} to ${metric.publicSurface} symbols since the baseline.`,
     }];
   });
@@ -216,5 +216,5 @@ function printVerificationHistory(
 }
 
 function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {
-  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${diagnostic.module ? ` ${diagnostic.module}` : ''}: ${diagnostic.message}`;
+  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${diagnostic.module ? ` ${diagnostic.module}` : ''}${diagnostic.file ? ` ${diagnostic.file}${diagnostic.line ? `:${diagnostic.line}` : ''}` : ''}: ${diagnostic.message}`;
 }

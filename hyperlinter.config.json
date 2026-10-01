@@ -2,6 +2,7 @@
   "rules": {
     "dependencyCycles": "error",
     "deadImplementation": "error",
+    "moduleCohesion": "info",
     "unusedPublicSurface": "smell",
     "couplingOutliers": "smell",
     "exactDuplicates": "smell",
@@ -24,6 +25,12 @@
   "coupling": {
     "minimumOutlierValue": 3,
     "minimumZScore": 2
+  },
+  "cohesion": {
+    "minimumExports": 4,
+    "minimumGroupExports": 2,
+    "minimumSeparatedPairRatio": 0.5,
+    "maximumConsumerOverlap": 0.2
   },
   "publicSurface": {
     "maximum": 40

@@ -84,3 +84,25 @@ length (`HL112`), unused public exports (`HL102`), and public-surface growth
 (`HL113`). Historical ledger entries retain their original IDs.
 
 Run `python3 manage.py check` for typechecking and regression tests.
+
+Module cohesion (`HL115`, info) prompts the coder to refactor when **both**
+configured signals cross their thresholds:
+
+- Separated export-pair ratio **>= 0.5**: the fraction of pairs belonging to
+  different implementation groups. Exports join groups when their reachable
+  in-module behavior/state declarations intersect; merging is transitive.
+- Mean consumer overlap **<= 0.2**: the unweighted mean Jaccard similarity
+  (intersection / union) of external module consumer sets across group pairs.
+
+At least four behavior/state exports and two exports per group are required.
+Every group must have known consumers. Types, literal constants, and type-only
+references do not connect implementations. Re-exports are resolved to their
+underlying symbols; facade exports implemented outside the directory are
+excluded. Consumers include all modules in the configured TypeScript project,
+including tests; module-level consumption is deliberately coarse.
+
+Thresholds and severity live in `hyperlinter.config.json` under `cohesion` and
+`rules.moduleCohesion`. Diagnostics show measured values, thresholds, groups,
+consumers, and refactoring instructions. The rule participates in existing
+module scoring; no automatic split is performed. These defaults are initial
+heuristics, not empirically calibrated proof of unrelated responsibilities.

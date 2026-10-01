@@ -44,15 +44,10 @@ export const deadImplementationRule: HyperlintRule = {
       const visit = (node: ts.Node, owner?: ts.Symbol): void => {
         owner = owners.get(node) ?? owner;
         if (ts.isIdentifier(node)) {
-          const symbol = ts.isShorthandPropertyAssignment(node.parent)
-            ? project.checker.getShorthandAssignmentValueSymbol(node.parent)
-            : project.checker.getSymbolAtLocation(node);
-          if (symbol && !symbol.declarations?.some((declaration) => 'name' in declaration && declaration.name === node)) {
-            const target = resolve(symbol);
-            if (implementations.has(target)) {
-              if (owner) edges.get(owner)!.add(target);
-              else live.add(target);
-            }
+          const target = project.getReferencedSymbol(node);
+          if (target && implementations.has(target)) {
+            if (owner) edges.get(owner)!.add(target);
+            else live.add(target);
           }
         }
         ts.forEachChild(node, (child) => visit(child, owner));

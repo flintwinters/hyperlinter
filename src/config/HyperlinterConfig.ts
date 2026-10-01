@@ -7,6 +7,7 @@ export interface HyperlinterConfig {
   readonly rules: {
     readonly dependencyCycles: DiagnosticSeverity;
     readonly deadImplementation: DiagnosticSeverity;
+    readonly moduleCohesion: DiagnosticSeverity;
     readonly unusedPublicSurface: DiagnosticSeverity;
     readonly couplingOutliers: DiagnosticSeverity;
     readonly exactDuplicates: DiagnosticSeverity;
@@ -29,6 +30,12 @@ export interface HyperlinterConfig {
   readonly coupling: {
     readonly minimumOutlierValue: number;
     readonly minimumZScore: number;
+  };
+  readonly cohesion: {
+    readonly minimumExports: number;
+    readonly minimumGroupExports: number;
+    readonly minimumSeparatedPairRatio: number;
+    readonly maximumConsumerOverlap: number;
   };
   readonly publicSurface: {
     readonly maximum: number;
@@ -56,6 +63,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   if (!isObject(value)
     || !isObject(value.rules)
     || !isObject(value.clones)
+    || !isObject(value.cohesion)
     || !isObject(value.coupling)
     || !isObject(value.publicSurface)
     || !isObject(value.scoring)) {
@@ -63,6 +71,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   }
   const rules = value.rules;
   const clones = value.clones;
+  const cohesion = value.cohesion;
   const coupling = value.coupling;
   const publicSurface = value.publicSurface;
   const scoring = value.scoring;
@@ -70,6 +79,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   const severityWeights = scoring.severityWeights;
   return {
     rules: {
+      moduleCohesion: severity(rules.moduleCohesion, fileName, 'rules.moduleCohesion'),
       deadImplementation: severity(rules.deadImplementation, fileName, 'rules.deadImplementation'),
       dependencyCycles: severity(rules.dependencyCycles, fileName, 'rules.dependencyCycles'),
       unusedPublicSurface: severity(rules.unusedPublicSurface, fileName, 'rules.unusedPublicSurface'),
@@ -94,6 +104,12 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
     coupling: {
       minimumOutlierValue: positiveInteger(coupling.minimumOutlierValue, fileName, 'coupling.minimumOutlierValue'),
       minimumZScore: positiveNumber(coupling.minimumZScore, fileName, 'coupling.minimumZScore'),
+    },
+    cohesion: {
+      minimumExports: positiveInteger(cohesion.minimumExports, fileName, 'cohesion.minimumExports'),
+      minimumGroupExports: positiveInteger(cohesion.minimumGroupExports, fileName, 'cohesion.minimumGroupExports'),
+      minimumSeparatedPairRatio: fraction(cohesion.minimumSeparatedPairRatio, fileName, 'cohesion.minimumSeparatedPairRatio'),
+      maximumConsumerOverlap: unitInterval(cohesion.maximumConsumerOverlap, fileName, 'cohesion.maximumConsumerOverlap'),
     },
     publicSurface: {
       maximum: positiveInteger(publicSurface.maximum, fileName, 'publicSurface.maximum'),
@@ -140,5 +156,12 @@ function positiveNumber(value: unknown, fileName: string, key: string): number {
 
 function severity(value: unknown, fileName: string, key: string): DiagnosticSeverity {
   if (value !== 'info' && value !== 'smell' && value !== 'error') throw new Error(`${fileName}: ${key} must be info, smell, or error.`);
+  return value;
+}
+
+function unitInterval(value: unknown, fileName: string, key: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+    throw new Error(`${fileName}: ${key} must be within [0, 1].`);
+  }
   return value;
 }

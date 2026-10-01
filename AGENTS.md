@@ -29,8 +29,9 @@ The TypeScript project model owns compiler and reference evidence; registered
 rules produce diagnostics, module scoring aggregates pressure, and the CLI
 records local evidence. Dead implementation analysis conservatively roots
 exports and executable references; it does not infer application entrypoints.
-Run `python3 manage.py check` to verify changes. Preserve unique diagnostic IDs
-and reproducible reachability regressions as detection expands.
+Run `python3 manage.py check` to verify changes. Cohesion combines internal behavior/state groups with consumer overlap;
+keep its quantitative evidence conservative as analysis expands. Preserve
+unique diagnostic IDs and reproducible analysis regressions.
 
 ## First commands
 

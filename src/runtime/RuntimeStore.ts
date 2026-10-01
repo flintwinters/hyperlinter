@@ -62,7 +62,10 @@ export class RuntimeStore {
   constructor(fileName = defaultRuntimeFile()) {
     fs.mkdirSync(path.dirname(fileName), { recursive: true });
     this.database = new Database(fileName);
-    this.database.pragma('journal_mode = WAL');
+    // WAL shared-memory files are unsupported on network filesystems.
+    // Operators can retain the persistent ledger using rollback journaling.
+    const journal = process.env.HYPERLINT_JOURNAL_MODE === 'DELETE' ? 'DELETE' : 'WAL';
+    this.database.pragma(`journal_mode = ${journal}`);
     this.database.pragma('busy_timeout = 5000');
     this.database.exec(`
       CREATE TABLE IF NOT EXISTS runs (

@@ -3,7 +3,7 @@ import ts from 'typescript';
 
 import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './Rule';
+import type { HyperlintRule } from './contracts/index';
 
 type Implementation = ts.FunctionDeclaration | ts.VariableDeclaration;
 

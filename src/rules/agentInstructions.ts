@@ -5,7 +5,7 @@ import {
   MAX_AGENT_INSTRUCTION_LINES,
 } from '../project/agentInstructions';
 import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './Rule';
+import type { HyperlintRule } from './contracts/index';
 
 export const agentInstructionsRule: HyperlintRule = {
   id: 'HL112',

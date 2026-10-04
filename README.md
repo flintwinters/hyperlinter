@@ -31,6 +31,10 @@ private to that module. Internal files may use TypeScript exports for internal
 imports, but other modules must import the directory index. An entrypoint file
 with one top-level declaration and one export is rejected as an unnecessary
 architectural boundary.
+Directory modules may own at most 12 source files from the configured TypeScript
+project, including their entrypoint. Descendant directories own their files
+separately; styles, generated files and tests receive no filename exemptions.
+The versioned `moduleFiles.maximum` policy controls this limit (`HL115`).
 
 ## Commands
 

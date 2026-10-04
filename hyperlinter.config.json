@@ -12,7 +12,8 @@
     "singlePublicMethod": "error",
     "noCssFiles": "error",
     "noInlineStyles": "error",
-    "moduleScore": "error"
+    "moduleScore": "error",
+    "moduleFileLimit": "error"
   },
   "clones": {
     "exactMinimumMeaningfulNodes": 20,
@@ -35,5 +36,8 @@
       "info": 1
     },
     "moduleErrorThreshold": 4
+  },
+  "moduleFiles": {
+    "maximum": 12
   }
 }

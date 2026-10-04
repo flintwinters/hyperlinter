@@ -18,6 +18,7 @@ export interface HyperlinterConfig {
     readonly noCssFiles: DiagnosticSeverity;
     readonly noInlineStyles: DiagnosticSeverity;
     readonly moduleScore: DiagnosticSeverity;
+    readonly moduleFileLimit: DiagnosticSeverity;
   };
   readonly clones: {
     readonly exactMinimumMeaningfulNodes: number;
@@ -29,6 +30,9 @@ export interface HyperlinterConfig {
   readonly coupling: {
     readonly minimumOutlierValue: number;
     readonly minimumZScore: number;
+  };
+  readonly moduleFiles: {
+    readonly maximum: number;
   };
   readonly publicSurface: {
     readonly maximum: number;
@@ -57,6 +61,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
     || !isObject(value.rules)
     || !isObject(value.clones)
     || !isObject(value.coupling)
+    || !isObject(value.moduleFiles)
     || !isObject(value.publicSurface)
     || !isObject(value.scoring)) {
     throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
@@ -65,6 +70,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   const clones = value.clones;
   const coupling = value.coupling;
   const publicSurface = value.publicSurface;
+  const moduleFiles = value.moduleFiles;
   const scoring = value.scoring;
   if (!isObject(scoring.severityWeights)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const severityWeights = scoring.severityWeights;
@@ -82,6 +88,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
       singlePublicMethod: severity(rules.singlePublicMethod, fileName, 'rules.singlePublicMethod'),
       noCssFiles: severity(rules.noCssFiles, fileName, 'rules.noCssFiles'),
       noInlineStyles: severity(rules.noInlineStyles, fileName, 'rules.noInlineStyles'),
+      moduleFileLimit: severity(rules.moduleFileLimit, fileName, 'rules.moduleFileLimit'),
       moduleScore: severity(rules.moduleScore, fileName, 'rules.moduleScore'),
     },
     clones: {
@@ -94,6 +101,9 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
     coupling: {
       minimumOutlierValue: positiveInteger(coupling.minimumOutlierValue, fileName, 'coupling.minimumOutlierValue'),
       minimumZScore: positiveNumber(coupling.minimumZScore, fileName, 'coupling.minimumZScore'),
+    },
+    moduleFiles: {
+      maximum: positiveInteger(moduleFiles.maximum, fileName, 'moduleFiles.maximum'),
     },
     publicSurface: {
       maximum: positiveInteger(publicSurface.maximum, fileName, 'publicSurface.maximum'),

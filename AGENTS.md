@@ -26,7 +26,7 @@ useful, deterministic feedback.
 ## Architecture and current focus
 
 The TypeScript project model owns compiler and reference evidence; registered
-rules produce diagnostics, module scoring aggregates pressure, and the CLI
+rules produce diagnostics (including a 12-file direct module ownership limit), module scoring aggregates pressure, and the CLI
 records local evidence. Dead implementation analysis conservatively roots
 exports and executable references; it does not infer application entrypoints.
 Run `python3 manage.py check` to verify changes. Preserve unique diagnostic IDs

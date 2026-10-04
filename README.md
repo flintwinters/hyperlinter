@@ -1,5 +1,7 @@
 # Hyperlinter
 
+Project website: [typie hyperlinter](https://flintwinters.github.io/hyperlinter/).
+
 Hyperlinter is a TypeScript linter for code and repository structure. It uses
 the TypeScript compiler graph to report dependency cycles, unused public
 exports, and coupling outliers, and also checks local source patterns.
@@ -140,3 +142,12 @@ requests investigation of applicable improvements to embedding context, clusteri
 distance/count thresholds, and structural corroboration, supported by the triggering
 evidence and regression tests for reproducible analysis failures. This exception
 applies only to semantic advice; existing enforcement remains policy.
+
+## Project website
+
+GitHub Pages serves the static `docs/` directory from `main`; no website build
+or API key is needed. Keep the canonical URL, sitemap, and structured data aligned
+with the deployed address. Project-site `robots.txt` cannot control crawling at
+the origin root, so the page uses indexing metadata and a discoverable sitemap.
+`python3 manage.py check` verifies the page metadata and internal navigation along
+with the TypeScript project.

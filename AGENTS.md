@@ -34,7 +34,8 @@ keep its quantitative evidence conservative as analysis expands. Preserve
 unique diagnostic IDs and reproducible analysis regressions. Optional semantic
 embeddings track current implementations in target-private caches; their
 experimental warnings never accumulate enforcement scores. Semantic thresholds
-may be tuned after agent examination finds declustering unwarranted.
+may be tuned after agent examination finds declustering unwarranted. The static
+project website lives in `docs/`; GitHub Pages publishes it from `main`.
 
 ## First commands
 

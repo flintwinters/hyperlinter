@@ -2,3 +2,4 @@ node_modules/
 /runtime/
 /baseline.json
 *.tsbuildinfo
+__pycache__/

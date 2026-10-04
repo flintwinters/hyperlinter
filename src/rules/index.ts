@@ -1,4 +1,5 @@
 import type { HyperlintRule } from './contracts/index';
+import { moduleCohesionRule } from './moduleCohesion';
 import { deadImplementationRule } from './deadImplementation';
 import { agentInstructionsRule } from './agentInstructions';
 import { dependencyCyclesRule, moduleCouplingRule, moduleFileLimitRule, moduleEntrypointRule, publicSurfaceRule, publicSurfaceLimitRule, singlePublicMethodRule } from "./structural/index";
@@ -11,6 +12,7 @@ import { nearDuplicatesRule } from './nearDuplicates';
 
 export const rules: readonly HyperlintRule[] = uniqueRules([
   deadImplementationRule,
+  moduleCohesionRule,
   agentInstructionsRule,
   dependencyCyclesRule,
   publicSurfaceRule,

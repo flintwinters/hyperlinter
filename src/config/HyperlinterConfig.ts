@@ -1,12 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { semanticConfig, type SemanticConfig } from './SemanticConfig';
+
 import type { DiagnosticSeverity } from '../diagnostics/Diagnostic';
 
 export interface HyperlinterConfig {
+  readonly semantic: SemanticConfig;
   readonly rules: {
     readonly dependencyCycles: DiagnosticSeverity;
     readonly deadImplementation: DiagnosticSeverity;
+    readonly moduleCohesion: DiagnosticSeverity;
     readonly unusedPublicSurface: DiagnosticSeverity;
     readonly couplingOutliers: DiagnosticSeverity;
     readonly exactDuplicates: DiagnosticSeverity;
@@ -34,11 +38,17 @@ export interface HyperlinterConfig {
   readonly moduleFiles: {
     readonly maximum: number;
   };
+  readonly cohesion: {
+    readonly minimumExports: number;
+    readonly minimumGroupExports: number;
+    readonly minimumSeparatedPairRatio: number;
+    readonly maximumConsumerOverlap: number;
+  };
   readonly publicSurface: {
     readonly maximum: number;
   };
   readonly scoring: {
-    readonly severityWeights: Readonly<Record<DiagnosticSeverity, number>>;
+    readonly severityWeights: Readonly<Record<Exclude<DiagnosticSeverity, 'warning'>, number>>;
     readonly moduleErrorThreshold: number;
   };
 }
@@ -60,6 +70,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   if (!isObject(value)
     || !isObject(value.rules)
     || !isObject(value.clones)
+    || !isObject(value.cohesion)
     || !isObject(value.coupling)
     || !isObject(value.moduleFiles)
     || !isObject(value.publicSurface)
@@ -68,6 +79,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   }
   const rules = value.rules;
   const clones = value.clones;
+  const cohesion = value.cohesion;
   const coupling = value.coupling;
   const publicSurface = value.publicSurface;
   const moduleFiles = value.moduleFiles;
@@ -75,7 +87,9 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   if (!isObject(scoring.severityWeights)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const severityWeights = scoring.severityWeights;
   return {
+    semantic: semanticConfig(value.semantic),
     rules: {
+      moduleCohesion: severity(rules.moduleCohesion, fileName, 'rules.moduleCohesion'),
       deadImplementation: severity(rules.deadImplementation, fileName, 'rules.deadImplementation'),
       dependencyCycles: severity(rules.dependencyCycles, fileName, 'rules.dependencyCycles'),
       unusedPublicSurface: severity(rules.unusedPublicSurface, fileName, 'rules.unusedPublicSurface'),
@@ -104,6 +118,12 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
     },
     moduleFiles: {
       maximum: positiveInteger(moduleFiles.maximum, fileName, 'moduleFiles.maximum'),
+    },
+    cohesion: {
+      minimumExports: positiveInteger(cohesion.minimumExports, fileName, 'cohesion.minimumExports'),
+      minimumGroupExports: positiveInteger(cohesion.minimumGroupExports, fileName, 'cohesion.minimumGroupExports'),
+      minimumSeparatedPairRatio: fraction(cohesion.minimumSeparatedPairRatio, fileName, 'cohesion.minimumSeparatedPairRatio'),
+      maximumConsumerOverlap: unitInterval(cohesion.maximumConsumerOverlap, fileName, 'cohesion.maximumConsumerOverlap'),
     },
     publicSurface: {
       maximum: positiveInteger(publicSurface.maximum, fileName, 'publicSurface.maximum'),
@@ -150,5 +170,12 @@ function positiveNumber(value: unknown, fileName: string, key: string): number {
 
 function severity(value: unknown, fileName: string, key: string): DiagnosticSeverity {
   if (value !== 'info' && value !== 'smell' && value !== 'error') throw new Error(`${fileName}: ${key} must be info, smell, or error.`);
+  return value;
+}
+
+function unitInterval(value: unknown, fileName: string, key: string): number {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 1) {
+    throw new Error(`${fileName}: ${key} must be within [0, 1].`);
+  }
   return value;
 }

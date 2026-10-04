@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>typie hyperlinter</title>
+  <meta name="description" content="typie hyperlinter is a TypeScript architecture linter for AI coding agents. Detect dependency cycles, unused functions, duplicated logic, and oversized public APIs.">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta name="theme-color" content="#102020">
+  <link rel="canonical" href="https://flintwinters.github.io/hyperlinter/">
+  <link rel="sitemap" type="application/xml" href="https://flintwinters.github.io/hyperlinter/sitemap.xml">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="typie hyperlinter">
+  <meta property="og:title" content="typie hyperlinter">
+  <meta property="og:description" content="A TypeScript architecture linter for AI coding agents. Find dependency cycles, unused functions, duplication, and oversized APIs.">
+  <meta property="og:url" content="https://flintwinters.github.io/hyperlinter/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="typie hyperlinter">
+  <meta name="twitter:description" content="A TypeScript architecture linter for AI coding agents: find cycles, unused functions, duplication, and oversized public APIs.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://flintwinters.github.io/hyperlinter/#website",
+        "name": "typie hyperlinter",
+        "url": "https://flintwinters.github.io/hyperlinter/",
+        "inLanguage": "en",
+        "about": {"@id": "https://flintwinters.github.io/hyperlinter/#software"}
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://flintwinters.github.io/hyperlinter/#software",
+        "name": "typie hyperlinter",
+        "description": "A TypeScript architecture linter that gives AI coding agents mechanical feedback on public APIs, coupling, duplication, and repository structure.",
+        "url": "https://flintwinters.github.io/hyperlinter/",
+        "codeRepository": "https://github.com/flintwinters/hyperlinter",
+        "programmingLanguage": "TypeScript",
+        "runtimePlatform": "Node.js 20 or newer"
+      }
+    ]
+  }
+  </script>
+  <style>
+    :root { color-scheme:dark; --bg:#102020; --ink:#f3f1e8; --muted:#b6c5bd; --accent:#c7f58a; --line:#3a4b43; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    a { color:var(--accent); text-underline-offset:.25em; }
+    a:hover { color:white; }
+    a:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
+    .wrap { max-width:1080px; margin:auto; padding:0 28px; }
+    .skip { position:absolute; top:-100px; padding:12px; background:var(--bg); }
+    .skip:focus { top:12px; }
+    header { border-bottom:1px solid var(--line); }
+    .header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding-top:22px; padding-bottom:22px; }
+    .brand { color:var(--ink); font-weight:700; text-decoration:none; letter-spacing:-.025em; }
+    .brand span { color:var(--accent); margin-right:.5em; }
+    nav { display:flex; flex-wrap:wrap; gap:20px; font-size:.9rem; }
+    nav a { color:var(--muted); }
+    main.wrap { padding-top:44px; padding-bottom:40px; }
+    .eyebrow { color:var(--accent); font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; font-weight:650; }
+    h1 { font-size:clamp(2rem,5vw,3.4rem); letter-spacing:-.055em; line-height:1.1; margin:12px 0 24px; }
+    .headline { font-size:clamp(1.6rem,3.5vw,2.5rem); letter-spacing:-.035em; line-height:1.2; margin:0 0 20px; max-width:650px; }
+    .intro { max-width:660px; color:var(--muted); margin-bottom:24px; }
+    .columns { display:grid; grid-template-columns:1fr 1.15fr; gap:48px; align-items:start; }
+    .columns > * { min-width:0; }
+    h2 { font-size:1.1rem; margin:0 0 16px; }
+    ul { list-style:none; margin:0; padding:0; }
+    li { border-top:1px solid var(--line); padding:14px 0; }
+    li strong { display:block; font-weight:650; }
+    li span { color:var(--muted); font-size:.9rem; }
+    .install { border:1px solid var(--line); border-radius:7px; padding:24px; background:#182b2a; }
+    .install p { margin:0 0 16px; font-size:.9rem; }
+    .primary { display:inline-block; margin-bottom:20px; padding:10px 18px; background:var(--accent); color:var(--bg); border-radius:4px; font-weight:650; text-decoration:none; }
+    .primary:hover { background:white; color:var(--bg); }
+    .copy { padding:7px 12px; margin-bottom:10px; background:transparent; color:var(--accent); border:1px solid var(--line); border-radius:4px; font:inherit; font-size:.9rem; cursor:pointer; }
+    button:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
+    /* Wrap long paths without changing the shell text copied by visitors. */
+    pre { padding:16px; margin:0 0 18px; background:#091716; border-radius:4px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font-size:.85rem; line-height:1.8; }
+    code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .note { color:var(--muted); font-size:.82rem; }
+    .install .note { font-size:.82rem; }
+    .experiment { border-top:1px solid var(--line); margin-top:34px; padding-top:18px; }
+    footer { border-top:1px solid var(--line); padding:22px 0; }
+    footer .wrap { display:flex; gap:22px; flex-wrap:wrap; font-size:.85rem; }
+    @media (max-width:720px) { .columns { grid-template-columns:minmax(0,1fr); gap:28px; } main.wrap { padding-top:24px; } .install { order:-1; } .header { align-items:flex-start; flex-direction:column; gap:10px; } .wrap { padding-left:22px; padding-right:22px; } .install { padding:20px; } }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header><div class="wrap header">
+    <a class="brand" href="./"><span aria-hidden="true">↳</span>typie hyperlinter</a>
+    <nav aria-label="Main navigation"><a href="#get-started">Install</a><a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Docs</a><a href="https://github.com/flintwinters/hyperlinter">GitHub ↗</a></nav>
+  </div></header>
+  <main id="main" class="wrap" tabindex="-1">
+    <p class="eyebrow">TypeScript architecture linter for AI coding agents</p>
+    <h1>typie hyperlinter</h1>
+    <p class="headline">Keep your agent’s codebase maintainable.</p>
+    <p class="intro">Find dependency cycles, duplicated functions, and oversized public APIs across your TypeScript repository. Errors return a failing exit code for your agent or CI to act on.</p>
+    <a class="primary" href="#get-started">Install Hyperlinter ↓</a>
+    <div class="columns">
+      <section aria-labelledby="checks-heading">
+        <h2 id="checks-heading">What it catches</h2>
+        <ul>
+          <li><strong>Dependency cycles</strong><span>Circular imports and unusually coupled modules.</span></li>
+          <li><strong>Oversized APIs</strong><span>Public-surface growth, unused exports, and boundary violations.</span></li>
+          <li><strong>Duplicated or unused functions</strong><span>Source clones and unreachable top-level implementations.</span></li>
+        </ul>
+      </section>
+      <section id="get-started" class="install" tabindex="-1" aria-labelledby="install-heading">
+        <h2 id="install-heading">Try it in your TypeScript repository</h2>
+        <p>Requires Node.js 20+ and a <code>tsconfig.json</code>. Run from your repository root:</p>
+        <button class="copy" id="copy-commands" type="button" hidden>Copy commands</button>
+        <span id="copy-status" class="note" role="status"></span>
+        <pre aria-label="Install and run Hyperlinter"><code id="install-commands">git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
+npm --prefix tools/hyperlint ci --include=dev
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts</code></pre>
+        <p class="note">Review the <a href="https://github.com/flintwinters/hyperlinter/blob/main/hyperlinter.config.json">default policy</a>: each source directory needs an index entrypoint. CSS files and inline JSX styles are rejected.</p>
+        <a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Setup, commands &amp; limitations ↗</a>
+      </section>
+    </div>
+    <p class="note experiment">Optional semantic grouping uses OpenRouter embeddings to suggest agent examination. It sends function source to the provider and requires an API key; its experimental warnings never block. Ordinary checks need no model or API key.</p>
+  </main>
+  <footer><div class="wrap"><a href="https://github.com/flintwinters/hyperlinter">Source code</a><a href="https://github.com/flintwinters/hyperlinter/blob/main/HYPERLINTER.md">Project philosophy</a></div></footer>
+  <script>
+    const copy = document.getElementById('copy-commands');
+    if (navigator.clipboard && window.isSecureContext) {
+      copy.hidden = false;
+      copy.addEventListener('click', async () => {
+        const status = document.getElementById('copy-status');
+        try {
+          await navigator.clipboard.writeText(document.getElementById('install-commands').textContent.trim());
+          status.textContent = 'Copied.';
+        } catch {
+          status.textContent = 'Select the commands below to copy them.';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

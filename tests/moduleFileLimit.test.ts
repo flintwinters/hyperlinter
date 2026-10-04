@@ -31,14 +31,14 @@ test('allows the configured maximum and counts descendants separately', (t) => {
   assert.deepEqual(moduleFileLimitRule.analyze(project, config), []);
 });
 
-test('reports 13 directly owned files, including the entrypoint and every file role', (t) => {
+test('reports 13 directly owned files, including the entrypoint and every file role', async (t) => {
   const tsconfig = fixture(t, { frontend: 13, 'frontend/account': 2 });
   const findings = moduleFileLimitRule.analyze(ProjectModel.fromTsConfig(tsconfig), config);
   assert.deepEqual(findings, [{
-    rule: 'HL115', severity: 'error', module: 'frontend', score: 13,
+    rule: 'HL117', severity: 'error', module: 'frontend', score: 13,
     message: 'Module owns 13 source files; maximum is 12. Extract cohesive directory modules with index entrypoints.',
   }]);
-  assert.equal(analyze(tsconfig).diagnostics.filter((finding) => finding.rule === 'HL115').length, 1);
+  assert.equal((await analyze(tsconfig)).diagnostics.filter((finding) => finding.rule === 'HL117').length, 1);
 });
 
 test('uses the configured limit and severity', (t) => {

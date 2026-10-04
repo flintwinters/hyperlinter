@@ -196,6 +196,15 @@ export class ProjectModel {
     return [...(this.externalFileReferences.get(this.unaliasedSymbol(symbol)) ?? [])].sort();
   }
 
+  /** Resolve value uses consistently, including shorthand properties and aliases. */
+  getReferencedSymbol(node: ts.Identifier): ts.Symbol | undefined {
+    const symbol = ts.isShorthandPropertyAssignment(node.parent)
+      ? this.checker.getShorthandAssignmentValueSymbol(node.parent)
+      : this.checker.getSymbolAtLocation(node);
+    if (!symbol || symbol.declarations?.some((declaration) => 'name' in declaration && declaration.name === node)) return undefined;
+    return this.unaliasedSymbol(symbol);
+  }
+
   getType(symbol: ts.Symbol): ts.Type {
     const declaration = symbol.valueDeclaration ?? symbol.declarations?.[0];
     if (!declaration) throw new Error(`Symbol ${symbol.getName()} has no declaration.`);

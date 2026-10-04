@@ -1,17 +1,20 @@
 # Hyperlinter
 
+Project website: [typie hyperlinter](https://flintwinters.github.io/hyperlinter/).
+
 Hyperlinter is a TypeScript linter for code and repository structure. It uses
 the TypeScript compiler graph to report dependency cycles, unused public
 exports, and coupling outliers, and also checks local source patterns.
 
 ## Add to a project
 
-Add this repository as a submodule at `tools/hyperlint`, then install the host
-project's dependencies (or install this package's dependencies independently):
+Add this repository as a submodule at `tools/hyperlint`, then install
+Hyperlinter's locked dependencies, including its TypeScript runner:
 
 ```bash
 git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
-npx tsx tools/hyperlint/src/cli.ts
+npm --prefix tools/hyperlint ci --include=dev
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
 ```
 
 Run the command from the target repository root. It reads that repository's
@@ -34,20 +37,20 @@ architectural boundary.
 Directory modules may own at most 12 source files from the configured TypeScript
 project, including their entrypoint. Descendant directories own their files
 separately; styles, generated files and tests receive no filename exemptions.
-The versioned `moduleFiles.maximum` policy controls this limit (`HL115`).
+The versioned `moduleFiles.maximum` policy controls this limit (`HL117`).
 
 ## Commands
 
 ```bash
-npx tsx tools/hyperlint/src/cli.ts
-npx tsx tools/hyperlint/src/cli.ts --write-baseline
-npx tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline
-npx tsx tools/hyperlint/src/cli.ts --check-styles
-npx tsx tools/hyperlint/src/cli.ts --source-budget check
-npx tsx tools/hyperlint/src/cli.ts --fix-private-exports
-npx tsx tools/hyperlint/src/cli.ts --history
-npx tsx tools/hyperlint/src/cli.ts --format=json
-npx tsx tools/hyperlint/src/cli.ts --fix
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-baseline
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --check-styles
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --source-budget check
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --fix-private-exports
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --history
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --format=json
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --fix
 ```
 
 The evidence ledger and baseline are local. Review baseline changes before
@@ -88,3 +91,80 @@ length (`HL112`), unused public exports (`HL102`), and public-surface growth
 (`HL113`). Historical ledger entries retain their original IDs.
 
 Run `python3 manage.py check` for typechecking and regression tests.
+
+Module cohesion (`HL115`, info) prompts the coder to refactor when **both**
+configured signals cross their thresholds:
+
+- Separated export-pair ratio **>= 0.5**: the fraction of pairs belonging to
+  different implementation groups. Exports join groups when their reachable
+  in-module behavior/state declarations intersect; merging is transitive.
+- Mean consumer overlap **<= 0.2**: the unweighted mean Jaccard similarity
+  (intersection / union) of external module consumer sets across group pairs.
+
+At least four behavior/state exports and two exports per group are required.
+Every group must have known consumers. Types, literal constants, and type-only
+references do not connect implementations. Re-exports are resolved to their
+underlying symbols; facade exports implemented outside the directory are
+excluded. Consumers include all modules in the configured TypeScript project,
+including tests; module-level consumption is deliberately coarse.
+
+Thresholds and severity live in `hyperlinter.config.json` under `cohesion` and
+`rules.moduleCohesion`. Diagnostics show measured values, thresholds, groups,
+consumers, and refactoring instructions. The rule participates in existing
+module scoring; no automatic split is performed. These defaults are initial
+heuristics, not empirically calibrated proof of unrelated responsibilities.
+
+Experimental semantic grouping (`HL116`, warning) is optional and never contributes
+to blocking module scores. Set `semantic.enabled` to `true` in Hyperlinter's
+configuration to refresh and examine embeddings during each analysis, or run
+`npm run hyperlint -- --build-embeddings` for an explicit index build.
+`OPENROUTER_API_KEY` must be present in the environment for every embedding build
+(including warm-cache builds); ordinary checks need no key. An explicit build
+fails if indexing fails; optional analysis reports an availability warning.
+
+Function source is sent to OpenRouter's [embedding endpoint](https://openrouter.ai/docs/api/api-reference/embeddings/create-embeddings),
+using `openai/text-embedding-3-small` by default. All current implementations
+are indexed, including private functions, callbacks, methods, accessors, and
+constructors; declaration-only signatures are excluded. “Active” means present
+in the current compiler project, not proven reachable at runtime. The private
+`.git/hyperlinter/semantic-embeddings.json` cache records the current inventory,
+reuses content hashes, re-embeds changed functions or model changes, and prunes
+removed functions on each successful build. Failed builds leave the previous
+index intact and do not analyze stale embeddings. Full function text is sent;
+provider size limits cause an availability warning rather than silent truncation.
+
+Within each module, deterministic complete-link assignment groups functions
+whose pairwise cosine distances are at most `maximumWithinClusterDistance`
+(default **0.25**). A warning requires two groups of at least
+`minimumClusterFunctions` (**8 each**) with every cross-group distance at least
+`minimumClusterDistance` (**0.8**, on a 0–2 scale). These lax defaults are noisy,
+model-dependent heuristics. Add threshold overrides to the `semantic` object in
+`hyperlinter.config.json`; defaults are defined once in `src/config/SemanticConfig.ts`.
+The prompt requests agent examination, not automatic
+refactoring: if declustering is unwarranted, the agent should probably adjust
+these experimental thresholds in Hyperlinter and explain why. The prompt also
+requests investigation of applicable improvements to embedding context, clustering,
+distance/count thresholds, and structural corroboration, supported by the triggering
+evidence and regression tests for reproducible analysis failures. This exception
+applies only to semantic advice; existing enforcement remains policy.
+
+## Project website
+
+GitHub Pages serves the static `docs/` directory from `main`; no website build
+or API key is needed. Keep the canonical URL, sitemap, and structured data aligned
+with the deployed address. Project-site `robots.txt` cannot control crawling at
+the origin root, so the page uses indexing metadata and a discoverable sitemap.
+`python3 manage.py check` verifies the page metadata and internal navigation along
+with the TypeScript project.
+
+Website verification is repeatable through `manage.py`: `site-preview` audits
+320px, 390px, 768px, and 1440px CSS viewports with page JavaScript disabled,
+checks clipping, install visibility, text contrast, keyboard skip navigation,
+and the optional copy button's real clipboard
+contents, and saves full-page screenshots in
+`runtime/site-preview/`. It requires Chromium and Python `websocket-client`.
+`site-install` exercises the published commands against a local submodule clone
+and installs dependencies with npm; it requires registry access. `site-live`
+compares deployed HTML/assets/sitemap with the checkout and verifies custom 404
+behavior and the origin robots policy. Metadata checks do not establish indexing,
+ranking, conversion, or real-user performance.

@@ -42,5 +42,8 @@
       "info": 1
     },
     "moduleErrorThreshold": 4
+  },
+  "semantic": {
+    "enabled": false
   }
 }

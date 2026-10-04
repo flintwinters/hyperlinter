@@ -1,9 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { semanticConfig, type SemanticConfig } from './SemanticConfig';
+
 import type { DiagnosticSeverity } from '../diagnostics/Diagnostic';
 
 export interface HyperlinterConfig {
+  readonly semantic: SemanticConfig;
   readonly rules: {
     readonly dependencyCycles: DiagnosticSeverity;
     readonly deadImplementation: DiagnosticSeverity;
@@ -41,7 +44,7 @@ export interface HyperlinterConfig {
     readonly maximum: number;
   };
   readonly scoring: {
-    readonly severityWeights: Readonly<Record<DiagnosticSeverity, number>>;
+    readonly severityWeights: Readonly<Record<Exclude<DiagnosticSeverity, 'warning'>, number>>;
     readonly moduleErrorThreshold: number;
   };
 }
@@ -78,6 +81,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   if (!isObject(scoring.severityWeights)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const severityWeights = scoring.severityWeights;
   return {
+    semantic: semanticConfig(value.semantic),
     rules: {
       moduleCohesion: severity(rules.moduleCohesion, fileName, 'rules.moduleCohesion'),
       deadImplementation: severity(rules.deadImplementation, fileName, 'rules.deadImplementation'),

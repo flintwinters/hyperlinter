@@ -106,3 +106,34 @@ Thresholds and severity live in `hyperlinter.config.json` under `cohesion` and
 consumers, and refactoring instructions. The rule participates in existing
 module scoring; no automatic split is performed. These defaults are initial
 heuristics, not empirically calibrated proof of unrelated responsibilities.
+
+Experimental semantic grouping (`HL116`, warning) is optional and never contributes
+to blocking module scores. Set `semantic.enabled` to `true` in Hyperlinter's
+configuration to refresh and examine embeddings during each analysis, or run
+`npm run hyperlint -- --build-embeddings` for an explicit index build.
+`OPENROUTER_API_KEY` must be present in the environment for every embedding build
+(including warm-cache builds); ordinary checks need no key. An explicit build
+fails if indexing fails; optional analysis reports an availability warning.
+
+Function source is sent to OpenRouter's [embedding endpoint](https://openrouter.ai/docs/api/api-reference/embeddings/create-embeddings),
+using `openai/text-embedding-3-small` by default. All current implementations
+are indexed, including private functions, callbacks, methods, accessors, and
+constructors; declaration-only signatures are excluded. “Active” means present
+in the current compiler project, not proven reachable at runtime. The private
+`.git/hyperlinter/semantic-embeddings.json` cache records the current inventory,
+reuses content hashes, re-embeds changed functions or model changes, and prunes
+removed functions on each successful build. Failed builds leave the previous
+index intact and do not analyze stale embeddings. Full function text is sent;
+provider size limits cause an availability warning rather than silent truncation.
+
+Within each module, deterministic complete-link assignment groups functions
+whose pairwise cosine distances are at most `maximumWithinClusterDistance`
+(default **0.25**). A warning requires two groups of at least
+`minimumClusterFunctions` (**8 each**) with every cross-group distance at least
+`minimumClusterDistance` (**0.8**, on a 0–2 scale). These lax defaults are noisy,
+model-dependent heuristics. Add threshold overrides to the `semantic` object in
+`hyperlinter.config.json`; defaults are defined once in `src/config/SemanticConfig.ts`.
+The prompt requests agent examination, not automatic
+refactoring: if declustering is unwarranted, the agent should probably adjust
+these experimental thresholds in Hyperlinter and explain why. This exception
+applies only to semantic advice; existing enforcement remains policy.

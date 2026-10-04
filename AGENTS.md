@@ -31,7 +31,10 @@ records local evidence. Dead implementation analysis conservatively roots
 exports and executable references; it does not infer application entrypoints.
 Run `python3 manage.py check` to verify changes. Cohesion combines internal behavior/state groups with consumer overlap;
 keep its quantitative evidence conservative as analysis expands. Preserve
-unique diagnostic IDs and reproducible analysis regressions.
+unique diagnostic IDs and reproducible analysis regressions. Optional semantic
+embeddings track current implementations in target-private caches; their
+experimental warnings never accumulate enforcement scores. Semantic thresholds
+may be tuned after agent examination finds declustering unwarranted.
 
 ## First commands
 

@@ -45,6 +45,12 @@ export function semanticGrouping(
             + 'Examine responsibilities, shared state, invariants, and consumers before considering declustering into separate modules. '
             + 'If you do not think declustering is needed, you should probably adjust semantic.minimumClusterFunctions '
             + 'and/or semantic.minimumClusterDistance in hyperlinter.config.json instead. '
+            + 'Also investigate whether this trigger reveals a general improvement to Hyperlinter, where applicable: '
+            + 'embedding input/context, clustering behavior, cosine-distance evidence, function-count and distance thresholds, '
+            + 'or deterministic behavior/state/consumer evidence that could confirm or reject semantic separation. '
+            + 'Identify applicable opportunities and explain how the triggering evidence supports them; '
+            + 'preserve reproducible analysis failures as regression tests when proposing detection changes. '
+            + 'Threshold tuning is permitted for this experimental semantic advice; do not weaken other enforcement merely to pass. '
             + 'Explain your judgment; do not introduce artificial structure merely to satisfy embeddings.',
         });
         // One prompt per module is enough; avoid quadratic diagnostic output.

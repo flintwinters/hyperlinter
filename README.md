@@ -135,5 +135,8 @@ model-dependent heuristics. Add threshold overrides to the `semantic` object in
 `hyperlinter.config.json`; defaults are defined once in `src/config/SemanticConfig.ts`.
 The prompt requests agent examination, not automatic
 refactoring: if declustering is unwarranted, the agent should probably adjust
-these experimental thresholds in Hyperlinter and explain why. This exception
+these experimental thresholds in Hyperlinter and explain why. The prompt also
+requests investigation of applicable improvements to embedding context, clustering,
+distance/count thresholds, and structural corroboration, supported by the triggering
+evidence and regression tests for reproducible analysis failures. This exception
 applies only to semantic advice; existing enforcement remains policy.

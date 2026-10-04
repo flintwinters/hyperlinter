@@ -1,7 +1,5 @@
 """Validate crawlable metadata and navigation for the static project website."""
 import json
-import shutil
-import subprocess
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -12,14 +10,14 @@ class Page(HTMLParser):
     def __init__(self, source):
         super().__init__()
         self.tags = []
-        self.text = {"title": [], "h1": [], "script": []}
+        self.text = {"title": [], "h1": [], "script": [], "pre": []}
         self.current = None
         self.feed(source)
 
     def handle_starttag(self, tag, attrs):
         attributes = dict(attrs)
         self.tags.append((tag, attributes))
-        if tag in ("title", "h1") or (tag == "script" and attributes.get("type") == "application/ld+json"):
+        if tag in ("title", "h1", "pre") or (tag == "script" and attributes.get("type") == "application/ld+json"):
             self.current = tag
 
     def handle_endtag(self, tag):
@@ -75,21 +73,3 @@ def check_site(root):
 
 def fail(message):
     raise ValueError(message)
-
-
-def preview_site(root):
-    browser = shutil.which("chromium") or shutil.which("chromium-browser")
-    if not browser:
-        raise SystemExit("site-preview: install Chromium to capture desktop/mobile screenshots.")
-    output = root / "runtime" / "site-preview"
-    output.mkdir(parents=True, exist_ok=True)
-    for name, size in (("desktop", "1440,1100"), ("mobile", "500,900")):
-        screenshot = output / f"{name}.png"
-        # Match Chromium's minimum window width to avoid a cropped mobile capture.
-        command = [browser, "--force-device-scale-factor=1", "--headless", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-                   f"--user-data-dir={output / 'browser-profile'}", f"--disk-cache-dir={output / 'cache'}",
-                   f"--window-size={size}", f"--screenshot={screenshot}", (root / "docs/index.html").as_uri()]
-        result = subprocess.run(command, capture_output=True, text=True, timeout=30)
-        if result.returncode or not screenshot.exists():
-            raise SystemExit(f"site-preview: {name} capture failed. {result.stderr[-600:]}")
-        print(f"site-preview: {screenshot.relative_to(root)}")

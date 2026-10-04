@@ -8,12 +8,13 @@ exports, and coupling outliers, and also checks local source patterns.
 
 ## Add to a project
 
-Add this repository as a submodule at `tools/hyperlint`, then install the host
-project's dependencies (or install this package's dependencies independently):
+Add this repository as a submodule at `tools/hyperlint`, then install
+Hyperlinter's locked dependencies, including its TypeScript runner:
 
 ```bash
 git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
-npx tsx tools/hyperlint/src/cli.ts
+npm --prefix tools/hyperlint ci --include=dev
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
 ```
 
 Run the command from the target repository root. It reads that repository's
@@ -37,15 +38,15 @@ architectural boundary.
 ## Commands
 
 ```bash
-npx tsx tools/hyperlint/src/cli.ts
-npx tsx tools/hyperlint/src/cli.ts --write-baseline
-npx tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline
-npx tsx tools/hyperlint/src/cli.ts --check-styles
-npx tsx tools/hyperlint/src/cli.ts --source-budget check
-npx tsx tools/hyperlint/src/cli.ts --fix-private-exports
-npx tsx tools/hyperlint/src/cli.ts --history
-npx tsx tools/hyperlint/src/cli.ts --format=json
-npx tsx tools/hyperlint/src/cli.ts --fix
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-baseline
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --check-styles
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --source-budget check
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --fix-private-exports
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --history
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --format=json
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --fix
 ```
 
 The evidence ledger and baseline are local. Review baseline changes before
@@ -151,3 +152,15 @@ with the deployed address. Project-site `robots.txt` cannot control crawling at
 the origin root, so the page uses indexing metadata and a discoverable sitemap.
 `python3 manage.py check` verifies the page metadata and internal navigation along
 with the TypeScript project.
+
+Website verification is repeatable through `manage.py`: `site-preview` audits
+320px, 390px, 768px, and 1440px CSS viewports with page JavaScript disabled,
+checks clipping, install visibility, text contrast, keyboard skip navigation,
+and the optional copy button's real clipboard
+contents, and saves full-page screenshots in
+`runtime/site-preview/`. It requires Chromium and Python `websocket-client`.
+`site-install` exercises the published commands against a local submodule clone
+and installs dependencies with npm; it requires registry access. `site-live`
+compares deployed HTML/assets/sitemap with the checkout and verifies custom 404
+behavior and the origin robots policy. Metadata checks do not establish indexing,
+ranking, conversion, or real-user performance.

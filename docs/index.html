@@ -45,172 +45,77 @@
   }
   </script>
   <style>
-    :root { color-scheme: dark; --bg:#102020; --panel:#182b2a; --ink:#f3f1e8; --muted:#b6c5bd; --accent:#c7f58a; --line:#3a4b43; }
+    :root { color-scheme:dark; --bg:#102020; --ink:#f3f1e8; --muted:#b6c5bd; --accent:#c7f58a; --line:#3a4b43; }
     * { box-sizing:border-box; }
-    html { scroll-behavior:smooth; scroll-padding-top:2rem; }
-    body { margin:0; background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; line-height:1.65; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
     a { color:var(--accent); text-underline-offset:.25em; }
     a:hover { color:white; }
-    a:focus-visible, summary:focus-visible { outline:3px solid var(--accent); outline-offset:6px; }
-    .wrap { max-width:1140px; margin:auto; padding:0 32px; }
+    a:focus-visible { outline:3px solid var(--accent); outline-offset:5px; }
+    .wrap { max-width:1080px; margin:auto; padding:0 28px; }
     .skip { position:absolute; top:-100px; padding:12px; background:var(--bg); }
-    .skip:focus { top:12px; z-index:2; }
+    .skip:focus { top:12px; }
     header { border-bottom:1px solid var(--line); }
-    .header { display:flex; justify-content:space-between; align-items:center; gap:24px; padding-top:24px; padding-bottom:24px; }
-    .brand { font-weight:750; letter-spacing:-.04em; color:var(--ink); text-decoration:none; font-size:1.2rem; }
-    .brand span { color:var(--accent); margin-right:.55em; }
-    nav { display:flex; gap:24px; flex-wrap:wrap; font-size:.9rem; }
-    nav a { color:var(--muted); text-decoration:none; }
-    .hero { padding-top:82px; padding-bottom:70px; display:grid; grid-template-columns:1.25fr 1fr; gap:60px; align-items:center; }
-    .eyebrow { color:var(--accent); font-size:.75rem; letter-spacing:.13em; text-transform:uppercase; font-weight:700; }
-    h1 { font-size:clamp(3rem,6.5vw,5.8rem); line-height:.98; letter-spacing:-.065em; margin:22px 0; font-weight:750; }
-    h1 span { display:block; }
-    .lead { font-size:1.35rem; line-height:1.45; max-width:32rem; }
-    .intro { color:var(--muted); max-width:35rem; }
-    .actions { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-top:30px; }
-    .button { padding:11px 20px; border:1px solid var(--line); border-radius:5px; text-decoration:none; font-size:.9rem; font-weight:650; }
-    .primary { background:var(--accent); border-color:var(--accent); color:var(--bg); }
-    .primary:hover { background:white; color:var(--bg); }
-    .loop { border:1px solid var(--line); background:var(--panel); border-radius:8px; padding:28px; }
-    .loop .eyebrow { margin-top:0; }
-    .loop ol { list-style:none; padding:0; margin-bottom:0; counter-reset:step; }
-    .loop li { padding:15px 0; border-top:1px solid var(--line); counter-increment:step; display:flex; gap:16px; align-items:baseline; }
-    .loop li::before { content:"0" counter(step); color:var(--accent); font-family:monospace; font-size:.85rem; }
-    .loop strong { display:block; font-weight:600; }
-    .loop small { color:var(--muted); }
-    section { padding-top:58px; padding-bottom:58px; border-top:1px solid var(--line); }
-    h2 { margin:10px 0 20px; font-size:clamp(1.8rem,3vw,2.5rem); line-height:1.2; letter-spacing:-.035em; }
-    h3 { font-size:1.15rem; letter-spacing:-.02em; margin:0 0 10px; }
-    .section-intro { max-width:720px; color:var(--muted); }
-    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin-top:32px; }
-    .card { padding:22px 0; border-top:2px solid var(--accent); }
-    .card p { color:var(--muted); margin-bottom:0; }
-    .checks { width:100%; border-collapse:collapse; margin-top:28px; text-align:left; font-size:.95rem; }
-    .checks th { color:var(--accent); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; }
-    .checks td,.checks th { padding:15px 12px 15px 0; border-bottom:1px solid var(--line); vertical-align:top; }
-    .checks td:first-child { width:29%; font-weight:600; }
-    .checks td:last-child { color:var(--muted); }
-    pre { padding:22px; background:#091716; border:1px solid var(--line); border-radius:6px; overflow:auto; font-size:.85rem; line-height:1.8; }
-    code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; overflow-wrap:anywhere; }
-    pre code { overflow-wrap:normal; }
-    .installation > div { min-width:0; }
-    .installation { display:grid; grid-template-columns:1fr 1.3fr; gap:40px; }
-    .note { color:var(--muted); font-size:.9rem; }
-    .experimental { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:32px; margin-top:30px; }
-    .experimental p { max-width:850px; }
-    .metrics { display:flex; gap:40px; flex-wrap:wrap; margin:24px 0; }
-    .metrics strong { display:block; font-size:2rem; color:var(--accent); line-height:1.2; }
-    .metrics span { color:var(--muted); font-size:.85rem; }
-    details { border-bottom:1px solid var(--line); padding:20px 0; }
-    summary { cursor:pointer; font-weight:600; }
-    details p { color:var(--muted); max-width:850px; }
-    footer { border-top:1px solid var(--line); padding:30px 0; color:var(--muted); font-size:.85rem; }
-    .footer { display:flex; justify-content:space-between; gap:24px; flex-wrap:wrap; }
-    @media (max-width:800px) { .hero,.installation { grid-template-columns:minmax(0,1fr); gap:28px; } .hero { padding-top:52px; } .grid { grid-template-columns:1fr; gap:12px; } .header { align-items:flex-start; flex-direction:column; gap:16px; } .wrap { padding-left:22px; padding-right:22px; } nav { gap:20px; } .checks td:first-child { width:36%; } }
-    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } }
+    .header { display:flex; justify-content:space-between; align-items:center; gap:20px; padding-top:22px; padding-bottom:22px; }
+    .brand { color:var(--ink); font-weight:700; text-decoration:none; letter-spacing:-.025em; }
+    .brand span { color:var(--accent); margin-right:.5em; }
+    nav { display:flex; flex-wrap:wrap; gap:20px; font-size:.9rem; }
+    nav a { color:var(--muted); }
+    main { padding-top:60px!important; padding-bottom:50px!important; }
+    .eyebrow { color:var(--accent); font-size:.75rem; letter-spacing:.1em; text-transform:uppercase; font-weight:650; }
+    h1 { font-size:clamp(2rem,5vw,3.4rem); letter-spacing:-.055em; line-height:1.1; margin:12px 0 24px; }
+    .headline { font-size:clamp(1.6rem,3.5vw,2.5rem); letter-spacing:-.035em; line-height:1.2; margin:0 0 20px; max-width:650px; }
+    .intro { max-width:660px; color:var(--muted); margin-bottom:32px; }
+    .columns { display:grid; grid-template-columns:1fr 1.15fr; gap:48px; align-items:start; }
+    .columns > * { min-width:0; }
+    h2 { font-size:1.1rem; margin:0 0 16px; }
+    ul { list-style:none; margin:0; padding:0; }
+    li { border-top:1px solid var(--line); padding:14px 0; }
+    li strong { display:block; font-weight:650; }
+    li span { color:var(--muted); font-size:.9rem; }
+    .install { border:1px solid var(--line); border-radius:7px; padding:24px; background:#182b2a; }
+    .install p { margin:0 0 16px; font-size:.9rem; }
+    pre { padding:16px; margin:0 0 18px; background:#091716; border-radius:4px; overflow:auto; font-size:.78rem; line-height:1.8; }
+    code { font-family:ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .note { color:var(--muted); font-size:.82rem; }
+    .install .note { font-size:.82rem; }
+    .experiment { border-top:1px solid var(--line); margin-top:34px; padding-top:18px; }
+    footer { border-top:1px solid var(--line); padding:22px 0; }
+    footer .wrap { display:flex; gap:22px; flex-wrap:wrap; font-size:.85rem; }
+    @media (max-width:720px) { .columns { grid-template-columns:minmax(0,1fr); gap:28px; } main { padding-top:34px!important; } .header { align-items:flex-start; flex-direction:column; gap:10px; } .wrap { padding-left:22px; padding-right:22px; } .install { padding:20px; } }
   </style>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header>
-    <div class="wrap header">
-      <a class="brand" href="./" aria-label="typie hyperlinter home"><span aria-hidden="true">↳</span>typie hyperlinter</a>
-      <nav aria-label="Main navigation">
-        <a href="#checks">Checks</a><a href="#get-started">Get started</a><a href="#semantic">Semantic grouping</a>
-        <a href="https://github.com/flintwinters/hyperlinter">GitHub ↗</a>
-      </nav>
-    </div>
-  </header>
+  <header><div class="wrap header">
+    <a class="brand" href="./"><span aria-hidden="true">↳</span>typie hyperlinter</a>
+    <nav aria-label="Main navigation"><a href="#get-started">Install</a><a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Docs</a><a href="https://github.com/flintwinters/hyperlinter">GitHub ↗</a></nav>
+  </div></header>
   <main id="main" class="wrap">
-    <div class="hero">
-      <div>
-        <p class="eyebrow">TypeScript architecture linter · Built for coding agents</p>
-        <h1>typie <span>hyperlinter</span></h1>
-        <p class="lead">Small APIs. Clear boundaries.<br>Mechanical pressure toward maintainable code.</p>
-        <p class="intro">AI coding agents can produce valid code while letting architecture drift. Hyperlinter makes dependency cycles, dead code, duplicated logic, and unnecessary public surface visible across a TypeScript repository.</p>
-        <div class="actions"><a class="button primary" href="#get-started">Add to your project</a><a class="button" href="https://github.com/flintwinters/hyperlinter/blob/main/HYPERLINTER.md">Read the manifesto ↗</a></div>
-      </div>
-      <aside class="loop" aria-label="The Hyperlinter feedback loop">
-        <p class="eyebrow">The feedback loop</p>
-        <ol>
-          <li><div><strong>An agent changes code</strong><small>Ordinary TypeScript development.</small></div></li>
-          <li><div><strong>Hyperlinter examines structure</strong><small>Compiler evidence and repository relationships.</small></div></li>
-          <li><div><strong>Diagnostics guide the next change</strong><small>Explain the pressure. Fix mechanically where safe.</small></div></li>
-          <li><div><strong>Validate and record evidence</strong><small>Local history makes structural drift visible.</small></div></li>
-        </ol>
-      </aside>
-    </div>
-    <section id="principles">
-      <p class="eyebrow">Why Hyperlinter</p>
-      <h2>Architecture needs feedback, too.</h2>
-      <p class="section-intro">A compiler checks whether code is valid. Hyperlinter adds structural constraints that steer coding agents toward encapsulation, low coupling, and coherent modules—without asking prompt discipline to carry the whole burden.</p>
-      <div class="grid">
-        <article class="card"><h3>Keep public APIs small</h3><p>Find unused exports, track public-surface growth, and enforce module entrypoints. Expose the interface consumers need; keep implementation details with their owner.</p></article>
-        <article class="card"><h3>Make drift measurable</h3><p>Inspect dependency cycles, coupling, duplication, and cohesion. Accumulate configured diagnostic weights into module scores that make concentrated structural debt actionable.</p></article>
-        <article class="card"><h3>Use evidence before refactoring</h3><p>Compiler and reference evidence inform diagnostics. Apply safe, limited fixes automatically; leave ambiguous architectural decisions to examination and judgment.</p></article>
-      </div>
-    </section>
-    <section id="checks">
-      <p class="eyebrow">Repository-scale analysis</p>
-      <h2>What does Hyperlinter check?</h2>
-      <p class="section-intro">Checks combine local source patterns with relationships across modules. Enforcement levels and detection thresholds live in the versioned Hyperlinter configuration.</p>
-      <table class="checks">
-        <caption class="note">Selected checks and the evidence they report</caption>
-        <thead><tr><th scope="col">Check</th><th scope="col">Architectural feedback</th></tr></thead>
-        <tbody>
-          <tr><td>Dependency cycles</td><td>Identify circular module dependencies that make boundaries harder to maintain.</td></tr>
-          <tr><td>Public surface</td><td>Report unused public exports, oversized exported APIs, and growth since a local baseline.</td></tr>
-          <tr><td>Coupling outliers</td><td>Highlight modules whose dependency relationships stand out against configured repository statistics.</td></tr>
-          <tr><td>Exact and near duplicates</td><td>Find normalized AST clones and shared source structure. Eligible exact clones have a limited extraction fix; near duplicates remain advisory by default.</td></tr>
-          <tr><td>Dead implementation</td><td>Conservatively detect unreachable top-level function implementations and recursive groups using symbol references.</td></tr>
-          <tr><td>Module boundaries</td><td>Require one public directory entrypoint and keep other files private to their owning module.</td></tr>
-          <tr><td>Module cohesion</td><td>Combine shared behavior/state groups with consumer overlap to flag potentially independent responsibilities.</td></tr>
-          <tr><td>Agent instructions and styles</td><td>Keep root agent instructions concise; detect forbidden CSS files and new inline JSX styles.</td></tr>
-        </tbody>
-      </table>
-      <p class="note">See the <a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">technical documentation</a> for individual diagnostic IDs, conservative analysis limits, and fix eligibility.</p>
-    </section>
-    <section id="get-started">
-      <div class="installation">
-        <div>
-          <p class="eyebrow">Get started</p>
-          <h2>Add Hyperlinter to a TypeScript project.</h2>
-          <p class="section-intro">Use Node.js 20 or newer and a target repository with a <code>tsconfig.json</code>. Add Hyperlinter as a submodule, install its dependencies, and invoke it from your target repository root.</p>
-          <p class="note">Review the <a href="https://github.com/flintwinters/hyperlinter/blob/main/hyperlinter.config.json">enforcement configuration</a> before adopting it: default policy includes blocking structural errors and styling constraints.</p>
-        </div>
-        <div>
-          <pre aria-label="Install and run Hyperlinter"><code>git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
+    <p class="eyebrow">TypeScript architecture linter for AI coding agents</p>
+    <h1>typie hyperlinter</h1>
+    <p class="headline">Keep your agent’s codebase maintainable.</p>
+    <p class="intro">Catch tangled dependencies, duplicated logic, dead code, and oversized APIs. Give your coding agent concrete diagnostics to act on as your repository grows.</p>
+    <div class="columns">
+      <section aria-labelledby="checks-heading">
+        <h2 id="checks-heading">What it catches</h2>
+        <ul>
+          <li><strong>APIs that keep growing</strong><span>Unused exports, public-surface growth, and broken module boundaries.</span></li>
+          <li><strong>Code that becomes hard to change</strong><span>Dependency cycles, coupling outliers, and duplicated implementations.</span></li>
+          <li><strong>Responsibilities that drift apart</strong><span>Dead functions and low-cohesion modules, using compiler and reference evidence.</span></li>
+        </ul>
+      </section>
+      <section id="get-started" class="install" aria-labelledby="install-heading">
+        <h2 id="install-heading">Try it in your TypeScript repository</h2>
+        <p>Requires Node.js 20+ and a <code>tsconfig.json</code>. Run from your repository root:</p>
+        <pre aria-label="Install and run Hyperlinter"><code>git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
 npm --prefix tools/hyperlint install
 npx tsx tools/hyperlint/src/cli.ts</code></pre>
-          <p class="note">Get machine-readable diagnostics or examine local run history:</p>
-          <pre aria-label="JSON diagnostics and local history"><code>npx tsx tools/hyperlint/src/cli.ts --format=json
-npx tsx tools/hyperlint/src/cli.ts --history</code></pre>
-          <p class="note">Run evidence stays in the local SQLite ledger. Target baselines stay private in <code>.git/hyperlinter/</code>, outside public submodule history.</p>
-        </div>
-      </div>
-    </section>
-    <section id="semantic">
-      <p class="eyebrow">Optional experiment</p>
-      <h2>Semantic function grouping.</h2>
-      <p class="section-intro">Vector embeddings can surface large, semantically separated function groups within a module. This is an experimental signal for agent examination, with deliberately lax defaults.</p>
-      <div class="experimental">
-        <h3>Warnings invite judgment.</h3>
-        <div class="metrics"><div><strong>8 + 8</strong><span>minimum functions in two groups</span></div><div><strong>0.8</strong><span>minimum cross-group cosine distance</span></div><div><strong>0</strong><span>contribution to blocking policy scores</span></div></div>
-        <p>The index tracks current function implementations, reuses unchanged embeddings, refreshes changed functions, and removes deleted functions from its active inventory. Active means present in the compiler project, not proven reachable at runtime.</p>
-        <p>A warning asks the agent to examine responsibilities, state, invariants, and consumers. If declustering is unwarranted, the agent should probably adjust the experimental thresholds and explain why. The prompt also asks whether the trigger reveals improvements to Hyperlinter’s embeddings, clustering, or structural evidence.</p>
-        <p class="note">Disabled by default. Enabling the feature sends function source to OpenRouter and requires <code>OPENROUTER_API_KEY</code> for embedding builds. Ordinary checks require no API key. <a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Read the setup and limitations</a>.</p>
-      </div>
-    </section>
-    <section id="questions">
-      <p class="eyebrow">Common questions</p>
-      <h2>Before you adopt it.</h2>
-      <details><summary>Is Hyperlinter a replacement for TypeScript or ordinary linting?</summary><p>Use it alongside compiler checks and your existing linting workflow. Hyperlinter focuses on structural pressure: public APIs, module boundaries, repository relationships, and maintainability.</p></details>
-      <details><summary>Does Hyperlinter automatically refactor the whole repository?</summary><p>No. Automatic fixes are limited to eligible exact clones and carefully selected unused exports. Broader architectural changes remain diagnostics for the coding agent to examine and resolve.</p></details>
-      <details><summary>Does every finding block a change?</summary><p>Errors are blocking; configured diagnostic weights can also accumulate into blocking module scores. Experimental semantic warnings never contribute to those scores. Cohesion and near-duplicate defaults are advisory, but participate in configured scoring.</p></details>
-      <details><summary>Is an AI model required to run Hyperlinter?</summary><p>No. Structural analysis uses TypeScript compiler evidence. Only the optional semantic grouping experiment uses an embedding model through OpenRouter.</p></details>
-      <details><summary>Where can I inspect the implementation and contribute?</summary><p>The <a href="https://github.com/flintwinters/hyperlinter">GitHub repository</a> contains the source, configuration, and regression tests. Read the <a href="https://github.com/flintwinters/hyperlinter/blob/main/HYPERLINTER.md">product manifesto</a> and <a href="https://github.com/flintwinters/hyperlinter/blob/main/AGENTS.md">agent instructions</a> before changing the project. Run <code>python3 manage.py check</code> to verify changes.</p></details>
-    </section>
+        <p class="note">Review the <a href="https://github.com/flintwinters/hyperlinter/blob/main/hyperlinter.config.json">default policy</a>: blocking rules include module entrypoints and styling constraints.</p>
+        <a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Setup, commands &amp; limitations ↗</a>
+      </section>
+    </div>
+    <p class="note experiment">Optional semantic grouping uses OpenRouter embeddings to suggest agent examination. It sends function source to the provider and requires an API key; its experimental warnings never block. Ordinary checks need no model or API key.</p>
   </main>
-  <footer><div class="wrap footer"><span>typie hyperlinter · TypeScript architecture, under examination.</span><a href="https://github.com/flintwinters/hyperlinter">Source &amp; documentation ↗</a></div></footer>
+  <footer><div class="wrap"><a href="https://github.com/flintwinters/hyperlinter">Source code</a><a href="https://github.com/flintwinters/hyperlinter/blob/main/HYPERLINTER.md">Project philosophy</a></div></footer>
 </body>
 </html>

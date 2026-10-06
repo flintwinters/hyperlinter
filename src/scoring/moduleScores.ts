@@ -8,7 +8,7 @@ export function moduleScoreDiagnostics(
 ): readonly HyperlintDiagnostic[] {
   const scores = new Map<string, number>();
   for (const diagnostic of diagnostics) {
-    if (!diagnostic.module) continue;
+    if (!diagnostic.module || diagnostic.severity === 'warning') continue;
     const weight = config.scoring.severityWeights[diagnostic.severity];
     scores.set(diagnostic.module, (scores.get(diagnostic.module) ?? 0) + weight);
   }

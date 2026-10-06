@@ -23,6 +23,20 @@ useful, deterministic feedback.
   the target repository's private `.git/hyperlinter/` directory, never in the
   public submodule. Invoke the tool from the target repository root.
 
+## Architecture and current focus
+
+The TypeScript project model owns compiler and reference evidence; registered
+rules produce diagnostics (including a 12-file direct module ownership limit), module scoring aggregates pressure, and the CLI
+records local evidence. Dead implementation analysis conservatively roots
+exports and executable references; it does not infer application entrypoints.
+Run `python3 manage.py check` to verify changes. Cohesion combines internal behavior/state groups with consumer overlap;
+keep its quantitative evidence conservative as analysis expands. Preserve
+unique diagnostic IDs and reproducible analysis regressions. Optional semantic
+embeddings track current implementations in target-private caches; their
+experimental warnings never accumulate enforcement scores. Semantic thresholds
+may be tuned after agent examination finds declustering unwarranted. The static
+project website lives in `docs/`; GitHub Pages publishes it from `main`.
+
 ## First commands
 
 ```bash

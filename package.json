@@ -8,7 +8,7 @@
     "hyperlint": "tsx src/cli.ts",
     "baseline": "tsx src/cli.ts --write-baseline",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

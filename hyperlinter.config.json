@@ -1,6 +1,8 @@
 {
   "rules": {
     "dependencyCycles": "error",
+    "deadImplementation": "error",
+    "moduleCohesion": "info",
     "unusedPublicSurface": "smell",
     "couplingOutliers": "smell",
     "exactDuplicates": "smell",
@@ -11,7 +13,8 @@
     "singlePublicMethod": "error",
     "noCssFiles": "error",
     "noInlineStyles": "error",
-    "moduleScore": "error"
+    "moduleScore": "error",
+    "moduleFileLimit": "error"
   },
   "clones": {
     "exactMinimumMeaningfulNodes": 20,
@@ -24,6 +27,12 @@
     "minimumOutlierValue": 3,
     "minimumZScore": 2
   },
+  "cohesion": {
+    "minimumExports": 4,
+    "minimumGroupExports": 2,
+    "minimumSeparatedPairRatio": 0.5,
+    "maximumConsumerOverlap": 0.2
+  },
   "publicSurface": {
     "maximum": 40
   },
@@ -34,5 +43,11 @@
       "info": 1
     },
     "moduleErrorThreshold": 4
+  },
+  "moduleFiles": {
+    "maximum": 12
+  },
+  "semantic": {
+    "enabled": false
   }
 }

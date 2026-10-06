@@ -1,7 +1,7 @@
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './Rule';
+import type { HyperlinterConfig } from '../../config/HyperlinterConfig';
+import type { HyperlintDiagnostic } from '../../diagnostics/Diagnostic';
+import type { ProjectModel } from '../../project/ProjectModel';
+import type { HyperlintRule } from '../contracts/index';
 
 /** Public APIs larger than this require an explicit decomposition. */
 export const publicSurfaceLimitRule: HyperlintRule = {

@@ -2,7 +2,7 @@ import { findNearDuplicateClusters } from '../clones/nearDuplicates';
 import type { HyperlinterConfig } from '../config/HyperlinterConfig';
 import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
 import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './Rule';
+import type { HyperlintRule } from './contracts/index';
 
 export const nearDuplicatesRule: HyperlintRule = {
   id: 'HL105',

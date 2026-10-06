@@ -5,6 +5,7 @@ import path from 'node:path';
 import type { HyperlintDiagnostic } from './diagnostics/Diagnostic';
 import type { ModuleMetrics } from './project/ProjectModel';
 import { ProjectModel } from './project/ProjectModel';
+import { projectStatePath } from './runtime/projectState';
 import {
   RuntimeStore,
   type RuntimeRun,
@@ -33,7 +34,7 @@ const arguments_ = process.argv.slice(2);
 const json = arguments_.includes('--format=json') || arguments_.at(arguments_.indexOf('--format') + 1) === 'json';
 // A baseline contains target paths and policy. Git's private metadata keeps it
 // local even when Hyperlinter is installed as a public submodule.
-const baselinePath = localBaselinePath();
+const baselinePath = projectStatePath(process.cwd(), 'baseline.json');
 
 const sourceBudgetIndex = arguments_.indexOf('--source-budget');
 if (sourceBudgetIndex !== -1) {
@@ -101,15 +102,18 @@ if (arguments_.includes('--history')) {
 }
 
 const startedAt = Date.now();
-let result = analyze();
+const buildEmbeddings = arguments_.includes('--build-embeddings');
+let result = await analyze(undefined, buildEmbeddings);
 const fixProject = arguments_.includes('--fix-private-exports')
   ? ProjectModel.fromTsConfig()
   : undefined;
 const fixes = fixProject ? applyPrivateUnusedExportFixes(fixProject) : [];
+let sourceChanged = fixes.length > 0;
 if (arguments_.includes('--fix')) {
   const project = ProjectModel.fromTsConfig();
-  if (applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0) result = analyze();
+  sourceChanged = applyExactCloneRefactors(project, loadHyperlinterConfig()).length > 0 || sourceChanged;
 }
+if (sourceChanged) result = await analyze(undefined, buildEmbeddings);
 const baseline = readBaseline(baselinePath);
 const styleDiagnostics = result.diagnostics.filter((diagnostic): diagnostic is HyperlintDiagnostic & {
   file: string; line: number; signature: string;
@@ -146,14 +150,6 @@ function readBaseline(fileName: string): Baseline | undefined {
   return JSON.parse(fs.readFileSync(fileName, 'utf8')) as Baseline;
 }
 
-function localBaselinePath(): string {
-  const marker = path.resolve('.git');
-  if (fs.statSync(marker).isDirectory()) return path.join(marker, 'hyperlinter/baseline.json');
-  const match = /^gitdir: (.+)\s*$/m.exec(fs.readFileSync(marker, 'utf8'));
-  if (!match) throw new Error(`Invalid Git metadata pointer: ${marker}`);
-  return path.resolve(path.dirname(marker), match[1], 'hyperlinter/baseline.json');
-}
-
 function writeBaseline(baseline: Baseline): void {
   fs.mkdirSync(path.dirname(baselinePath), { recursive: true });
   fs.writeFileSync(baselinePath, `${JSON.stringify(baseline, null, 2)}\n`);
@@ -169,7 +165,7 @@ function baselineDiagnostics(
     const prior = baseline.metrics[metric.module];
     if (!prior || metric.publicSurface <= prior.publicSurface) return [];
     return [{
-      rule: 'HL102', severity: config.rules.publicSurfaceGrowth, module: metric.module,
+      rule: 'HL113', severity: config.rules.publicSurfaceGrowth, module: metric.module,
       message: `Public surface increased from ${prior.publicSurface} to ${metric.publicSurface} symbols since the baseline.`,
     }];
   });
@@ -216,5 +212,5 @@ function printVerificationHistory(
 }
 
 function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {
-  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${diagnostic.module ? ` ${diagnostic.module}` : ''}: ${diagnostic.message}`;
+  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${diagnostic.module ? ` ${diagnostic.module}` : ''}${diagnostic.file ? ` ${diagnostic.file}${diagnostic.line ? `:${diagnostic.line}` : ''}` : ''}: ${diagnostic.message}`;
 }

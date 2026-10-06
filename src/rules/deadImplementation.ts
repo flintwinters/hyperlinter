@@ -7,34 +7,47 @@ import type { HyperlintRule } from './contracts/index';
 
 type Implementation = ts.FunctionDeclaration | ts.VariableDeclaration;
 
+function candidateImplementations(statement: ts.Statement): readonly Implementation[] {
+  if (ts.isFunctionDeclaration(statement) && statement.body) return [statement];
+  if (!ts.isVariableStatement(statement)) return [];
+  return statement.declarationList.declarations.filter((declaration) =>
+    declaration.initializer && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer)));
+}
+
+function collectImplementations(project: ProjectModel, files: readonly ts.SourceFile[]): Map<ts.Symbol, Implementation> {
+  const implementations = new Map<ts.Symbol, Implementation>();
+  for (const file of files) {
+    for (const statement of file.statements) {
+      for (const declaration of candidateImplementations(statement)) {
+        if (!declaration.name || !ts.isIdentifier(declaration.name)) continue;
+        const symbol = project.checker.getSymbolAtLocation(declaration.name);
+        if (symbol) implementations.set(symbol, declaration);
+      }
+    }
+  }
+  return implementations;
+}
+
+function markReachable(live: Set<ts.Symbol>, edges: ReadonlyMap<ts.Symbol, ReadonlySet<ts.Symbol>>): void {
+  const pending = [...live];
+  while (pending.length) {
+    for (const target of edges.get(pending.pop()!) ?? []) {
+      if (!live.has(target)) { live.add(target); pending.push(target); }
+    }
+  }
+}
+
 export const deadImplementationRule: HyperlintRule = {
   id: 'HL114',
   analyze(project: ProjectModel, config: HyperlinterConfig) {
     const files = project.getModules().flatMap((module) => module.sourceFiles)
       .filter((file) => !file.isDeclarationFile);
-    const implementations = new Map<ts.Symbol, Implementation>();
-    const owners = new Map<ts.Node, ts.Symbol>();
+    const implementations = collectImplementations(project, files);
+    const owners = new Map<ts.Node, ts.Symbol>([...implementations].map(([symbol, declaration]) => [declaration, symbol]));
     const live = new Set<ts.Symbol>();
-    const edges = new Map<ts.Symbol, Set<ts.Symbol>>();
+    const edges = new Map<ts.Symbol, Set<ts.Symbol>>([...implementations.keys()].map((symbol) => [symbol, new Set()]));
     const resolve = (symbol: ts.Symbol): ts.Symbol => symbol.flags & ts.SymbolFlags.Alias
       ? project.checker.getAliasedSymbol(symbol) : symbol;
-
-    for (const file of files) {
-      for (const statement of file.statements) {
-        const candidates = ts.isFunctionDeclaration(statement) && statement.body ? [statement]
-          : ts.isVariableStatement(statement) ? statement.declarationList.declarations.filter((declaration) =>
-            declaration.initializer && (ts.isArrowFunction(declaration.initializer)
-              || ts.isFunctionExpression(declaration.initializer))) : [];
-        for (const declaration of candidates) {
-          if (!declaration.name || !ts.isIdentifier(declaration.name)) continue;
-          const symbol = project.checker.getSymbolAtLocation(declaration.name);
-          if (!symbol) continue;
-          implementations.set(symbol, declaration);
-          owners.set(declaration, symbol);
-          edges.set(symbol, new Set());
-        }
-      }
-    }
 
     for (const file of files) {
       // Exports are possible package/framework entrypoints. Without an explicit
@@ -54,12 +67,7 @@ export const deadImplementationRule: HyperlintRule = {
       };
       visit(file);
     }
-    const pending = [...live];
-    while (pending.length) {
-      for (const target of edges.get(pending.pop()!) ?? []) {
-        if (!live.has(target)) { live.add(target); pending.push(target); }
-      }
-    }
+    markReachable(live, edges);
     return [...implementations].filter(([symbol]) => !live.has(symbol)).map(([symbol, declaration]) => {
       const file = declaration.getSourceFile();
       return {

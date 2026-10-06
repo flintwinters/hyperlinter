@@ -26,7 +26,8 @@ export async function analyze(tsconfigPath?: string, buildEmbeddings = false): P
     } catch (error) {
       if (buildEmbeddings) throw error;
       diagnostics.push({ rule: 'HL116', severity: 'warning',
-        message: `Experimental semantic analysis unavailable: ${error instanceof Error ? error.message : String(error)} No semantic conclusions were drawn.` });
+        message: `Experimental semantic analysis unavailable: ${error instanceof Error ? error.message : String(error)} `
+          + 'No semantic conclusions were drawn.' });
     }
   }
   return {

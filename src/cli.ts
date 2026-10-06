@@ -212,5 +212,8 @@ function printVerificationHistory(
 }
 
 function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {
-  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${diagnostic.module ? ` ${diagnostic.module}` : ''}${diagnostic.file ? ` ${diagnostic.file}${diagnostic.line ? `:${diagnostic.line}` : ''}` : ''}: ${diagnostic.message}`;
+  const module = diagnostic.module ? ` ${diagnostic.module}` : '';
+  const line = diagnostic.line ? `:${diagnostic.line}` : '';
+  const file = diagnostic.file ? ` ${diagnostic.file}${line}` : '';
+  return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${module}${file}: ${diagnostic.message}`;
 }

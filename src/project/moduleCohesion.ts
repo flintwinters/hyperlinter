@@ -25,7 +25,7 @@ function ownsBehaviorOrState(node: ts.Node): boolean {
         && node.initializer.kind !== ts.SyntaxKind.NullKeyword));
 }
 
-export function moduleCohesion(project: ProjectModel, module: ProjectModule): CohesionEvidence | undefined {
+function behaviorDeclarations(project: ProjectModel, module: ProjectModule): Map<ts.Symbol, ts.Node> {
   const declarations = new Map<ts.Symbol, ts.Node>();
   for (const file of module.sourceFiles.filter((file) => !file.isDeclarationFile)) {
     for (const statement of file.statements) {
@@ -38,6 +38,10 @@ export function moduleCohesion(project: ProjectModel, module: ProjectModule): Co
       }
     }
   }
+  return declarations;
+}
+
+function behaviorEdges(project: ProjectModel, declarations: ReadonlyMap<ts.Symbol, ts.Node>): Map<ts.Symbol, Set<ts.Symbol>> {
   const edges = new Map<ts.Symbol, Set<ts.Symbol>>();
   for (const [symbol, declaration] of declarations) {
     const references = new Set<ts.Symbol>();
@@ -52,8 +56,12 @@ export function moduleCohesion(project: ProjectModel, module: ProjectModule): Co
     visit(declaration);
     edges.set(symbol, references);
   }
-  const exports = project.getPublicSurface(module).filter((entry) => declarations.has(entry.symbol));
-  if (exports.length < 2) return undefined;
+  return edges;
+}
+
+function connectedExports(
+  exports: readonly { symbol: ts.Symbol }[], edges: ReadonlyMap<ts.Symbol, ReadonlySet<ts.Symbol>>,
+): Set<number>[] {
   const reachable = exports.map((entry) => {
     const found = new Set<ts.Symbol>([entry.symbol]);
     const pending = [entry.symbol];
@@ -73,12 +81,10 @@ export function moduleCohesion(project: ProjectModel, module: ProjectModule): Co
       components.splice(components.indexOf(second), 1);
     }
   }
-  const groups = components.map((component) => ({
-    exports: [...component].map((index) => exports[index].name).sort(),
-    consumers: new Set([...component].flatMap((index) => project.getExternalReferences(exports[index].symbol))),
-  }));
-  const totalPairs = exports.length * (exports.length - 1) / 2;
-  const joinedPairs = groups.reduce((sum, group) => sum + group.exports.length * (group.exports.length - 1) / 2, 0);
+  return components;
+}
+
+function consumerOverlap(groups: readonly CohesionGroup[]): number | undefined {
   let overlap = 0;
   let pairs = 0;
   for (let left = 0; left < groups.length; left++) for (let right = left + 1; right < groups.length; right++) {
@@ -90,5 +96,21 @@ export function moduleCohesion(project: ProjectModel, module: ProjectModule): Co
     overlap += intersection / (a.size + b.size - intersection);
     pairs++;
   }
-  return { groups, separatedPairRatio: (totalPairs - joinedPairs) / totalPairs, consumerOverlap: pairs ? overlap / pairs : 1 };
+  return pairs ? overlap / pairs : 1;
+}
+
+export function moduleCohesion(project: ProjectModel, module: ProjectModule): CohesionEvidence | undefined {
+  const declarations = behaviorDeclarations(project, module);
+  const exports = project.getPublicSurface(module).filter((entry) => declarations.has(entry.symbol));
+  if (exports.length < 2) return undefined;
+  const components = connectedExports(exports, behaviorEdges(project, declarations));
+  const groups = components.map((component) => ({
+    exports: [...component].map((index) => exports[index].name).sort(),
+    consumers: new Set([...component].flatMap((index) => project.getExternalReferences(exports[index].symbol))),
+  }));
+  const overlap = consumerOverlap(groups);
+  if (overlap === undefined) return undefined;
+  const totalPairs = exports.length * (exports.length - 1) / 2;
+  const joinedPairs = groups.reduce((sum, group) => sum + group.exports.length * (group.exports.length - 1) / 2, 0);
+  return { groups, separatedPairRatio: (totalPairs - joinedPairs) / totalPairs, consumerOverlap: overlap };
 }

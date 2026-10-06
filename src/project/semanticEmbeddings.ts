@@ -40,6 +40,19 @@ export async function openRouterEmbeddings(inputs: readonly string[], model: str
   return vectors;
 }
 
+function cachedVectors(
+  functions: readonly SemanticFunction[], previous: EmbeddingIndex | undefined, model: string,
+): { vectors: Record<string, number[]>; pending: Map<string, string> } {
+  const vectors: Record<string, number[]> = Object.create(null);
+  const pending = new Map<string, string>();
+  for (const fn of functions) {
+    const cached = previous?.model === model ? previous.vectors[fn.hash] : undefined;
+    if (cached) { validateVectors([cached], 1); vectors[fn.hash] = cached; }
+    else pending.set(fn.hash, fn.input);
+  }
+  return { vectors, pending };
+}
+
 export async function updateEmbeddingIndex(
   functions: readonly SemanticFunction[], model: string, file: string,
   embed: EmbedFunctions = openRouterEmbeddings,
@@ -50,13 +63,7 @@ export async function updateEmbeddingIndex(
   }
   let previous: EmbeddingIndex | undefined;
   if (fs.existsSync(file)) previous = JSON.parse(fs.readFileSync(file, 'utf8')) as EmbeddingIndex;
-  const vectors: Record<string, number[]> = Object.create(null);
-  const pending = new Map<string, string>();
-  for (const fn of functions) {
-    const cached = previous?.model === model ? previous.vectors[fn.hash] : undefined;
-    if (cached) { validateVectors([cached], 1); vectors[fn.hash] = cached; }
-    else pending.set(fn.hash, fn.input);
-  }
+  const { vectors, pending } = cachedVectors(functions, previous, model);
   const entries = [...pending];
   for (let start = 0; start < entries.length; start += 16) {
     const batch = entries.slice(start, start + 16);

@@ -66,15 +66,15 @@ function hyperlinterRoot(): string {
   return fs.existsSync(path.join(submoduleRoot, 'hyperlinter.config.json')) ? submoduleRoot : process.cwd();
 }
 
+const sectionNames = ['rules', 'clones', 'cohesion', 'coupling', 'moduleFiles', 'publicSurface', 'scoring'] as const;
+type ConfigSections = Record<(typeof sectionNames)[number], Record<string, unknown>> & Record<string, unknown>;
+
+function hasConfigSections(value: unknown): value is ConfigSections {
+  return isObject(value) && sectionNames.every((key) => isObject(value[key]));
+}
+
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
-  if (!isObject(value)
-    || !isObject(value.rules)
-    || !isObject(value.clones)
-    || !isObject(value.cohesion)
-    || !isObject(value.coupling)
-    || !isObject(value.moduleFiles)
-    || !isObject(value.publicSurface)
-    || !isObject(value.scoring)) {
+  if (!hasConfigSections(value)) {
     throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   }
   const rules = value.rules;

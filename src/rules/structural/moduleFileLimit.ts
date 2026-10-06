@@ -16,7 +16,8 @@ export const moduleFileLimitRule: HyperlintRule = {
         severity: config.rules.moduleFileLimit,
         module: module.id,
         score: count,
-        message: `Module owns ${count} source files; maximum is ${config.moduleFiles.maximum}. Extract cohesive directory modules with index entrypoints.`,
+        message: `Module owns ${count} source files; maximum is ${config.moduleFiles.maximum}. `
+          + 'Extract cohesive directory modules with index entrypoints.',
       }] : [];
     });
   },

@@ -22,7 +22,8 @@ export const moduleCohesionRule: HyperlintRule = {
         message: `Low module cohesion: separated export pairs ${evidence.separatedPairRatio.toFixed(3)} >= ${threshold.minimumSeparatedPairRatio}; `
           + `mean consumer Jaccard overlap ${evidence.consumerOverlap.toFixed(3)} <= ${threshold.maximumConsumerOverlap}. Groups: ${groups}. `
           + 'Refactor around shared behavior and owned state: separate independent responsibilities into cohesive modules, '
-          + 'keep shared invariants with their owner, and update entrypoints and consumers. Do not add artificial dependencies to satisfy this check.',
+          + 'keep shared invariants with their owner, and update entrypoints and consumers. '
+          + 'Do not add artificial dependencies to satisfy this check.',
       }];
     });
   },

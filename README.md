@@ -39,6 +39,49 @@ project, including their entrypoint. Descendant directories own their files
 separately; styles, generated files and tests receive no filename exemptions.
 The versioned `moduleFiles.maximum` policy controls this limit (`HL117`).
 
+## Optional hardcoded-color file cap
+
+`HL118` limits the number of source files defining literal CSS colors across a
+target project. It is disabled by default. Enable it with a versioned
+`hyperlinter.project.json` in the target repository root:
+
+```json
+{
+  "colorFiles": {
+    "maximum": 3,
+    "severity": "error",
+    "sourceRoots": ["src"]
+  }
+}
+```
+
+`maximum` is an inclusive, non-negative file budget. Severity defaults to `error`
+and source roots default to `["."]`, covering the configured TypeScript project.
+Roots are normalized project-relative directories, not globs; descendant files
+count together. Declaration files are excluded. Missing policy disables the
+rule; malformed policy fails rather than silently disabling enforcement.
+
+The TypeScript AST supplies string/template expressions and JSX/SVG attribute
+values; a CSS parser recognizes hex, named and functional colors, including
+compound shadows, gradients, keyframes and embedded stylesheets. Comments,
+imports, type declarations, URLs, CSS string contents and neutral keywords
+such as `transparent` and `currentColor` do not count. Each file counts once,
+regardless of the number of literals. Referencing an imported token does not
+count. Literal definitions in arrays, stored defaults and seed code count too.
+
+This is a concentration budget, not token-provenance analysis: numeric channel
+calculations, string concatenation and arbitrary runtime-generated colors are
+not exhaustively traced. Template interpolations use numeric placeholders to
+recognize authored color functions without executing code. Standalone strings
+that are valid color names count even if the application uses them as labels.
+
+`--check-colors` inventories contributing files and checks the cap;
+`--format=json` includes literal values and source lines. Both normal analysis
+and `--check-styles` enforce the policy. When over budget, every contributing
+file receives a diagnostic. To migrate, freeze the current count and lower the
+budget as definitions move into shared owners; do not increase it to admit a
+new component. Target policy belongs in the target repository, not this engine.
+
 ## Commands
 
 ```bash
@@ -46,6 +89,7 @@ The versioned `moduleFiles.maximum` policy controls this limit (`HL117`).
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-baseline
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --check-styles
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --check-colors
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --source-budget check
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --fix-private-exports
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --history

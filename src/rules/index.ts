@@ -9,6 +9,7 @@ import {
 
 import { noCssFilesRule } from './noCssFiles';
 import { noInlineStylesRule } from './noInlineStyles';
+import { colorFileLimitRule } from './colorFileLimit';
 
 import { exactDuplicatesRule } from './exactDuplicates';
 import { nearDuplicatesRule } from './nearDuplicates';
@@ -25,6 +26,7 @@ export const rules: readonly HyperlintRule[] = uniqueRules([
   singlePublicMethodRule,
   noCssFilesRule,
   noInlineStylesRule,
+  colorFileLimitRule,
   moduleCouplingRule,
   exactDuplicatesRule,
   nearDuplicatesRule,

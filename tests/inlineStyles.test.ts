@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { inlineStyleBaseline, inlineStyles, newInlineStyles } from '../src/project/inlineStyles';
+import { inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from '../src/project/inlineStyles';
 import { ProjectModel } from '../src/project/ProjectModel';
 
 test('inline style policy detects direct and literal spread styles and preserves legacy counts', () => {
@@ -22,6 +22,8 @@ test('inline style policy detects direct and literal spread styles and preserves
     ].join('\n'));
     const project = ProjectModel.fromTsConfig(path.join(fixture, 'tsconfig.json'));
     const findings = inlineStyles(project);
+    const source = project.getModules().flatMap(({ sourceFiles }) => sourceFiles).find(({ fileName }) => fileName.endsWith('view.tsx'))!;
+    assert.equal(inlineStyleNodes(source).length, findings.length);
     assert.deepEqual(findings.map(({ line }) => line), [2, 3, 3]);
     assert.deepEqual(newInlineStyles(findings, inlineStyleBaseline(findings.slice(0, 2))), [findings[2]]);
   } finally {

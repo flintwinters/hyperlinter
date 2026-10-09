@@ -18,24 +18,28 @@ export function inlineStyles(project: ProjectModel): readonly InlineStyle[] {
     for (const sourceFile of module.sourceFiles) {
       if (!sourceFile.fileName.endsWith('.tsx')) continue;
       const file = path.relative(project.getRootDir(), sourceFile.fileName).split(path.sep).join('/');
-      const record = (node: ts.Node): void => {
+      for (const node of inlineStyleNodes(sourceFile)) {
         const normalized = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile);
         const signature = createHash('sha256').update(normalized).digest('hex');
         findings.push({ file, line: sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1, signature });
-      };
-      const visit = (node: ts.Node): void => {
-        if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && node.name.text === 'style') record(node);
-        if (ts.isJsxSpreadAttribute(node) && ts.isObjectLiteralExpression(node.expression)) {
-          for (const property of node.expression.properties) {
-            if (isStyleProperty(property)) record(property);
-          }
-        }
-        ts.forEachChild(node, visit);
-      };
-      visit(sourceFile);
+      }
     }
   }
   return findings;
+}
+
+/** Share the exact detection boundary with migration tools; never change allowances here. */
+export function inlineStyleNodes(sourceFile: ts.SourceFile): readonly ts.Node[] {
+  const nodes: ts.Node[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxAttribute(node) && ts.isIdentifier(node.name) && node.name.text === 'style') nodes.push(node);
+    if (ts.isJsxSpreadAttribute(node) && ts.isObjectLiteralExpression(node.expression)) {
+      nodes.push(...node.expression.properties.filter(isStyleProperty));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return nodes;
 }
 
 function isStyleProperty(property: ts.ObjectLiteralElementLike): boolean {

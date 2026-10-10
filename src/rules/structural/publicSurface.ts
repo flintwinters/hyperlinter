@@ -1,7 +1,7 @@
-import type { HyperlintDiagnostic } from '../../diagnostics/Diagnostic';
-import type { HyperlinterConfig } from '../../config/HyperlinterConfig';
-import type { ProjectModel } from '../../project/ProjectModel';
-import type { HyperlintRule } from '../contracts/index';
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { HyperlinterConfig } from '../../config';
+import type { ProjectModel } from '../../project';
+import type { HyperlintRule } from '../contracts';
 
 export const publicSurfaceRule: HyperlintRule = {
   id: 'HL102',

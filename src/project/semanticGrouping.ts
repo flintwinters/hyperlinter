@@ -1,5 +1,5 @@
-import type { SemanticConfig } from '../config/SemanticConfig';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
+import type { SemanticConfig } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
 import type { SemanticFunction } from './semanticFunctions';
 
 function cosineDistance(left: readonly number[], right: readonly number[]): number {

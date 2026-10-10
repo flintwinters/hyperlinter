@@ -1,10 +1,10 @@
 import path from 'node:path';
 
-import { loadColorFilePolicy, type ColorFilePolicy } from '../config/ColorFilePolicy';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import { colorLiterals, type ColorLiteral } from '../project/colorLiterals';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './contracts/index';
+import { loadColorFilePolicy, type ColorFilePolicy } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
+import { colorLiterals, type ColorLiteral, type ProjectModel } from '../project';
+
+import type { HyperlintRule } from './contracts';
 
 interface ColorFile {
   readonly file: string;

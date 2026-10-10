@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { meaningfulLineCount } from '../src/project/sourceBudget';
+import { meaningfulLineCount } from '../src/project';
 
 test('source budget excludes blank lines and comments', () => {
   const source = [

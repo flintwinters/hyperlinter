@@ -1,5 +1,5 @@
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
+import type { HyperlinterConfig } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
 
 /** Turns accumulated findings into a refactor-blocking diagnostic per module. */
 export function moduleScoreDiagnostics(

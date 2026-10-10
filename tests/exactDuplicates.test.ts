@@ -4,14 +4,14 @@ import path from 'node:path';
 
 import ts from 'typescript';
 
-import { findExactClones } from '../src/clones/exactDuplicates';
-import { loadHyperlinterConfig } from '../src/config/HyperlinterConfig';
-import { findNearDuplicateClusters } from '../src/clones/nearDuplicates';
+import { findExactClones } from '../src/clones';
+import { loadHyperlinterConfig } from '../src/config';
+import { findNearDuplicateClusters } from '../src/clones';
 
 const config = loadHyperlinterConfig();
 
 function projectFor(fileName: string) {
-  const program = ts.createProgram([fileName], { strict: true });
+  const program = ts.createProgram([fileName], { strict: true, allowNonTsExtensions: true });
   const sourceFile = program.getSourceFile(fileName)!;
   return {
     checker: program.getTypeChecker(),
@@ -25,7 +25,7 @@ function find(fileName: string) {
 }
 
 test('detects alpha-renamed clones and anti-unifies literal differences', () => {
-  const clones = find(path.resolve('tests/fixtures/exact-clones.ts'));
+  const clones = find(path.resolve('tests/fixtures/exact-clones.fixture'));
   assert.equal(clones.length, 3);
   assert.ok(clones[0].meaningfulNodes >= config.clones.exactMinimumMeaningfulNodes);
   assert.equal(clones[0].differences.length, 1);
@@ -36,7 +36,7 @@ test('ignores structurally small duplicates', () => {
 });
 
 test('tracks only three-method near-duplicate clusters at the strict threshold', () => {
-  const clusters = findNearDuplicateClusters(projectFor(path.resolve('tests/fixtures/exact-clones.ts')), config);
+  const clusters = findNearDuplicateClusters(projectFor(path.resolve('tests/fixtures/exact-clones.fixture')), config);
   assert.equal(clusters.length, 1);
   assert.equal(clusters[0].methods.length, 3);
   assert.ok(clusters[0].similarity >= config.clones.nearMinimumSimilarity);

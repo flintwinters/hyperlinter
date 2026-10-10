@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { semanticConfig, type SemanticConfig } from './SemanticConfig';
 
-import type { DiagnosticSeverity } from '../diagnostics/Diagnostic';
+import type { DiagnosticSeverity } from '../diagnostics';
 
 export interface HyperlinterConfig {
   readonly semantic: SemanticConfig;

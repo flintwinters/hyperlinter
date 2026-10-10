@@ -1,8 +1,8 @@
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import { cssFiles } from '../project/cssFiles';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './contracts/index';
+import type { HyperlinterConfig } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
+import { cssFiles, type ProjectModel } from '../project';
+
+import type { HyperlintRule } from './contracts';
 
 /** CSS belongs in the unified code-native styling system, never standalone files. */
 export const noCssFilesRule: HyperlintRule = {

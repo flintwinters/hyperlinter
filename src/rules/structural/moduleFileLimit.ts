@@ -1,7 +1,7 @@
-import type { HyperlinterConfig } from '../../config/HyperlinterConfig';
-import type { HyperlintDiagnostic } from '../../diagnostics/Diagnostic';
-import type { ProjectModel } from '../../project/ProjectModel';
-import type { HyperlintRule } from '../contracts/index';
+import type { HyperlinterConfig } from '../../config';
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { ProjectModel } from '../../project';
+import type { HyperlintRule } from '../contracts';
 
 /** Bound directly owned implementation, not descendants belonging to other modules. */
 export const moduleFileLimitRule: HyperlintRule = {

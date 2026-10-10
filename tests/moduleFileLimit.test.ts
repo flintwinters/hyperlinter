@@ -3,10 +3,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import test, { type TestContext } from 'node:test';
 
-import { loadHyperlinterConfig } from '../src/config/HyperlinterConfig';
-import { ProjectModel } from '../src/project/ProjectModel';
-import { moduleFileLimitRule } from '../src/rules/structural/index';
-import { analyze } from '../src/runner';
+import { loadHyperlinterConfig } from '../src/config';
+import { ProjectModel } from '../src/project';
+import { moduleFileLimitRule } from '../src/rules/structural';
+import { analyze } from '../src';
 
 const config = loadHyperlinterConfig();
 

@@ -1,8 +1,8 @@
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import { inlineStyles } from '../project/inlineStyles';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './contracts/index';
+import type { HyperlinterConfig } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
+import { inlineStyles, type ProjectModel } from '../project';
+
+import type { HyperlintRule } from './contracts';
 
 export const noInlineStylesRule: HyperlintRule = {
   id: 'HL111',

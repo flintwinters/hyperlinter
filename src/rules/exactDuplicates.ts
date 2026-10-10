@@ -1,8 +1,8 @@
-import { findExactClones } from '../clones/exactDuplicates';
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './contracts/index';
+import { findExactClones } from '../clones';
+import type { HyperlinterConfig } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
+import type { ProjectModel } from '../project';
+import type { HyperlintRule } from './contracts';
 
 export const exactDuplicatesRule: HyperlintRule = {
   id: 'HL104',

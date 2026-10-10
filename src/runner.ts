@@ -1,17 +1,11 @@
-import { semanticFunctions } from './project/semanticFunctions';
-import { semanticGrouping } from './project/semanticGrouping';
-import { updateEmbeddingIndex } from './project/semanticEmbeddings';
-import { projectStatePath } from './runtime/projectState';
-import type { HyperlintDiagnostic } from './diagnostics/Diagnostic';
-import { loadHyperlinterConfig } from './config/HyperlinterConfig';
-import { ProjectModel } from './project/ProjectModel';
-import { rules } from './rules';
-import { moduleScoreDiagnostics } from './scoring/moduleScores';
+import { semanticFunctions, semanticGrouping, updateEmbeddingIndex, ProjectModel } from './project';
 
-export interface HyperlintResult {
-  diagnostics: readonly HyperlintDiagnostic[];
-  metrics: ReturnType<ProjectModel['getAllMetrics']>;
-}
+import { projectStatePath, type HyperlintResult } from './runtime';
+import type { HyperlintDiagnostic } from './diagnostics';
+import { loadHyperlinterConfig } from './config';
+
+import { rules } from './rules';
+import { moduleScoreDiagnostics } from './scoring';
 
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
   const project = ProjectModel.fromTsConfig(tsconfigPath);

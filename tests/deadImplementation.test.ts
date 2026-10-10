@@ -3,9 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { loadHyperlinterConfig } from '../src/config/HyperlinterConfig';
-import { ProjectModel } from '../src/project/ProjectModel';
-import { deadImplementationRule } from '../src/rules/deadImplementation';
+import { loadHyperlinterConfig } from '../src/config';
+import { ProjectModel } from '../src/project';
+import { deadImplementationRule } from '../src/rules';
 import { rules } from '../src/rules';
 
 test('dead implementations include chains and recursive groups, while roots preserve callbacks and exports', () => {

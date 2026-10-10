@@ -1,11 +1,7 @@
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import {
-  agentInstructions,
-  agentInstructionsMessage,
-  MAX_AGENT_INSTRUCTION_LINES,
-} from '../project/agentInstructions';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './contracts/index';
+import type { HyperlintDiagnostic } from '../diagnostics';
+import { agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES, type ProjectModel } from '../project';
+
+import type { HyperlintRule } from './contracts';
 
 export const agentInstructionsRule: HyperlintRule = {
   id: 'HL112',

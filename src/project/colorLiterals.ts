@@ -1,5 +1,5 @@
-import { generate, lexer, parse, walk } from 'css-tree';
-import type { CssNode, WalkContext } from 'css-tree';
+import { generate, lexer, parse, walk, type CssNode, type WalkContext } from 'css-tree';
+
 import ts from 'typescript';
 
 export interface ColorLiteral {

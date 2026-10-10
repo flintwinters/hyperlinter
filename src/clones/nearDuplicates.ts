@@ -2,8 +2,8 @@ import crypto from 'node:crypto';
 
 import ts from 'typescript';
 
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { ProjectModel } from '../project/ProjectModel';
+import type { HyperlinterConfig } from '../config';
+import type { ProjectModel } from '../project';
 
 type AnalyzableMethod = ts.FunctionLikeDeclarationBase & { readonly name: ts.Identifier; readonly body: ts.Block };
 

@@ -1,9 +1,9 @@
 import path from 'node:path';
 import ts from 'typescript';
 
-import type { HyperlinterConfig } from '../config/HyperlinterConfig';
-import type { ProjectModel } from '../project/ProjectModel';
-import type { HyperlintRule } from './contracts/index';
+import type { HyperlinterConfig } from '../config';
+import type { ProjectModel } from '../project';
+import type { HyperlintRule } from './contracts';
 
 type Implementation = ts.FunctionDeclaration | ts.VariableDeclaration;
 

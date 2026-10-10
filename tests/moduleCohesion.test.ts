@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { loadHyperlinterConfig } from '../src/config/HyperlinterConfig';
-import { ProjectModel } from '../src/project/ProjectModel';
-import { moduleCohesion } from '../src/project/moduleCohesion';
-import { moduleCohesionRule } from '../src/rules/moduleCohesion';
+import { loadHyperlinterConfig } from '../src/config';
+import { ProjectModel } from '../src/project';
+import { moduleCohesion } from '../src/project';
+import { moduleCohesionRule } from '../src/rules';
 
 const config = loadHyperlinterConfig();
 

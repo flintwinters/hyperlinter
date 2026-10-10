@@ -24,7 +24,7 @@ public-surface and inline-style baselines. This file stays outside Git history
 and cannot be committed with project or submodule source. Every
 module is also subject to the configured maximum exported-symbol count.
 Standalone `.css` files are forbidden; code-native styles are the sole styling system.
-Inline JSX styles are also rejected. Existing instances can be recorded in a
+Inline JSX styles, HTML `style` attributes, and HTML `<style>` blocks are also rejected. HTML templates beside or below configured TypeScript module directories share this policy; generated and dependency trees are excluded. Existing instances can be recorded in a
 local baseline so the check blocks new instances.
 The root `AGENTS.md` is capped at 150 lines so it remains a broad-strokes,
 semantic entrypoint for agents rather than an all-encompassing project map.

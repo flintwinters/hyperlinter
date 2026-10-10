@@ -55,3 +55,27 @@ test('writing a baseline keeps project paths inside private Git metadata', () =>
     fs.rmSync(fixture, { recursive: true, force: true });
   }
 });
+
+test('HTML stylesheet blocks and attributes are enforced without parsing comments or raw text as markup', () => {
+  const fixture = path.resolve(`runtime/html-style-fixture-${process.pid}`);
+  fs.mkdirSync(path.join(fixture, 'src', 'templates'), { recursive: true });
+  try {
+    fs.writeFileSync(path.join(fixture, 'tsconfig.json'), JSON.stringify({ include: ['src/**/*.ts'] }));
+    fs.writeFileSync(path.join(fixture, 'src', 'index.ts'), 'export {};');
+    fs.writeFileSync(path.join(fixture, 'src', 'templates', 'view.html'), [
+      '<!-- <style>ignored</style> <div style="ignored"> -->',
+      '<script>const example = "<style>ignored</style>";</script>',
+      '<textarea><div style="ignored"></textarea>',
+      '<div data-note="style=ignored" title="a > b">text</div>',
+      '<STYLE media="screen">',
+      'body { color: red; }',
+      '</STYLE>',
+      '<div STYLE="color: blue" data-note=">">text</div>',
+      '<span style=color:red>text</span>',
+      '<link rel="stylesheet" href="/dependency.css">',
+    ].join('\n'));
+    const findings = inlineStyles(ProjectModel.fromTsConfig(path.join(fixture, 'tsconfig.json')));
+    assert.deepEqual(findings.map(({ file, line }) => ({ file, line })), [5, 8, 9].map((line) => ({ file: 'src/templates/view.html', line })));
+    assert.deepEqual(newInlineStyles(findings, inlineStyleBaseline(findings.slice(0, 2))), [findings[2]]);
+  } finally { fs.rmSync(fixture, { recursive: true, force: true }); }
+});

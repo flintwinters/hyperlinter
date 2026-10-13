@@ -163,7 +163,7 @@ if (json) {
   if (fixes.length > 0)
     process.stdout.write(`Privatized ${fixes.length} unused export${fixes.length === 1 ? '' : 's'}.\n`);
   if (result.chronology) printChronology(result.chronology);
-  else printMetrics(result.metrics);
+  if (!chronolint) printMetrics(result.metrics);
   for (const diagnostic of diagnostics) process.stdout.write(`${formatDiagnostic(diagnostic)}\n`);
 }
 

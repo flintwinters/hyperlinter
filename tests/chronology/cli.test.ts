@@ -30,7 +30,23 @@ test('dedicated CLI text, JSON and recorded-history evidence agree and fixing is
   const invoke = (...args: string[]) => execFileSync(process.execPath, ['--import', loader, cli, ...args], {
     cwd: root, encoding: 'utf8', env: { ...process.env, HYPERLINT_JOURNAL_MODE: 'DELETE' },
   });
+  // This intentionally unconsumed fixture also produces static enforcement errors.
+  const invokeRegular = (...args: string[]) => {
+    try { return invoke(...args); }
+    catch (error) {
+      const failure = error as { status: number; stdout: string };
+      assert.equal(failure.status, 1);
+      return failure.stdout;
+    }
+  };
   const first = JSON.parse(invoke('--chronolint', '--format=json'));
+  const regular = JSON.parse(invokeRegular('--format=json'));
+  assert.deepEqual(regular.chronology, first.chronology);
+  assert.deepEqual(regular.diagnostics.filter((finding: { rule: string }) => finding.rule === 'HL119'), first.diagnostics);
+  assert.ok(regular.diagnostics.some((finding: { rule: string }) => finding.rule !== 'HL119'));
+  const regularText = invokeRegular();
+  assert.match(regularText, /Module \| Public surface/);
+  assert.ok(regularText.includes(first.diagnostics[0].message));
   const second = JSON.parse(invoke('--chronolint', '--format', 'json'));
   assert.deepEqual(first.chronology, second.chronology);
   assert.deepEqual(first.diagnostics, second.diagnostics);
@@ -41,6 +57,7 @@ test('dedicated CLI text, JSON and recorded-history evidence agree and fixing is
   assert.ok(text.includes(JSON.stringify(first.chronology)));
   const recorded = JSON.parse(invoke('--history', '--format=json'));
   assert.deepEqual(recorded.runs[0].chronology, first.chronology);
+  assert.deepEqual(recorded.runs.find((run: { id: number }) => run.id === regular.run.id).chronology, first.chronology);
   const original = readFileSync(path.join(root, 'src/a/index.ts'), 'utf8');
   for (const option of ['--fix', '--fix-private-exports', '--write-baseline', '--write-inline-style-baseline']) {
     const rejected = spawnSync(process.execPath, ['--import', loader, cli, '--chronolint', option], { cwd: root, encoding: 'utf8' });

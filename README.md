@@ -222,9 +222,10 @@ Run `python3 manage.py chronolint` in this repository, or the host's root
 `python3 manage.py chronolint`, when reviewing architectural ownership after a
 substantial series of changes. For machine-readable evidence use
 `node --import tsx tools/hyperlint/src/cli.ts --chronolint --format=json` from the
-host (use `src/cli.ts` standalone). Ordinary analysis and verification do not
-scan history. `--history` still reads recorded lint and verification runs; it
-also exposes chronology evidence for dedicated runs. Chronolint rejects fixing,
+host (use `src/cli.ts` standalone). Regular Hyperlinter analysis includes
+chronolint, so ordinary lint and verification record the same historical evidence
+alongside static findings. The dedicated command runs only chronology. `--history` still reads recorded lint and verification runs; it
+also exposes chronology evidence for both regular and dedicated runs. Chronolint rejects fixing,
 baseline-writing, and other analysis modes in the same invocation.
 
 HL119 is an advisory warning with zero enforcement weight and no automatic fix.
@@ -252,7 +253,9 @@ minimum directional rate, shared count, lift and paths.
 
 Coverage reports repository root, window exhaustion or a shallow boundary.
 Missing Git, unavailable repositories, malformed output, subprocess timeouts
-(30 seconds per command) and incomplete reads fail explicitly. Collection only
+(30 seconds per command) and incomplete reads fail the dedicated command. Regular
+analysis reports unavailable history as an advisory warning and retains its
+static results; no historical conclusions are drawn. Collection only
 reads local history, including nested projects, submodules and worktrees; it
 never fetches or changes the checkout. `src/history` exposes an immutable snapshot
 independent of the compiler and temporal rules. Future rules consume this data

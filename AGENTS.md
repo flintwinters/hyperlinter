@@ -30,9 +30,10 @@ rules produce diagnostics (including a 12-file direct module ownership limit), m
 records local evidence. Dead implementation analysis conservatively roots
 exports and executable references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.
-Optional chronolint reads pinned first-parent Git snapshots through `history`;
+Regular analysis includes chronolint, which reads pinned first-parent Git snapshots through `history`;
 `temporal` owns pure advisory correlation and evidence. Dedicated chronology
-runs record provenance without changing the ordinary static gate. Intentional invalid examples are `.fixture` data parsed explicitly by tests. Run `python3 manage.py check` to verify types, self-analysis, and regressions. Cohesion combines internal behavior/state groups with consumer overlap;
+and regular runs record provenance; unavailable history is advisory in regular
+analysis and fails the dedicated command. Intentional invalid examples are `.fixture` data parsed explicitly by tests. Run `python3 manage.py check` to verify types, self-analysis, and regressions. Cohesion combines internal behavior/state groups with consumer overlap;
 keep its quantitative evidence conservative as analysis expands. Preserve
 unique diagnostic IDs and reproducible analysis regressions. Optional semantic
 embeddings track current implementations in target-private caches; their

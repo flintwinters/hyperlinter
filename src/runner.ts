@@ -6,6 +6,8 @@ import { loadHyperlinterConfig } from './config';
 
 import { rules } from './rules';
 import { moduleScoreDiagnostics } from './scoring';
+import { analyzeProjectChronology } from './chronolint';
+import type { ChronologyEvidence } from './temporal';
 
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
   const project = ProjectModel.fromTsConfig(tsconfigPath);
@@ -24,7 +26,18 @@ export async function analyze(tsconfigPath?: string, buildEmbeddings = false): P
           + 'No semantic conclusions were drawn.' });
     }
   }
+  let chronology: ChronologyEvidence | undefined;
+  try {
+    const temporal = analyzeProjectChronology(project, config.chronolint);
+    chronology = temporal.chronology;
+    diagnostics.push(...temporal.diagnostics);
+  } catch (error) {
+    diagnostics.push({ rule: 'HL119', severity: 'warning',
+      message: `Chronolint unavailable: ${error instanceof Error ? error.message : String(error)} `
+        + 'No historical correlation conclusions were drawn.' });
+  }
   return {
+    chronology,
     diagnostics: [...diagnostics, ...moduleScoreDiagnostics(diagnostics, config)],
     metrics: project.getAllMetrics(),
   };

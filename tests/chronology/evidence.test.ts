@@ -24,7 +24,7 @@ test('ledger stores pinned chronology atomically and preserves ordinary runs', t
   assert.equal(store.chronology(ordinary.id), null); assert.equal(store.history().length, 2);
 });
 
-test('public dedicated analysis fails clearly without Git while static analysis stays independent', async t => {
+test('regular analysis reports unavailable history as advisory while dedicated analysis fails clearly', async t => {
   const { writeFileSync } = await import('node:fs');
   mkdirSync('artifacts', { recursive: true });
   const root = mkdtempSync(path.resolve('artifacts/chronology-project-'));
@@ -35,7 +35,11 @@ test('public dedicated analysis fails clearly without Git while static analysis 
   process.env.PATH = root;
   try {
     const staticResult = await analyze(path.join(root, 'tsconfig.json'));
-    assert.equal(staticResult.diagnostics.some(diagnostic => diagnostic.rule === 'HL119'), false);
+    const warning = staticResult.diagnostics.find(diagnostic => diagnostic.rule === 'HL119');
+    assert.equal(warning?.severity, 'warning');
+    assert.match(warning!.message, /Chronolint unavailable.*could not read local Git history/s);
+    assert.equal(staticResult.chronology, undefined);
+    assert.ok(staticResult.metrics.length > 0);
     await assert.rejects(analyzeChronolint(path.join(root, 'tsconfig.json')), /could not read local Git history/);
   } finally { process.env.PATH = oldPath; }
 });

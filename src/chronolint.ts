@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { loadHyperlinterConfig } from './config';
+import { loadHyperlinterConfig, type ChronolintConfig } from './config';
 import { collectHistory } from './history';
 import { ProjectModel } from './project';
 import { temporalRules, correlationDiagnostics, type ChronologyEvidence } from './temporal';
@@ -7,7 +7,12 @@ import type { HyperlintResult } from './runtime';
 
 export async function analyzeChronolint(tsconfigPath?: string): Promise<HyperlintResult & { chronology: ChronologyEvidence }> {
   const project = ProjectModel.fromTsConfig(tsconfigPath);
-  const options = loadHyperlinterConfig().chronolint;
+  return analyzeProjectChronology(project, loadHyperlinterConfig().chronolint);
+}
+
+export function analyzeProjectChronology(
+  project: ProjectModel, options: ChronolintConfig,
+): HyperlintResult & { chronology: ChronologyEvidence } {
   const history = collectHistory(project.getRootDir(), options.window);
   const files = project.getModules().flatMap(module => module.sourceFiles.map(file => ({
     path: path.relative(history.root, file.fileName).split(path.sep).join('/'), module: module.id,

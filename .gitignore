@@ -3,3 +3,4 @@ node_modules/
 /baseline.json
 *.tsbuildinfo
 __pycache__/
+/artifacts/

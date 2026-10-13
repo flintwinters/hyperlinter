@@ -8,7 +8,7 @@ export interface HyperlintRule {
 }
 
 /** Reject ambiguous IDs where rules are registered, before analysis or recording. */
-export function uniqueRules(entries: readonly HyperlintRule[]): readonly HyperlintRule[] {
+export function uniqueRules<T extends { readonly id: string }>(entries: readonly T[]): readonly T[] {
   const ids = new Set<string>();
   for (const rule of entries) {
     if (ids.has(rule.id)) throw new Error(`Duplicate Hyperlinter rule ID: ${rule.id}`);

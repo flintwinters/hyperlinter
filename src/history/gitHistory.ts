@@ -28,17 +28,14 @@ function changes(raw: string): readonly HistoryChange[] {
 }
 
 export function collectHistory(projectRoot: string, window = 500): HistorySnapshot {
-  if (!Number.isInteger(window) || window < 1) throw new Error('Chronolint window must be a positive integer.');
+  validateWindow(window);
   const root = git(projectRoot, ['rev-parse', '--show-toplevel']).trim();
   const revision = git(root, ['rev-parse', '--verify', 'HEAD']).trim();
   const ids = git(root, ['rev-list', '--first-parent', `--max-count=${window + 1}`, revision]).trim().split('\n');
   const commits: HistoryCommit[] = [];
   let end: HistorySnapshot['coverage']['end'] = ids.length > window ? 'window' : 'root';
   for (const id of ids.slice(0, window)) {
-    const metadata = git(root, ['cat-file', 'commit', id]).split('\n\n', 1)[0].split('\n');
-    const parents = metadata.filter(line => line.startsWith('parent ')).map(line => line.slice(7));
-    const timestamp = / (\d+) [+-]\d{4}$/.exec(metadata.find(line => line.startsWith('committer ')) ?? '')?.[1];
-    if (!timestamp || parents.some(parent => !/^[a-f0-9]+$/.test(parent))) throw new Error('Chronolint: invalid Git commit metadata.');
+    const { parents, timestamp } = commitMetadata(root, id);
     // rev-list hides parents at shallow boundaries; show retains the real parent.
     const visible = git(root, ['rev-list', '--parents', '--max-count=1', id]).trim().split(' ');
     if (parents.length && visible.length === 1) { end = 'shallow'; break; }
@@ -50,4 +47,16 @@ export function collectHistory(projectRoot: string, window = 500): HistorySnapsh
   if (paths.pop() !== '') throw new Error('Chronolint: unterminated Git tree output.');
   return Object.freeze({ root, revision, paths: Object.freeze(paths), commits: Object.freeze(commits),
     coverage: Object.freeze({ end, inspected: commits.length, window }) });
+}
+
+function commitMetadata(root: string, id: string) {
+    const metadata = git(root, ['cat-file', 'commit', id]).split('\n\n', 1)[0].split('\n');
+    const parents = metadata.filter(line => line.startsWith('parent ')).map(line => line.slice(7));
+    const timestamp = / (\d+) [+-]\d{4}$/.exec(metadata.find(line => line.startsWith('committer ')) ?? '')?.[1];
+    if (!timestamp || parents.some(parent => !/^[a-f0-9]+$/.test(parent))) throw new Error('Chronolint: invalid Git commit metadata.');
+  return { parents, timestamp: Number(timestamp) };
+}
+
+function validateWindow(window: number): void {
+  if (!Number.isInteger(window) || window < 1) throw new Error('Chronolint window must be a positive integer.');
 }

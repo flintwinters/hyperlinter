@@ -49,5 +49,13 @@
   },
   "semantic": {
     "enabled": false
+  },
+  "chronolint": {
+    "window": 500,
+    "maximumFiles": 20,
+    "minimumObservations": 30,
+    "minimumShared": 5,
+    "minimumRate": 0.8,
+    "minimumLift": 2
   }
 }

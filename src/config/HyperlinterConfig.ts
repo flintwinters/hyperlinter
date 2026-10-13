@@ -1,3 +1,4 @@
+import { chronolintConfig, type ChronolintConfig } from './ChronolintConfig';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -6,6 +7,7 @@ import { semanticConfig, type SemanticConfig } from './SemanticConfig';
 import type { DiagnosticSeverity } from '../diagnostics';
 
 export interface HyperlinterConfig {
+  readonly chronolint: ChronolintConfig;
   readonly semantic: SemanticConfig;
   readonly rules: {
     readonly dependencyCycles: DiagnosticSeverity;
@@ -87,6 +89,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   if (!isObject(scoring.severityWeights)) throw new Error(`Invalid Hyperlinter configuration: ${fileName}`);
   const severityWeights = scoring.severityWeights;
   return {
+    chronolint: chronolintConfig(value.chronolint),
     semantic: semanticConfig(value.semantic),
     rules: {
       moduleCohesion: severity(rules.moduleCohesion, fileName, 'rules.moduleCohesion'),

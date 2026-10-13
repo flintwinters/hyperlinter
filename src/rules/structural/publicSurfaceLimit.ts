@@ -1,6 +1,6 @@
-import type { HyperlinterConfig } from "../../config";
-import type { HyperlintDiagnostic } from "../../diagnostics";
-import type { ProjectModel } from "../../project";
+import type { HyperlinterConfig } from '../../config';
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { ProjectModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
 /** Public APIs larger than this require an explicit decomposition. */

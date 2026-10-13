@@ -28,7 +28,7 @@ def main():
     except (ValueError, KeyError, OSError) as error:
         sys.exit(f"website: {error}")
     print("website: passed")
-    for script in ("typecheck", "test"):
+    for script in ("typecheck", "hyperlint", "test"):
         result = subprocess.run(["npm", "run", script], cwd=root, capture_output=True, text=True)
         if result.returncode:
             print(result.stdout + result.stderr)

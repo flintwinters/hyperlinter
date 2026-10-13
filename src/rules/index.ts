@@ -1,4 +1,4 @@
-import type { HyperlintRule } from './contracts';
+import { uniqueRules, type HyperlintRule } from './contracts';
 import { moduleCohesionRule } from './moduleCohesion';
 import { deadImplementationRule } from './deadImplementation';
 import { agentInstructionsRule } from './agentInstructions';
@@ -32,17 +32,6 @@ export const rules: readonly HyperlintRule[] = uniqueRules([
   nearDuplicatesRule,
 ]);
 
-/** Reject ambiguous IDs where rules are registered, before analysis or recording. */
-function uniqueRules(entries: readonly HyperlintRule[]): readonly HyperlintRule[] {
-  const ids = new Set<string>();
-  for (const rule of entries) {
-    if (ids.has(rule.id)) throw new Error(`Duplicate Hyperlinter rule ID: ${rule.id}`);
-    ids.add(rule.id);
-  }
-  return entries;
-}
-
-export { colorFileLimitRule } from './colorFileLimit';
-export { analyzeColorFiles } from './colorFileLimit';
+export { analyzeColorFiles, colorFileLimitRule } from './colorFileLimit';
 export { deadImplementationRule } from './deadImplementation';
 export { moduleCohesionRule } from './moduleCohesion';

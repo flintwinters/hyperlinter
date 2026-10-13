@@ -1,2 +1,1 @@
-export type { HyperlintDiagnostic } from './Diagnostic';
-export type { DiagnosticSeverity } from './Diagnostic';
+export { type DiagnosticSeverity, type HyperlintDiagnostic } from './Diagnostic';

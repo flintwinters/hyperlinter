@@ -1,6 +1,6 @@
-import type { HyperlinterConfig } from "../../config";
-import type { HyperlintDiagnostic } from "../../diagnostics";
-import type { ProjectModel } from "../../project";
+import type { HyperlinterConfig } from '../../config';
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { ProjectModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
 /** One-symbol public files are needless architectural boundaries. */

@@ -1,7 +1,7 @@
-import type { HyperlintDiagnostic } from "../../diagnostics";
-import type { HyperlinterConfig } from "../../config";
-import type { ModuleId, ModuleGraph } from "../../project";
-import type { ProjectModel } from "../../project";
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { HyperlinterConfig } from '../../config';
+import { type ModuleId, type ModuleGraph, type ProjectModel } from '../../project';
+
 import type { HyperlintRule } from '../contracts';
 
 export const dependencyCyclesRule: HyperlintRule = {

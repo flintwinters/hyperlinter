@@ -1,6 +1,6 @@
-import type { HyperlinterConfig } from "../../config";
-import type { HyperlintDiagnostic } from "../../diagnostics";
-import type { ProjectModel } from "../../project";
+import type { HyperlinterConfig } from '../../config';
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { ProjectModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
 /** Bound directly owned implementation, not descendants belonging to other modules. */

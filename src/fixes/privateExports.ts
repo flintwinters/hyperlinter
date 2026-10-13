@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import ts from 'typescript';
 
-import type { ProjectModule, ProjectModel, PublicSymbol } from "../project";
+import type { ProjectModule, ProjectModel, PublicSymbol } from '../project';
 
 interface PrivateExportFix {
   fileName: string;

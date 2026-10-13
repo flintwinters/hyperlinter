@@ -1,7 +1,7 @@
-import { findNearDuplicateClusters } from "../clones";
-import type { HyperlinterConfig } from "../config";
-import type { HyperlintDiagnostic } from "../diagnostics";
-import type { ProjectModel } from "../project";
+import { findNearDuplicateClusters } from '../clones';
+import type { HyperlinterConfig } from '../config';
+import type { HyperlintDiagnostic } from '../diagnostics';
+import type { ProjectModel } from '../project';
 import type { HyperlintRule } from './contracts';
 
 export const nearDuplicatesRule: HyperlintRule = {

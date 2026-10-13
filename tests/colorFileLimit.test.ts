@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 import test, { type TestContext } from 'node:test';
 import ts from 'typescript';
 
-import { loadColorFilePolicy } from "../src/config";
-import { colorLiterals } from "../src/project";
-import { ProjectModel } from "../src/project";
-import { colorFileLimitRule } from "../src/rules";
-import { analyze } from "../src";
+import { loadColorFilePolicy } from '../src/config';
+import { colorLiterals } from '../src/project';
+import { ProjectModel } from '../src/project';
+import { colorFileLimitRule } from '../src/rules';
+import { analyze } from '../src';
 
 
 function literals(text: string): readonly string[] {

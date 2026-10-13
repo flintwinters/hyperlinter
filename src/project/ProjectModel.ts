@@ -1,8 +1,6 @@
 import path from 'node:path';
 import ts from 'typescript';
 
-import type { HyperlintDiagnostic } from "../diagnostics";
-
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
 
 export interface ProjectModule {
@@ -38,11 +36,6 @@ export interface ModuleMetrics {
   dependencies: number;
   dependents: number;
   crossModuleReferences: number;
-}
-
-export interface HyperlintResult {
-  diagnostics: readonly HyperlintDiagnostic[];
-  metrics: readonly ModuleMetrics[];
 }
 
 export class ProjectModel {

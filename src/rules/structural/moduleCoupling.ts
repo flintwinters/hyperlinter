@@ -1,6 +1,6 @@
-import type { HyperlintDiagnostic } from "../../diagnostics";
-import type { HyperlinterConfig } from "../../config";
-import type { ModuleMetrics, ProjectModel } from "../../project";
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import type { HyperlinterConfig } from '../../config';
+import type { ModuleMetrics, ProjectModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
 export const moduleCouplingRule: HyperlintRule = {

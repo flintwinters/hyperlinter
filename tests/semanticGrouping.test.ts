@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { semanticConfig, semanticDefaults } from "../src/config";
-import { loadHyperlinterConfig } from "../src/config";
-import { ProjectModel } from "../src/project";
-import { semanticFunctions, type SemanticFunction } from "../src/project";
-import { openRouterEmbeddings, updateEmbeddingIndex } from "../src/project";
-import { semanticGrouping } from "../src/project";
-import { analyze } from "../src";
-import { moduleScoreDiagnostics } from "../src/scoring";
+import { semanticConfig, semanticDefaults } from '../src/config';
+import { loadHyperlinterConfig } from '../src/config';
+import { ProjectModel } from '../src/project';
+import { semanticFunctions, type SemanticFunction } from '../src/project';
+import { openRouterEmbeddings, updateEmbeddingIndex } from '../src/project';
+import { semanticGrouping } from '../src/project';
+import { analyze } from '../src';
+import { moduleScoreDiagnostics } from '../src/scoring';
 
 function functions(count: number, module = 'service'): SemanticFunction[] {
   return Array.from({ length: count }, (_, index) => ({

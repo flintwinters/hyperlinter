@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { loadHyperlinterConfig } from "../src/config";
-import { moduleScoreDiagnostics } from "../src/scoring";
+import { loadHyperlinterConfig } from '../src/config';
+import { moduleScoreDiagnostics } from '../src/scoring';
 
 const config = loadHyperlinterConfig();
 

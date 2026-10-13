@@ -2,20 +2,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import type { HyperlintDiagnostic } from "./diagnostics";
-import type { ModuleMetrics } from "./project";
-import { ProjectModel } from "./project";
-import { projectStatePath } from "./runtime";
-import { RuntimeStore, type RuntimeRun, type VerificationRun, type VerificationStep } from "./runtime";
+import type { HyperlintDiagnostic } from './diagnostics';
+import { type ModuleMetrics, ProjectModel, agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES, cssFiles, inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline, runSourceBudget } from './project';
+
+import { projectStatePath, RuntimeStore, type RuntimeRun, type VerificationRun, type VerificationStep } from './runtime';
+
 import { analyze } from './runner';
-import { applyExactCloneRefactors } from "./clones";
-import { loadHyperlinterConfig, type HyperlinterConfig } from "./config";
-import { applyPrivateUnusedExportFixes } from "./fixes";
-import { agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES } from "./project";
-import { cssFiles } from "./project";
-import { inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline } from "./project";
-import { runSourceBudget } from "./project";
-import { colorFileLimitRule, analyzeColorFiles } from "./rules";
+import { applyExactCloneRefactors } from './clones';
+import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
+import { applyPrivateUnusedExportFixes } from './fixes';
+
+import { colorFileLimitRule, analyzeColorFiles } from './rules';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;

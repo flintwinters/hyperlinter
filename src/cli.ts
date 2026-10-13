@@ -3,10 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { HyperlintDiagnostic } from './diagnostics';
-import { type ModuleMetrics, ProjectModel, agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES, cssFiles, inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline, runSourceBudget } from './project';
+import { type ModuleMetrics, ProjectModel, agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES,
+  cssFiles, inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline, runSourceBudget } from './project';
 
 import { projectStatePath, RuntimeStore, type RuntimeRun, type VerificationRun, type VerificationStep } from './runtime';
 
+import { analyzeChronolint } from './index';
 import { analyze } from './runner';
 import { applyExactCloneRefactors } from './clones';
 import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
@@ -21,6 +23,13 @@ interface Baseline {
 
 const arguments_ = process.argv.slice(2);
 const json = arguments_.includes('--format=json') || arguments_.at(arguments_.indexOf('--format') + 1) === 'json';
+const chronolint = arguments_.includes('--chronolint');
+if (chronolint && arguments_.some(argument => ['--fix', '--fix-private-exports', '--write-baseline',
+  '--write-inline-style-baseline', '--build-embeddings', '--history', '--source-budget', '--check-colors',
+  '--check-styles', '--check-no-css', '--check-agents'].includes(argument))) {
+  process.stderr.write('Chronolint must run separately from fixing, baseline writing, and other analysis modes.\n');
+  process.exit(1);
+}
 // A baseline contains target paths and policy. Git's private metadata keeps it
 // local even when Hyperlinter is installed as a public submodule.
 const baselinePath = projectStatePath(process.cwd(), 'baseline.json');
@@ -92,7 +101,7 @@ if (arguments_.includes('--write-inline-style-baseline')) {
 const runtime = new RuntimeStore();
 
 if (arguments_.includes('--history')) {
-  const history = runtime.history();
+  const history = runtime.history().map(run => ({ ...run, chronology: runtime.chronology(run.id) }));
   const verifications = runtime.verificationHistory().map((verification) => ({
     ...verification,
     steps: runtime.verificationSteps(verification.id),
@@ -100,6 +109,7 @@ if (arguments_.includes('--history')) {
   if (json) process.stdout.write(`${JSON.stringify({ runs: history, verifications }, null, 2)}\n`);
   else {
     printHistory(history);
+    for (const run of history) if (run.chronology) printChronology(run.chronology);
     printVerificationHistory(verifications);
   }
   runtime.close();
@@ -108,7 +118,14 @@ if (arguments_.includes('--history')) {
 
 const startedAt = Date.now();
 const buildEmbeddings = arguments_.includes('--build-embeddings');
-let result = await analyze(undefined, buildEmbeddings);
+let result;
+try {
+  result = chronolint ? await analyzeChronolint() : await analyze(undefined, buildEmbeddings);
+} catch (error) {
+  runtime.close();
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+  process.exit(1);
+}
 const fixProject = arguments_.includes('--fix-private-exports')
   ? ProjectModel.fromTsConfig()
   : undefined;
@@ -126,7 +143,7 @@ const styleDiagnostics = result.diagnostics.filter((diagnostic): diagnostic is H
 const newStyles = new Set<HyperlintDiagnostic>(newInlineStyles(styleDiagnostics, baseline?.inlineStyles));
 const diagnostics = [
   ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== 'HL111' || newStyles.has(diagnostic)),
-  ...baselineDiagnostics(result.metrics, baseline, loadHyperlinterConfig()),
+  ...(chronolint ? [] : baselineDiagnostics(result.metrics, baseline, loadHyperlinterConfig())),
 ];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
 runtime.close();
@@ -140,11 +157,13 @@ if (arguments_.includes('--write-baseline')) {
 }
 
 if (json) {
-  process.stdout.write(`${JSON.stringify({ run, diagnostics, metrics: result.metrics, fixes }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ run, diagnostics, metrics: result.metrics, fixes,
+      ...(result.chronology ? { chronology: result.chronology } : {}) }, null, 2)}\n`);
 } else {
   if (fixes.length > 0)
     process.stdout.write(`Privatized ${fixes.length} unused export${fixes.length === 1 ? '' : 's'}.\n`);
-  printMetrics(result.metrics);
+  if (result.chronology) printChronology(result.chronology);
+  else printMetrics(result.metrics);
   for (const diagnostic of diagnostics) process.stdout.write(`${formatDiagnostic(diagnostic)}\n`);
 }
 
@@ -221,4 +240,12 @@ function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {
   const line = diagnostic.line ? `:${diagnostic.line}` : '';
   const file = diagnostic.file ? ` ${diagnostic.file}${line}` : '';
   return `${diagnostic.severity.toUpperCase()} ${diagnostic.rule}${module}${file}: ${diagnostic.message}`;
+}
+
+function printChronology(evidence: import('./temporal').ChronologyEvidence): void {
+  process.stdout.write(`Chronolint ${evidence.algorithm} at ${evidence.revision}: `
+    + `${evidence.coverage.inspected}/${evidence.coverage.window} commits; coverage=${evidence.coverage.end}; `
+    + `eligible=${evidence.filters.eligible}; oversized=${evidence.filters.oversized}; `
+    + `analyzed files=${evidence.filters.analyzedFiles}.\n`);
+  process.stdout.write(`Evidence: ${JSON.stringify(evidence)}\n`);
 }

@@ -212,3 +212,61 @@ and installs dependencies with npm; it requires registry access. `site-live`
 compares deployed HTML/assets/sitemap with the checkout and verifies custom 404
 behavior and the origin robots policy. Metadata checks do not establish indexing,
 ranking, conversion, or real-user performance.
+
+## Chronolint architecture checkpoints
+
+The standalone Python entrypoint requires `rich` and `typer` (`python3 -m pip
+install rich typer`); the host entrypoint bootstraps these dependencies.
+
+Run `python3 manage.py chronolint` in this repository, or the host's root
+`python3 manage.py chronolint`, when reviewing architectural ownership after a
+substantial series of changes. For machine-readable evidence use
+`node --import tsx tools/hyperlint/src/cli.ts --chronolint --format=json` from the
+host (use `src/cli.ts` standalone). Ordinary analysis and verification do not
+scan history. `--history` still reads recorded lint and verification runs; it
+also exposes chronology evidence for dedicated runs. Chronolint rejects fixing,
+baseline-writing, and other analysis modes in the same invocation.
+
+HL119 is an advisory warning with zero enforcement weight and no automatic fix.
+It asks whether repeatedly co-changing files in different current modules share
+an invariant needing one owner or belong together. Existing direct dependencies
+are context, never an exemption. Each qualifying pair stands alone; findings do
+not imply transitive clusters or require modules to merge.
+
+The versioned engine configuration currently inspects the newest 500 first-parent
+commits pinned to HEAD. Merge integrations count once. Only files in both that
+revision and the current TypeScript project participate, with current module and
+dependency labels. Rename lineage is traversed even through excluded commits;
+creation ends an identity, so deleted paths later reused are not joined. Copies
+start new identities. Pure renames and mode changes supply no edit observations.
+Commits changing more than 20 repository files are excluded from correlation.
+Uncommitted edits supply no historical observations.
+
+For each pair, N counts eligible observations during their overlapping lifetime:
+commits editing at least one analyzed file. With individual edit counts a and b
+and shared count s, all thresholds must hold: N ≥ 30, s ≥ 5, s/a ≥ 0.8,
+s/b ≥ 0.8, and lift sN/(ab) ≥ 2. These conservative defaults are not tests of
+statistical significance. Findings include counts, directional rates, lift,
+dependency direction and the five newest supporting commit IDs, ordered by
+minimum directional rate, shared count, lift and paths.
+
+Coverage reports repository root, window exhaustion or a shallow boundary.
+Missing Git, unavailable repositories, malformed output, subprocess timeouts
+(30 seconds per command) and incomplete reads fail explicitly. Collection only
+reads local history, including nested projects, submodules and worktrees; it
+never fetches or changes the checkout. `src/history` exposes an immutable snapshot
+independent of the compiler and temporal rules. Future rules consume this data
+without adding Git traversal, persistent commit indexes or historical compiler
+projects.
+
+The append-only runtime ledger stores provenance and structured finding evidence
+in an additive chronology table keyed by lint run ID, in the same transaction as
+the run. It records the pinned revision, algorithm version, effective options,
+coverage and filtering counts. Existing static records and verification contracts
+remain intact. Synthetic regressions live under project-owned `artifacts/` and
+run through `python3 manage.py check` (host: `hyperlint-upstream`).
+
+Interpret evidence with care: commit boundaries are human choices, formatting
+changes can co-vary without shared ownership, and Git's explicit 50% similarity
+rename detection is heuristic. Read the supporting diffs before deciding on an
+architectural change. Insufficient support yields coverage, not invented findings.

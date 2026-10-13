@@ -3,38 +3,48 @@
 import subprocess
 import sys
 
+import typer
+from rich.console import Console
+
 from scripts.check_site import check_site
 from scripts.browser_site import preview_site
 from scripts.site_operations import check_install, check_live
 from pathlib import Path
 
 
-def main():
+console = Console(highlight=False, markup=False)
+
+
+def main(command: str = typer.Argument(...)):
     root = Path(__file__).resolve().parent
+    if command == "test-history":
+        sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/chronology/history.test.ts"], cwd=root).returncode)
+    if command == "chronolint":
+        sys.exit(subprocess.run(["node", "--import", "tsx", "src/cli.ts", "--chronolint"], cwd=root).returncode)
     operations = {"site-preview": preview_site, "site-install": check_install, "site-live": check_live}
-    if sys.argv[1:] == ["test-debug"]:
-        for file in sorted((root / "tests").glob("*.test.ts")):
+    if command == "test-debug":
+        for file in sorted((root / "tests").rglob("*.test.ts")):
             result = subprocess.run(["node", "--import", "tsx", str(file)], cwd=root)
             if result.returncode:
                 sys.exit(result.returncode)
         return
-    if len(sys.argv) == 2 and sys.argv[1] in operations:
-        operations[sys.argv[1]](root)
+    if command in operations:
+        operations[command](root)
         return
-    if sys.argv[1:] != ["check"]:
-        sys.exit("Use: python3 manage.py check — verify project; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+    if command != "check":
+        sys.exit("Use: python3 manage.py check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:
         sys.exit(f"website: {error}")
-    print("website: passed")
+    console.print("website: passed")
     for script in ("typecheck", "hyperlint", "test"):
         result = subprocess.run(["npm", "run", script], cwd=root, capture_output=True, text=True)
         if result.returncode:
-            print(result.stdout + result.stderr)
+            console.print(result.stdout + result.stderr)
             sys.exit(result.returncode)
-        print(f"{script}: passed")
+        console.print(f"{script}: passed")
 
 
 if __name__ == "__main__":
-    main()
+    typer.run(main)

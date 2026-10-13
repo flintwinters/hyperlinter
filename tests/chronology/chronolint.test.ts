@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { loadHyperlinterConfig } from '../../src/config';
+import { loadHyperlinterConfig, chronolintConfig } from '../../src/config';
 import type { HistoryCommit } from '../../src/history';
 import { correlate, correlationDiagnostics, type TemporalRule, type CorrelationFinding, temporalRules } from '../../src/temporal';
 import { moduleScoreDiagnostics } from '../../src/scoring';
@@ -9,7 +9,7 @@ const config = loadHyperlinterConfig();
 import { files, snapshot, support } from './fixtures';
 
 test('inclusive support boundary, deterministic evidence and dependency context', () => {
-  const rule: TemporalRule = temporalRules[0];
+  const rule: TemporalRule<ReturnType<typeof correlate>> = temporalRules[0];
   const result = rule.analyze(snapshot(support()), files, config.chronolint);
   const finding: CorrelationFinding | undefined = result.findings[0];
   assert.ok(finding);
@@ -50,3 +50,22 @@ test('creation limits overlap; excluded renames still traverse identities', () =
   assert.equal(result.findings.length, 1); assert.equal(result.filters.oversized, 1);
 });
 
+
+test('versioned chronology configuration rejects invalid engine policy', async () => {
+  for (const options of [undefined, { ...config.chronolint, window: 0 }, { ...config.chronolint, maximumFiles: 1.2 },
+    { ...config.chronolint, minimumRate: 1.01 }, { ...config.chronolint, minimumLift: Infinity }])
+    assert.throws(() => chronolintConfig(options), /chronolint|chronology/i);
+});
+
+test('non-content commits add no observations and both dependency directions remain advisory', () => {
+  const history = snapshot(support());
+  const mode: HistoryCommit = { id: 'mode', parents: [], timestamp: 99,
+    changes: [{ path: 'a', kind: 'M', contentChanged: false }] };
+  const unrelated: HistoryCommit = { id: 'external', parents: [], timestamp: 100,
+    changes: [{ path: 'outside', kind: 'A', contentChanged: true }] };
+  const result = correlate({ ...history, commits: [mode, unrelated, ...history.commits] },
+    files.map(file => ({ ...file, dependencies: file.path === 'b' ? ['a'] : file.dependencies })), config.chronolint);
+  assert.equal(result.filters.eligible, 30);
+  assert.equal(result.findings[0].dependency, 'both');
+  assert.equal(result.findings[0].observations, 30);
+});

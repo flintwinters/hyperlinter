@@ -5,12 +5,14 @@ import path from 'node:path';
 
 import Database from 'better-sqlite3';
 
+import type { ChronologyEvidence } from '../temporal';
 import type { HyperlintDiagnostic } from '../diagnostics';
 import type { ModuleMetrics } from '../project';
 
 export interface HyperlintResult {
   diagnostics: readonly HyperlintDiagnostic[];
   metrics: readonly ModuleMetrics[];
+  chronology?: ChronologyEvidence;
 }
 
 export interface RuntimeRun {
@@ -72,6 +74,10 @@ export class RuntimeStore {
     this.database.pragma(`journal_mode = ${journal}`);
     this.database.pragma('busy_timeout = 5000');
     this.database.exec(`
+      CREATE TABLE IF NOT EXISTS chronology (
+        run_id INTEGER PRIMARY KEY REFERENCES runs(id),
+        evidence_json TEXT NOT NULL
+      );
       CREATE TABLE IF NOT EXISTS runs (
         id INTEGER PRIMARY KEY,
         started_at INTEGER NOT NULL,
@@ -147,7 +153,7 @@ export class RuntimeStore {
     const run = {
       startedAt: Math.floor(startedAt / 1000),
       durationMs,
-      revision: gitRevision(),
+      revision: result.chronology?.revision ?? gitRevision(),
       modules: result.metrics.length,
       diagnostics: diagnostics.length,
       errors: diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length,
@@ -176,6 +182,9 @@ export class RuntimeStore {
       const runId = Number(inserted.lastInsertRowid);
       diagnostics.forEach((diagnostic) => insertDiagnostic.run(toDiagnosticRow(runId, diagnostic)));
       result.metrics.forEach((metric) => insertMetric.run({ runId, ...metric }));
+      if (result.chronology) this.database.prepare(
+        'INSERT INTO chronology (run_id, evidence_json) VALUES (?, ?)'
+      ).run(runId, JSON.stringify(result.chronology));
       return runId;
     })();
 
@@ -197,6 +206,12 @@ export class RuntimeStore {
       ORDER BY id DESC
       LIMIT ?
     `).all(limit) as RuntimeRun[];
+  }
+
+  chronology(runId: number): ChronologyEvidence | null {
+    const row = this.database.prepare('SELECT evidence_json AS evidence FROM chronology WHERE run_id = ?')
+      .get(runId) as { evidence: string } | undefined;
+    return row ? JSON.parse(row.evidence) as ChronologyEvidence : null;
   }
 
   startVerification(command: string, startedAt = Date.now()): number {

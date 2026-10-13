@@ -4,14 +4,9 @@ import { updateEmbeddingIndex } from './project/semanticEmbeddings';
 import { projectStatePath } from './runtime/projectState';
 import type { HyperlintDiagnostic } from './diagnostics/Diagnostic';
 import { loadHyperlinterConfig } from './config/HyperlinterConfig';
-import { ProjectModel } from './project/ProjectModel';
+import { ProjectModel, type HyperlintResult } from './project/ProjectModel';
 import { rules } from './rules';
 import { moduleScoreDiagnostics } from './scoring/moduleScores';
-
-export interface HyperlintResult {
-  diagnostics: readonly HyperlintDiagnostic[];
-  metrics: ReturnType<ProjectModel['getAllMetrics']>;
-}
 
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
   const project = ProjectModel.fromTsConfig(tsconfigPath);

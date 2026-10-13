@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const IGNORED_DIRECTORIES = new Set(['.git', '.next', 'build', 'coverage', 'dist', 'node_modules']);
+const IGNORED_DIRECTORIES = new Set(['.git', '.next', 'artifacts', 'build', 'coverage', 'dist', 'node_modules']);
 
 /** Finds source-controlled stylesheets; generated and dependency trees are excluded. */
 export function cssFiles(root: string): readonly string[] {

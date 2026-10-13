@@ -1,7 +1,7 @@
 import path from 'node:path';
 import ts from 'typescript';
 
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
+import type { HyperlintDiagnostic } from "../diagnostics";
 
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
 
@@ -356,7 +356,7 @@ export class ProjectModel {
   }
 
   private isEntryPoint(sourceFile: ts.SourceFile): boolean {
-    return /^index\.(?:[cm]?ts|tsx)$/.test(path.basename(sourceFile.fileName));
+    return /^index(?:\.stylex)?\.(?:[cm]?ts|tsx)$/.test(path.basename(sourceFile.fileName));
   }
 
   private resolvedModule(

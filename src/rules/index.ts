@@ -1,11 +1,11 @@
-import type { HyperlintRule } from './contracts/index';
+import type { HyperlintRule } from './contracts';
 import { moduleCohesionRule } from './moduleCohesion';
 import { deadImplementationRule } from './deadImplementation';
 import { agentInstructionsRule } from './agentInstructions';
 import {
   dependencyCyclesRule, moduleCouplingRule, moduleFileLimitRule, moduleEntrypointRule,
   publicSurfaceRule, publicSurfaceLimitRule, singlePublicMethodRule,
-} from './structural/index';
+} from './structural';
 
 import { noCssFilesRule } from './noCssFiles';
 import { noInlineStylesRule } from './noInlineStyles';
@@ -41,3 +41,8 @@ function uniqueRules(entries: readonly HyperlintRule[]): readonly HyperlintRule[
   }
   return entries;
 }
+
+export { colorFileLimitRule } from './colorFileLimit';
+export { analyzeColorFiles } from './colorFileLimit';
+export { deadImplementationRule } from './deadImplementation';
+export { moduleCohesionRule } from './moduleCohesion';

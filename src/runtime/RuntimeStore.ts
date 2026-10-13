@@ -5,8 +5,8 @@ import path from 'node:path';
 
 import Database from 'better-sqlite3';
 
-import type { HyperlintDiagnostic } from '../diagnostics/Diagnostic';
-import type { ModuleMetrics, HyperlintResult } from '../project/ProjectModel';
+import type { HyperlintDiagnostic } from "../diagnostics";
+import type { ModuleMetrics, HyperlintResult } from "../project";
 
 export interface RuntimeRun {
   id: number;

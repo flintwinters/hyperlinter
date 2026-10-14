@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from '../src/project';
+import { cssFiles, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from '../src/project';
 import { ProjectModel } from '../src/project';
 
 test('inline style policy detects direct and literal spread styles and preserves legacy counts', () => {
@@ -62,6 +62,15 @@ test('HTML stylesheet blocks and attributes are enforced without parsing comment
   try {
     fs.writeFileSync(path.join(fixture, 'tsconfig.json'), JSON.stringify({ include: ['src/**/*.ts'] }));
     fs.writeFileSync(path.join(fixture, 'src', 'index.ts'), 'export {};');
+    for (const generated of ['artifacts', '.next', 'out', 'runtime', 'playwright-report', 'test-results']) {
+      const directory = path.join(fixture, 'src', generated, 'nested');
+      fs.mkdirSync(directory, { recursive: true });
+      fs.writeFileSync(path.join(directory, 'generated.html'), '<div style="color:red"></div>');
+      fs.writeFileSync(path.join(directory, 'generated.css'), 'body { color: red; }');
+      // Explicit compiler inputs must not turn a generated tree into HTML source.
+      fs.writeFileSync(path.join(directory, 'index.ts'), 'export {};');
+    }
+    fs.writeFileSync(path.join(fixture, 'src', 'templates', 'authored.css'), 'body {}');
     fs.writeFileSync(path.join(fixture, 'src', 'templates', 'view.html'), [
       '<!-- <style>ignored</style> <div style="ignored"> -->',
       '<script>const example = "<style>ignored</style>";</script>',
@@ -77,5 +86,6 @@ test('HTML stylesheet blocks and attributes are enforced without parsing comment
     const findings = inlineStyles(ProjectModel.fromTsConfig(path.join(fixture, 'tsconfig.json')));
     assert.deepEqual(findings.map(({ file, line }) => ({ file, line })), [5, 8, 9].map((line) => ({ file: 'src/templates/view.html', line })));
     assert.deepEqual(newInlineStyles(findings, inlineStyleBaseline(findings.slice(0, 2))), [findings[2]]);
+    assert.deepEqual(cssFiles(fixture), ['src/templates/authored.css']);
   } finally { fs.rmSync(fixture, { recursive: true, force: true }); }
 });

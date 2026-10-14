@@ -42,6 +42,14 @@ def main(command: str = typer.Argument(...)):
         result = subprocess.run(["npm", "run", script], cwd=root, capture_output=True, text=True)
         if result.returncode:
             console.print(result.stdout + result.stderr)
+            if script == "test":
+                console.print(
+                    "Agent guidance: If chronology tests fail, run python3 manage.py test-debug "
+                    "to reveal subprocess errors. If Git is blocked by the sandbox "
+                    "(for example, spawnSync git EPERM), request elevated Git access and rerun "
+                    "python3 manage.py check outside the sandbox. These tests create disposable "
+                    "Git repositories under artifacts/. Preserve the tests and enforcement policy."
+                )
             sys.exit(result.returncode)
         console.print(f"{script}: passed")
 

@@ -15,6 +15,7 @@ import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
 import { applyPrivateUnusedExportFixes } from './fixes';
 
 import { colorFileLimitRule, analyzeColorFiles } from './rules';
+import { cliDiscovery, printCliHelp } from './commands';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -22,11 +23,21 @@ interface Baseline {
 }
 
 const arguments_ = process.argv.slice(2);
-const json = arguments_.includes('--format=json') || arguments_.at(arguments_.indexOf('--format') + 1) === 'json';
+const formatIndex = arguments_.indexOf('--format');
+const format = arguments_.find(argument => argument.startsWith('--format='))?.slice('--format='.length)
+  ?? (formatIndex === -1 ? 'json' : arguments_[formatIndex + 1]);
+if (format !== 'json' && format !== 'text') {
+  process.stderr.write('Invalid output format: use --format=json or --format=text.\n');
+  process.exit(1);
+}
+const json = format === 'json';
+if (arguments_.some(argument => ['--help', '-h', '--discover'].includes(argument))) {
+  if (json) process.stdout.write(`${JSON.stringify(cliDiscovery, null, 2)}\n`);
+  else printCliHelp();
+  process.exit();
+}
 const chronolint = arguments_.includes('--chronolint');
-if (chronolint && arguments_.some(argument => ['--fix', '--fix-private-exports', '--write-baseline',
-  '--write-inline-style-baseline', '--build-embeddings', '--history', '--source-budget', '--check-colors',
-  '--check-styles', '--check-no-css', '--check-agents'].includes(argument))) {
+if (chronolint && arguments_.some(argument => cliDiscovery.constraints.chronolintExcludes.includes(argument))) {
   process.stderr.write('Chronolint must run separately from fixing, baseline writing, and other analysis modes.\n');
   process.exit(1);
 }
@@ -37,7 +48,8 @@ const baselinePath = projectStatePath(process.cwd(), 'baseline.json');
 const sourceBudgetIndex = arguments_.indexOf('--source-budget');
 if (sourceBudgetIndex !== -1) {
   try {
-    runSourceBudget(arguments_[sourceBudgetIndex + 1]);
+    const result = runSourceBudget(arguments_[sourceBudgetIndex + 1]);
+    process.stdout.write(json ? `${JSON.stringify(result, null, 2)}\n` : `${result.message}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
@@ -94,7 +106,9 @@ if (arguments_.includes('--check-agents')) {
 
 if (arguments_.includes('--write-inline-style-baseline')) {
   const baseline = readBaseline(baselinePath);
-  writeBaseline({ metrics: baseline?.metrics ?? {}, inlineStyles: inlineStyleBaseline(inlineStyles(ProjectModel.fromTsConfig())) });
+  const nextBaseline = { metrics: baseline?.metrics ?? {}, inlineStyles: inlineStyleBaseline(inlineStyles(ProjectModel.fromTsConfig())) };
+  writeBaseline(nextBaseline);
+  if (json) process.stdout.write(`${JSON.stringify({ baselinePath, baseline: nextBaseline }, null, 2)}\n`);
   process.exit();
 }
 

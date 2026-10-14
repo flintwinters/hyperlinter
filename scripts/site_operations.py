@@ -36,7 +36,8 @@ def check_install(root):
                 (host / 'tsconfig.json').write_text(json.dumps({'include': ['index.ts']}))
                 (host / 'index.ts').write_text('export function first() { return 1; }\nexport function second() { return 2; }\n')
                 output = run(command, host)
-                if 'Module | Public surface' not in output:
+                report = json.loads(output)
+                if not all(key in report for key in ('run', 'diagnostics', 'metrics')):
                     raise SystemExit('site-install: command did not produce Hyperlinter diagnostics.')
             else:
                 run(command, host)

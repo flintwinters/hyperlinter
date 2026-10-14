@@ -39,12 +39,12 @@ test('dedicated CLI text, JSON and recorded-history evidence agree and fixing is
       return failure.stdout;
     }
   };
-  const first = JSON.parse(invoke('--chronolint', '--format=json'));
-  const regular = JSON.parse(invokeRegular('--format=json'));
+  const first = JSON.parse(invoke('--chronolint'));
+  const regular = JSON.parse(invokeRegular());
   assert.deepEqual(regular.chronology, first.chronology);
   assert.deepEqual(regular.diagnostics.filter((finding: { rule: string }) => finding.rule === 'HL119'), first.diagnostics);
   assert.ok(regular.diagnostics.some((finding: { rule: string }) => finding.rule !== 'HL119'));
-  const regularText = invokeRegular();
+  const regularText = invokeRegular('--format=text');
   assert.match(regularText, /Module \| Public surface/);
   assert.ok(regularText.includes(first.diagnostics[0].message));
   const second = JSON.parse(invoke('--chronolint', '--format', 'json'));
@@ -52,10 +52,10 @@ test('dedicated CLI text, JSON and recorded-history evidence agree and fixing is
   assert.deepEqual(first.diagnostics, second.diagnostics);
   assert.equal(first.chronology.findings.length, 1);
   assert.equal(first.run.errors, 0); assert.equal(first.run.smells, 0);
-  const text = invoke('--chronolint');
+  const text = invoke('--chronolint', '--format', 'text');
   assert.ok(text.includes(first.diagnostics[0].message));
   assert.ok(text.includes(JSON.stringify(first.chronology)));
-  const recorded = JSON.parse(invoke('--history', '--format=json'));
+  const recorded = JSON.parse(invoke('--history'));
   assert.deepEqual(recorded.runs[0].chronology, first.chronology);
   assert.deepEqual(recorded.runs.find((run: { id: number }) => run.id === regular.run.id).chronology, first.chronology);
   const original = readFileSync(path.join(root, 'src/a/index.ts'), 'utf8');

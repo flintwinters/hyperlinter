@@ -84,7 +84,17 @@ new component. Target policy belongs in the target repository, not this engine.
 
 ## Commands
 
+The CLI is agent-first: JSON is the default output for discovery and reports.
+Use `--help` (or `-h`) or `--discover` for a versioned capability catalog.
+Add `--format=text` for readable output. Discovery works without a configured
+target project and exits without running an audit or writing evidence. The catalog
+describes commands, argument choices, JSON support, prerequisites, writes, possible
+network access, chronology exclusions, and exit codes. Discovery describes the
+interface; it does not check whether the environment is ready to run it.
+
 ```bash
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --help --format=text
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --discover
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-baseline
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts --write-inline-style-baseline

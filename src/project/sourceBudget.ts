@@ -141,12 +141,12 @@ function currentBudget(ledger: SourceBudgetLedger) {
   };
 }
 
-function check(root: string, ledger: SourceBudgetLedger): void {
+function check(root: string, ledger: SourceBudgetLedger) {
   const total = authoredSourceLineCount(root, ledger);
   const budget = currentBudget(ledger);
   if (total < budget.threshold) {
-    process.stdout.write(`Source-line budget: ${total}/${budget.threshold} lines (${budget.threshold - total} remaining).\n`);
-    return;
+    return { action: 'check', total, ...budget,
+      message: `Source-line budget: ${total}/${budget.threshold} lines (${budget.threshold - total} remaining).` };
   }
   sourceBudgetError(
     `The project has ${total.toLocaleString()} authored source lines, reaching the ${budget.threshold.toLocaleString()}-line checkpoint. ` +
@@ -159,7 +159,7 @@ function check(root: string, ledger: SourceBudgetLedger): void {
   );
 }
 
-function advance(root: string, ledger: SourceBudgetLedger): void {
+function advance(root: string, ledger: SourceBudgetLedger) {
   if (git(root, ['status', '--porcelain'])) {
     sourceBudgetError('record threshold reach and advance only from a clean committed worktree');
   }
@@ -174,15 +174,17 @@ function advance(root: string, ledger: SourceBudgetLedger): void {
   const nextLedger = { ...ledger, checkpoints: [...ledger.checkpoints, checkpoint] };
   delete nextLedger.currentThresholdOverride;
   writeFileSync(resolve(root, 'source-line-budget.json'), `${JSON.stringify(nextLedger, null, 2)}\n`);
-  process.stdout.write(`Source-line budget: advanced past checkpoint ${budget.threshold} after refactoring to ${total} lines.\n`);
+  return { action: 'advance', total, ...budget,
+    message: `Source-line budget: advanced past checkpoint ${budget.threshold} after refactoring to ${total} lines.` };
 }
 
-export function runSourceBudget(command: string | undefined, root = process.cwd()): void {
+export function runSourceBudget(command: string | undefined, root = process.cwd()) {
   const ledger = readLedger(root);
-  if (command === 'check') check(root, ledger);
-  else if (command === 'advance') advance(root, ledger);
+  if (command === 'check') return check(root, ledger);
+  else if (command === 'advance') return advance(root, ledger);
   else if (command === 'advance-if-pending') {
-    if (ledger.currentThresholdOverride === undefined) process.stdout.write('Source-line budget: no checkpoint is pending.\n');
-    else advance(root, ledger);
+    if (ledger.currentThresholdOverride === undefined) return { action: command, pending: false,
+      message: 'Source-line budget: no checkpoint is pending.' };
+    else return advance(root, ledger);
   } else sourceBudgetError('use check, advance, or advance-if-pending');
 }

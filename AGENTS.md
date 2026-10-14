@@ -3,9 +3,12 @@
 Read [HYPERLINTER.md](./HYPERLINTER.md) before changing this repository. It is
 the product manifesto and takes priority over convenience-driven changes.
 
+The CLI surface should be agent-facing-first.  Prioritize discoverability and usability by coding agents.
+
 ## Mission
 
-Hyperlinter gives coding agents mechanical pressure toward small public APIs,
+Hyperlinter is agent-first: machine-readable JSON is the default CLI interface;
+readable text is an explicit option. It gives agents mechanical pressure toward small public APIs,
 low coupling, clear boundaries, and maintainable repository structure. Rules
 may inspect local code or repository-wide relationships when they provide
 useful, deterministic feedback.
@@ -27,8 +30,10 @@ useful, deterministic feedback.
 
 The TypeScript project model owns compiler and reference evidence; registered
 rules produce diagnostics (including a 12-file direct module ownership limit), module scoring aggregates pressure, and the CLI
-records local evidence. Dead implementation analysis conservatively roots
-exports and executable references; it does not infer application entrypoints.
+records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
+without opening target policy or evidence; its catalog owns chronology exclusions.
+Dead implementation analysis conservatively roots exports and executable
+references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.
 Regular analysis includes chronolint, which reads pinned first-parent Git snapshots through `history`;
 `temporal` owns pure advisory correlation and evidence. Dedicated chronology

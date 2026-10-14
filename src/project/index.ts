@@ -3,7 +3,7 @@ export { type ModuleMetrics, ProjectModel, type ProjectModule, type PublicSymbol
 export { MAX_AGENT_INSTRUCTION_LINES, agentInstructions, agentInstructionsMessage } from './agentInstructions';
 export { type ColorLiteral, colorLiterals } from './colorLiterals';
 export { cssFiles } from './cssFiles';
-export { type InlineStyleBaseline, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from './inlineStyles';
+export { type InlineStyle, type InlineStyleBaseline, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from './inlineStyles';
 export { moduleCohesion } from './moduleCohesion';
 export { openRouterEmbeddings, updateEmbeddingIndex } from './semanticEmbeddings';
 export { type SemanticFunction, semanticFunctions } from './semanticFunctions';

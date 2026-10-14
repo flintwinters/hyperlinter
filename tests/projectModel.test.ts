@@ -39,3 +39,30 @@ test('StyleX indexes are public boundaries and a second index is still rejected'
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('JavaScript entrypoints use the same directory boundary as TypeScript', () => {
+  const root = path.resolve(`runtime/javascript-boundary-${process.pid}`);
+  fs.mkdirSync(root, { recursive: true });
+  try {
+    fs.writeFileSync(path.join(root, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { allowJs: true }, include: ['**/*.js', '**/*.jsx', '**/*.mjs', '**/*.cjs'],
+    }));
+    for (const extension of ['js', 'jsx', 'mjs', 'cjs']) {
+      const directory = path.join(root, extension);
+      fs.mkdirSync(directory);
+      fs.writeFileSync(path.join(directory, `index.${extension}`), 'export const first = 1; export const second = 2;');
+    }
+    fs.writeFileSync(path.join(root, 'index.js'), "import { first } from './js/index.js'; void first;");
+    const project = ProjectModel.fromTsConfig(path.join(root, 'tsconfig.json'));
+    for (const extension of ['js', 'jsx', 'mjs', 'cjs']) {
+      assert.deepEqual(project.getEntrypointFiles(extension), [`${extension}/index.${extension}`]);
+    }
+    assert.deepEqual(project.getPrivateModuleImports(), []);
+    fs.writeFileSync(path.join(root, 'js/index.stylex.js'), 'export const third = 3;');
+    const duplicate = ProjectModel.fromTsConfig(path.join(root, 'tsconfig.json'));
+    assert.equal(duplicate.getEntrypointFiles('js').length, 2);
+    assert.equal(duplicate.getModules().find(({ id }) => id === 'js')!.entryPoint, null);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

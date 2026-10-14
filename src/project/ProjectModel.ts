@@ -349,7 +349,7 @@ export class ProjectModel {
   }
 
   private isEntryPoint(sourceFile: ts.SourceFile): boolean {
-    return /^index(?:\.stylex)?\.(?:[cm]?ts|tsx)$/.test(path.basename(sourceFile.fileName));
+    return /^index(?:\.stylex)?\.(?:[cm]?[jt]s|[jt]sx)$/.test(path.basename(sourceFile.fileName));
   }
 
   private resolvedModule(

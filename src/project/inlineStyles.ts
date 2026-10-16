@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 
 import type { ProjectModel } from './ProjectModel';
+import { isSourceDirectory } from './cssFiles';
 
 export interface InlineStyle {
   file: string;
@@ -79,11 +80,11 @@ export function newInlineStyles<T extends InlineStyle>(
 function htmlStyles(project: ProjectModel): InlineStyle[] {
   const findings: InlineStyle[] = [], visited = new Set<string>();
   const visit = (directory: string): void => {
-    if (visited.has(directory)) return;
+    if (visited.has(directory) || !isSourceDirectory(project.getRootDir(), directory)) return;
     visited.add(directory);
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const file = path.join(directory, entry.name);
-      if (entry.isDirectory() && !['node_modules', '.git', 'dist', 'build', 'coverage', 'runtime'].includes(entry.name)) visit(file);
+      if (entry.isDirectory()) visit(file);
       else if (entry.isFile() && /\.html?$/i.test(entry.name)) {
         const text = fs.readFileSync(file, 'utf8');
         for (const { offset, syntax } of htmlStyleSyntax(text)) findings.push({

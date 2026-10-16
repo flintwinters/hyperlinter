@@ -1,5 +1,6 @@
 import path from 'node:path';
 import ts from 'typescript';
+import { isSourceDirectory } from './cssFiles';
 
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
 
@@ -89,10 +90,7 @@ export class ProjectModel {
     }
 
     const rootDir = path.dirname(absoluteConfig);
-    const analysisFiles = parsed.fileNames.filter((fileName) => {
-      const relative = path.relative(rootDir, fileName).split(path.sep).join('/');
-      return !relative.startsWith('.next/') && !relative.startsWith('node_modules/');
-    });
+    const analysisFiles = parsed.fileNames.filter((fileName) => isSourceDirectory(rootDir, path.dirname(fileName)));
     return new ProjectModel(ts.createProgram(parsed.fileNames, parsed.options), rootDir, analysisFiles);
   }
 
@@ -349,7 +347,7 @@ export class ProjectModel {
   }
 
   private isEntryPoint(sourceFile: ts.SourceFile): boolean {
-    return /^index(?:\.stylex)?\.(?:[cm]?ts|tsx)$/.test(path.basename(sourceFile.fileName));
+    return /^index(?:\.stylex)?\.(?:[cm]?[jt]s|[jt]sx)$/.test(path.basename(sourceFile.fileName));
   }
 
   private resolvedModule(

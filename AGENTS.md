@@ -32,6 +32,8 @@ The TypeScript project model owns compiler and reference evidence; registered
 rules produce diagnostics (including a 12-file direct module ownership limit), module scoring aggregates pressure, and the CLI
 records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
 without opening target policy or evidence; its catalog owns chronology exclusions.
+Other CLI runs check the installed Git checkout for upstream updates and emit
+advisory update instructions on stderr without affecting enforcement.
 Dead implementation analysis conservatively roots exports and executable
 references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.

@@ -15,7 +15,7 @@ import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
 import { applyPrivateUnusedExportFixes } from './fixes';
 
 import { colorFileLimitRule, analyzeColorFiles } from './rules';
-import { cliDiscovery, printCliHelp } from './commands';
+import { cliDiscovery, printCliHelp, hyperlinterUpdateNotice } from './commands';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -40,6 +40,12 @@ const chronolint = arguments_.includes('--chronolint');
 if (chronolint && arguments_.some(argument => cliDiscovery.constraints.chronolintExcludes.includes(argument))) {
   process.stderr.write('Chronolint must run separately from fixing, baseline writing, and other analysis modes.\n');
   process.exit(1);
+}
+const update = hyperlinterUpdateNotice();
+if (update) {
+  const quote = (argument: string) => "'" + argument.replaceAll("'", "'\\''") + "'";
+  process.stderr.write(json ? `${JSON.stringify(update)}\n`
+    : `INFO ${update.code}: ${update.message}\n${update.commands.map(command => command.map(quote).join(' ')).join('\n')}\n`);
 }
 // A baseline contains target paths and policy. Git's private metadata keeps it
 // local even when Hyperlinter is installed as a public submodule.

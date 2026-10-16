@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import { hyperlinterUpdateNotice } from '../src/commands';
 
 function invokeCli(root: string, ...args: string[]) {
   return spawnSync(process.execPath,
@@ -99,4 +100,47 @@ test('budget and baseline operations default to JSON and invalid formats fail be
   const written = JSON.parse(baseline.stdout);
   assert.equal(written.baselinePath, path.join(root, '.git/hyperlinter/baseline.json'));
   assert.deepEqual(written.baseline, JSON.parse(readFileSync(written.baselinePath, 'utf8')));
+});
+
+test('update checks inspect the installed checkout and offer executable, non-destructive instructions', t => {
+  mkdirSync('artifacts', { recursive: true });
+  const root = mkdtempSync(path.resolve('artifacts/update-notice-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const upstream = path.join(root, 'upstream');
+  const installed = path.join(root, "installed tool's checkout");
+  mkdirSync(upstream);
+  const git = (cwd: string, ...args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: 'pipe' }).trim();
+  git(upstream, 'init', '-b', 'main');
+  git(upstream, 'config', 'user.email', 'test@example.com');
+  git(upstream, 'config', 'user.name', 'Test');
+  const commit = (value: string) => {
+    writeFileSync(path.join(upstream, 'value'), value);
+    git(upstream, 'add', 'value');
+    git(upstream, 'commit', '-m', value);
+  };
+  commit('initial');
+  git(root, 'clone', upstream, installed);
+  assert.equal(hyperlinterUpdateNotice(installed), undefined);
+  commit('update');
+  const before = git(installed, 'rev-parse', 'HEAD');
+  const notice = hyperlinterUpdateNotice(installed);
+  assert.equal(notice?.severity, 'info');
+  assert.equal(notice?.code, 'HYPERLINTER_UPDATE_AVAILABLE');
+  assert.match(notice!.message, /submodule pointer/);
+  assert.equal(git(installed, 'rev-parse', 'HEAD'), before);
+  assert.deepEqual(notice!.commands[0], ['git', '-C', installed, 'fetch', 'origin', 'refs/heads/main']);
+  for (const command of notice!.commands.slice(0, 2)) {
+    execFileSync(command[0], command.slice(1), { stdio: 'pipe' });
+  }
+  assert.equal(hyperlinterUpdateNotice(installed), undefined);
+  // A local development checkout ahead of upstream must not prompt for a downgrade.
+  git(installed, '-c', 'user.email=test@example.com', '-c', 'user.name=Test', 'commit', '--allow-empty', '-m', 'ahead');
+  assert.equal(hyperlinterUpdateNotice(installed), undefined);
+  git(installed, 'remote', 'set-url', 'origin', path.join(root, 'unavailable'));
+  assert.equal(hyperlinterUpdateNotice(installed), undefined);
+  git(installed, 'remote', 'remove', 'origin');
+  assert.equal(hyperlinterUpdateNotice(installed), undefined);
+  const unpacked = path.join(installed, 'unpacked');
+  mkdirSync(unpacked);
+  assert.equal(hyperlinterUpdateNotice(unpacked), undefined);
 });

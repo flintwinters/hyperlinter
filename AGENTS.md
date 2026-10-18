@@ -29,7 +29,7 @@ useful, deterministic feedback.
 ## Architecture and current focus
 
 The TypeScript project model owns compiler and reference evidence; registered
-rules produce diagnostics (including a 12-file direct module ownership limit), module scoring aggregates pressure, and the CLI
+rules produce diagnostics (including a 12-file direct ownership limit that pressures flat directories, tests included, into hierarchies), module scoring aggregates pressure, and the CLI
 records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
 without opening target policy or evidence; its catalog owns chronology exclusions.
 Other CLI runs check the installed Git checkout for upstream updates and emit

@@ -43,7 +43,9 @@ architectural boundary.
 Directory modules may own at most 12 source files from the configured TypeScript
 project, including their entrypoint. Descendant directories own their files
 separately; styles, generated files and tests receive no filename exemptions.
-The versioned `moduleFiles.maximum` policy controls this limit (`HL117`).
+The limit pushes flat directories into a hierarchy of cohesive subdirectory modules;
+merging unrelated files to lower the count defeats it. The versioned
+`moduleFiles.maximum` policy controls this limit (`HL117`).
 
 ## Optional hardcoded-color file cap
 

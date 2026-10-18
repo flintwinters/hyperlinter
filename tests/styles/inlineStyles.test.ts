@@ -5,8 +5,8 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
-import { cssFiles, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from '../src/project';
-import { ProjectModel } from '../src/project';
+import { cssFiles, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from '../../src/project';
+import { ProjectModel } from '../../src/project';
 
 test('inline style policy detects direct and literal spread styles and preserves legacy counts', () => {
   const fixture = path.resolve(`runtime/inline-styles-fixture-${process.pid}`);

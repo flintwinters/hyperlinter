@@ -1,6 +1,5 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 
 import Database from 'better-sqlite3';
@@ -24,42 +23,6 @@ export interface RuntimeRun {
   diagnostics: number;
   errors: number;
   smells: number;
-}
-
-export interface VerificationRun {
-  id: number;
-  startedAt: number;
-  durationMs: number | null;
-  revision: string | null;
-  command: string;
-  status: 'running' | 'passed' | 'failed';
-  error: string | null;
-  host: VerificationHost | null;
-}
-
-export interface VerificationHost {
-  hostname: string;
-  platform: NodeJS.Platform;
-  release: string;
-  architecture: string;
-  nodeVersion: string;
-  cpuModel: string | null;
-  cpuCount: number;
-  totalMemoryBytes: number;
-}
-
-export interface VerificationStep {
-  name: string;
-  command: string;
-  startedAt: number;
-  durationMs: number;
-  status: 'passed' | 'failed' | 'terminated';
-  exitCode: number | null;
-  signal: string | null;
-  error: string | null;
-  output: string;
-  outputBytes: number;
-  outputTruncated: boolean;
 }
 
 export class RuntimeStore {
@@ -110,42 +73,7 @@ export class RuntimeStore {
       );
       CREATE INDEX IF NOT EXISTS diagnostics_by_run ON diagnostics(run_id);
       CREATE INDEX IF NOT EXISTS module_metrics_by_module ON module_metrics(module);
-      CREATE TABLE IF NOT EXISTS verification_runs (
-        id INTEGER PRIMARY KEY,
-        started_at INTEGER NOT NULL,
-        duration_ms INTEGER,
-        revision TEXT,
-        command TEXT NOT NULL,
-        status TEXT NOT NULL,
-        error TEXT,
-        host_json TEXT
-      );
-      CREATE TABLE IF NOT EXISTS verification_steps (
-        id INTEGER PRIMARY KEY,
-        verification_run_id INTEGER NOT NULL REFERENCES verification_runs(id),
-        name TEXT NOT NULL,
-        command TEXT NOT NULL,
-        started_at INTEGER NOT NULL,
-        duration_ms INTEGER NOT NULL,
-        status TEXT NOT NULL,
-        exit_code INTEGER,
-        signal TEXT,
-        error TEXT,
-        output TEXT NOT NULL,
-        output_bytes INTEGER NOT NULL,
-        output_truncated INTEGER NOT NULL
-      );
-      CREATE INDEX IF NOT EXISTS verification_steps_by_run ON verification_steps(verification_run_id);
     `);
-    this.ensureColumn('verification_runs', 'host_json', 'TEXT');
-    this.database.prepare(`
-      UPDATE verification_runs
-      SET
-        duration_ms = (? - started_at) * 1000,
-        status = 'failed',
-        error = 'Verifier process ended before recording an outcome.'
-      WHERE status = 'running'
-    `).run(Math.floor(Date.now() / 1000));
   }
 
   record(result: HyperlintResult, durationMs: number, startedAt = Date.now()): RuntimeRun {
@@ -214,82 +142,8 @@ export class RuntimeStore {
     return row ? JSON.parse(row.evidence) as ChronologyEvidence : null;
   }
 
-  startVerification(command: string, startedAt = Date.now()): number {
-    const inserted = this.database.prepare(`
-      INSERT INTO verification_runs (started_at, revision, command, status, host_json)
-      VALUES (?, ?, ?, 'running', ?)
-    `).run(Math.floor(startedAt / 1000), gitRevision(), command, JSON.stringify(verificationHost()));
-    return Number(inserted.lastInsertRowid);
-  }
-
-  recordVerificationStep(verificationRunId: number, step: VerificationStep): void {
-    this.database.prepare(`
-      INSERT INTO verification_steps (
-        verification_run_id, name, command, started_at, duration_ms, status,
-        exit_code, signal, error, output, output_bytes, output_truncated
-      ) VALUES (
-        @verificationRunId, @name, @command, @startedAt, @durationMs, @status,
-        @exitCode, @signal, @error, @output, @outputBytes, @outputTruncated
-      )
-    `).run({
-      verificationRunId,
-      ...step,
-      startedAt: Math.floor(step.startedAt / 1000),
-      outputTruncated: step.outputTruncated ? 1 : 0,
-    });
-  }
-
-  finishVerification(id: number, status: 'passed' | 'failed', durationMs: number, error: string | null): void {
-    this.database.prepare(`
-      UPDATE verification_runs
-      SET duration_ms = ?, status = ?, error = ?
-      WHERE id = ?
-    `).run(durationMs, status, error, id);
-  }
-
-  verificationHistory(limit = 20): readonly VerificationRun[] {
-    const rows = this.database.prepare(`
-      SELECT id, started_at AS startedAt, duration_ms AS durationMs, revision, command, status, error, host_json AS hostJson
-      FROM verification_runs
-      ORDER BY id DESC
-      LIMIT ?
-    `).all(limit) as Array<Omit<VerificationRun, 'host'> & { hostJson: string | null }>;
-    return rows.map(({ hostJson, ...run }) => ({ ...run, host: hostJson ? JSON.parse(hostJson) as VerificationHost : null }));
-  }
-
-  verificationSteps(verificationRunId: number): readonly VerificationStep[] {
-    const rows = this.database.prepare(`
-      SELECT
-        name,
-        command,
-        started_at AS startedAt,
-        duration_ms AS durationMs,
-        status,
-        exit_code AS exitCode,
-        signal,
-        error,
-        output,
-        output_bytes AS outputBytes,
-        output_truncated AS outputTruncated
-      FROM verification_steps
-      WHERE verification_run_id = ?
-      ORDER BY id
-    `).all(verificationRunId) as Array<Omit<VerificationStep, 'outputTruncated'> & { outputTruncated: number }>;
-    return rows.map((step) => ({
-      ...step,
-      outputTruncated: Boolean(step.outputTruncated),
-    }));
-  }
-
   close(): void {
     this.database.close();
-  }
-
-  private ensureColumn(table: string, column: string, definition: string): void {
-    const columns = this.database.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
-    if (!columns.some((existing) => existing.name === column)) {
-      this.database.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
-    }
   }
 }
 
@@ -320,16 +174,3 @@ function gitRevision(): string | null {
   }
 }
 
-function verificationHost(): VerificationHost {
-  const cpus = os.cpus();
-  return {
-    hostname: os.hostname(),
-    platform: process.platform,
-    release: os.release(),
-    architecture: process.arch,
-    nodeVersion: process.version,
-    cpuModel: cpus[0]?.model ?? null,
-    cpuCount: cpus.length,
-    totalMemoryBytes: os.totalmem(),
-  };
-}

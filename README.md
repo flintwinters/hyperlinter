@@ -239,8 +239,8 @@ Run `python3 manage.py chronolint` in this repository, or the host's root
 substantial series of changes. For machine-readable evidence use
 `node --import tsx tools/hyperlint/src/cli.ts --chronolint --format=json` from the
 host (use `src/cli.ts` standalone). Regular Hyperlinter analysis includes
-chronolint, so ordinary lint and verification record the same historical evidence
-alongside static findings. The dedicated command runs only chronology. `--history` still reads recorded lint and verification runs; it
+chronolint, so ordinary lint records the same historical evidence
+alongside static findings. The dedicated command runs only chronology. `--history` reads recorded lint runs; it
 also exposes chronology evidence for both regular and dedicated runs. Chronolint rejects fixing,
 baseline-writing, and other analysis modes in the same invocation.
 

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { DiagnosticSeverity } from '../diagnostics';
+import { isObject, nonNegativeInteger, severity as validateSeverity } from './validation';
 
 export interface ColorFilePolicy {
   readonly maximum: number;
@@ -22,17 +23,7 @@ export function loadColorFilePolicy(root: string): ColorFilePolicy | undefined {
 function validatePolicy(value: unknown, file: string): ColorFilePolicy {
   if (!isObject(value)) throw new Error(`${file}: colorFiles must be an object.`);
   const { maximum, severity = 'error', sourceRoots = ['.'] } = value;
-  if (!Number.isInteger(maximum) || typeof maximum !== 'number' || maximum < 0) {
-    throw new Error(`${file}: colorFiles.maximum must be a non-negative integer.`);
-  }
-  return { maximum, severity: validateSeverity(severity, file), sourceRoots: validateRoots(sourceRoots, file) };
-}
-
-function validateSeverity(value: unknown, file: string): ColorFilePolicy['severity'] {
-  if (value !== 'error' && value !== 'smell' && value !== 'info') {
-    throw new Error(`${file}: colorFiles.severity must be error, smell, or info.`);
-  }
-  return value;
+  return { maximum: nonNegativeInteger(maximum, file, 'colorFiles.maximum'), severity: validateSeverity(severity, file, 'colorFiles.severity'), sourceRoots: validateRoots(sourceRoots, file) };
 }
 
 function validateRoots(value: unknown, file: string): readonly string[] {
@@ -40,10 +31,6 @@ function validateRoots(value: unknown, file: string): readonly string[] {
     throw new Error(`${file}: colorFiles.sourceRoots must be nonempty, normalized project-relative directories.`);
   }
   return value;
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function validRoot(value: unknown): value is string {

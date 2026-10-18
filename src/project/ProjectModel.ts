@@ -144,29 +144,10 @@ export class ProjectModel {
   }
 
   getPrivateModuleImports(): readonly PrivateModuleImport[] {
-    const imports: PrivateModuleImport[] = [];
-    for (const module of this.modulesById.values()) {
-      for (const sourceFile of module.sourceFiles) {
-        const visit = (node: ts.Node): void => {
-          if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
-            const target = this.resolvedModule(node, sourceFile);
-            const targetModuleId = target && this.moduleIdsByFile.get(this.normalizedPath(target.resolvedFileName));
-            const targetModule = targetModuleId && this.modulesById.get(targetModuleId);
-            if (targetModule && targetModule.id !== module.id && targetModule.entryPoint?.fileName !== target.resolvedFileName) {
-              imports.push({
-                module: module.id,
-                file: this.fileId(sourceFile.fileName),
-                targetModule: targetModule.id,
-                targetFile: this.fileId(target.resolvedFileName),
-              });
-            }
-          }
-          ts.forEachChild(node, visit);
-        };
-        visit(sourceFile);
-      }
-    }
-    return imports;
+    return this.importEdges().filter(({ target, resolvedFileName }) => target.entryPoint?.fileName !== resolvedFileName)
+      .map(({ module, sourceFile, target, resolvedFileName }) => ({
+        module: module.id, file: this.fileId(sourceFile.fileName), targetModule: target.id, targetFile: this.fileId(resolvedFileName),
+      }));
   }
 
   private exportsOfFiles(sourceFiles: readonly ts.SourceFile[]): readonly PublicSymbol[] {
@@ -236,35 +217,35 @@ export class ProjectModel {
     return this.getModules().map((module) => this.getMetrics(module));
   }
 
-  private buildGraph(): ModuleGraph {
-    const dependencies = new Map<ModuleId, readonly ModuleId[]>();
-    const dependents = new Map<ModuleId, Set<ModuleId>>();
-    for (const id of this.modulesById.keys()) dependents.set(id, new Set());
-
-    for (const projectModule of this.modulesById.values()) {
-      const imports = new Set<ModuleId>();
-      for (const sourceFile of projectModule.sourceFiles) {
+  /** Cross-module import and re-export declarations; the graph and boundary checks share this resolution. */
+  private importEdges(): { module: ProjectModule; sourceFile: ts.SourceFile; target: ProjectModule; resolvedFileName: string }[] {
+    const edges: ReturnType<ProjectModel['importEdges']> = [];
+    for (const module of this.modulesById.values()) {
+      for (const sourceFile of module.sourceFiles) {
         const visit = (node: ts.Node): void => {
           if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
-            const resolved = this.resolvedModule(node, sourceFile);
-            if (resolved) {
-              const target = this.moduleIdsByFile.get(this.normalizedPath(resolved.resolvedFileName));
-              if (target && target !== projectModule.id) imports.add(target);
-            }
+            const resolvedFileName = this.resolvedModule(node, sourceFile)?.resolvedFileName;
+            const targetId = resolvedFileName && this.moduleIdsByFile.get(this.normalizedPath(resolvedFileName));
+            const target = targetId && this.modulesById.get(targetId);
+            if (target && target.id !== module.id) edges.push({ module, sourceFile, target, resolvedFileName: resolvedFileName! });
           }
           ts.forEachChild(node, visit);
         };
         visit(sourceFile);
       }
-      const sortedImports = [...imports].sort();
-      dependencies.set(projectModule.id, sortedImports);
-      for (const imported of sortedImports) dependents.get(imported)?.add(projectModule.id);
     }
+    return edges;
+  }
 
-    return {
-      dependencies,
-      dependents: new Map([...dependents].map(([id, values]) => [id, [...values].sort()])),
-    };
+  private buildGraph(): ModuleGraph {
+    const dependencies = new Map([...this.modulesById.keys()].map((id) => [id, new Set<ModuleId>()]));
+    const dependents = new Map([...this.modulesById.keys()].map((id) => [id, new Set<ModuleId>()]));
+    for (const { module, target } of this.importEdges()) {
+      dependencies.get(module.id)!.add(target.id);
+      dependents.get(target.id)!.add(module.id);
+    }
+    const sorted = (map: Map<ModuleId, Set<ModuleId>>) => new Map([...map].map(([id, values]) => [id, [...values].sort()]));
+    return { dependencies: sorted(dependencies), dependents: sorted(dependents) };
   }
 
   private indexExternalReferences(): void {

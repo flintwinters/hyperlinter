@@ -6,7 +6,7 @@ import type { HyperlintDiagnostic } from './diagnostics';
 import { type ModuleMetrics, ProjectModel, agentInstructionsMessage, oversizedAgentInstructions,
   cssFiles, inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline, runSourceBudget } from './project';
 
-import { projectStatePath, RuntimeStore, type RuntimeRun, type VerificationRun, type VerificationStep } from './runtime';
+import { projectStatePath, RuntimeStore, type RuntimeRun } from './runtime';
 
 import { analyzeChronolint } from './index';
 import { analyze } from './runner';
@@ -128,15 +128,10 @@ const runtime = new RuntimeStore();
 
 if (arguments_.includes('--history')) {
   const history = runtime.history().map(run => ({ ...run, chronology: runtime.chronology(run.id) }));
-  const verifications = runtime.verificationHistory().map((verification) => ({
-    ...verification,
-    steps: runtime.verificationSteps(verification.id),
-  }));
-  if (json) process.stdout.write(`${JSON.stringify({ runs: history, verifications }, null, 2)}\n`);
+  if (json) process.stdout.write(`${JSON.stringify({ runs: history }, null, 2)}\n`);
   else {
     printHistory(history);
     for (const run of history) if (run.chronology) printChronology(run.chronology);
-    printVerificationHistory(verifications);
   }
   runtime.close();
   process.exit();
@@ -221,44 +216,23 @@ function baselineDiagnostics(
   });
 }
 
+function printTable(columns: readonly string[], rows: readonly (readonly unknown[])[]): void {
+  // A leading '#' marks a right-aligned numeric column.
+  const lines = [columns.map((column) => column.replace(/^#/, '')).join(' | '),
+    columns.map((column) => (column.startsWith('#') ? '---:' : '---')).join(' | '), ...rows.map((row) => row.join(' | '))];
+  process.stdout.write(`${lines.join('\n')}\n`);
+}
+
 function printMetrics(metrics: readonly ModuleMetrics[]): void {
-  process.stdout.write('Module | Public surface | Declarations | Ratio | Dependencies | Dependents | Cross-module refs\n');
-  process.stdout.write('--- | ---: | ---: | ---: | ---: | ---: | ---:\n');
-  for (const metric of metrics) {
-    const ratio = Math.round(metric.publicSurfaceRatio * 100);
-    process.stdout.write(
-      `${metric.module} | ${metric.publicSurface} | ${metric.declarations} | ${ratio}% | ` +
-      `${metric.dependencies} | ${metric.dependents} | ${metric.crossModuleReferences}\n`,
-    );
-  }
+  printTable(['Module', '#Public surface', '#Declarations', '#Ratio', '#Dependencies', '#Dependents', '#Cross-module refs'],
+    metrics.map((metric) => [metric.module, metric.publicSurface, metric.declarations, `${Math.round(metric.publicSurfaceRatio * 100)}%`,
+      metric.dependencies, metric.dependents, metric.crossModuleReferences]));
 }
 
 function printHistory(runs: readonly RuntimeRun[]): void {
-  process.stdout.write('Run | Started | Duration | Revision | Modules | Diagnostics | Errors | Smells\n');
-  process.stdout.write('---: | --- | ---: | --- | ---: | ---: | ---: | ---:\n');
-  for (const run of runs) {
-    const revision = run.revision?.slice(0, 12) ?? 'unknown';
-    const startedAt = new Date(run.startedAt * 1000).toISOString();
-    process.stdout.write(
-      `${run.id} | ${startedAt} | ${run.durationMs}ms | ${revision} | ` +
-      `${run.modules} | ${run.diagnostics} | ${run.errors} | ${run.smells}\n`,
-    );
-  }
-}
-
-function printVerificationHistory(
-  runs: readonly (VerificationRun & { steps: readonly VerificationStep[] })[],
-): void {
-  if (runs.length === 0) return;
-  process.stdout.write('\nVerification run | Status | Duration | Revision | Host | Steps\n');
-  process.stdout.write('---: | --- | ---: | --- | --- | ---:\n');
-  for (const run of runs) {
-    const revision = run.revision?.slice(0, 12) ?? 'unknown';
-    const status = run.status;
-    const duration = run.durationMs === null ? 'running' : `${run.durationMs}ms`;
-    const host = run.host?.hostname ?? 'unknown';
-    process.stdout.write(`${run.id} | ${status} | ${duration} | ${revision} | ${host} | ${run.steps.length}\n`);
-  }
+  printTable(['#Run', 'Started', '#Duration', 'Revision', '#Modules', '#Diagnostics', '#Errors', '#Smells'],
+    runs.map((run) => [run.id, new Date(run.startedAt * 1000).toISOString(), `${run.durationMs}ms`, run.revision?.slice(0, 12) ?? 'unknown',
+      run.modules, run.diagnostics, run.errors, run.smells]));
 }
 
 function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {

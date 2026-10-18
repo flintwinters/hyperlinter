@@ -16,7 +16,7 @@ const commands: readonly Command[] = [
     arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true },
   { flag: '--chronolint', description: 'Analyze local Git co-change evidence only; unavailable history fails.',
     arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git history'], network: true },
-  { flag: '--history', description: 'Read recorded audit and verification evidence; initialize the ledger if absent.',
+  { flag: '--history', description: 'Read recorded audit evidence; initialize the ledger if absent.',
     arguments: [], json: true, writes: ['ledger initialization'], requires: ['Git metadata'], network: true },
   { flag: '--check-colors', description: 'Inventory literal color files and enforce the optional project cap.',
     arguments: [], json: true, writes: [], requires: ['tsconfig.json', 'Git metadata'], network: true },

@@ -1,6 +1,7 @@
 import { chronolintConfig, type ChronolintConfig } from './ChronolintConfig';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { semanticConfig, type SemanticConfig } from './SemanticConfig';
 
@@ -63,9 +64,10 @@ export function loadHyperlinterConfig(root = hyperlinterRoot()): HyperlinterConf
   return validateConfig(value, fileName);
 }
 
+/** A conventional submodule or working-directory config wins; otherwise use the running installation. */
 function hyperlinterRoot(): string {
-  const submoduleRoot = path.resolve('tools/hyperlint');
-  return fs.existsSync(path.join(submoduleRoot, 'hyperlinter.config.json')) ? submoduleRoot : process.cwd();
+  const candidates = [path.resolve('tools/hyperlint'), process.cwd(), fileURLToPath(new URL('../..', import.meta.url))];
+  return candidates.find((root) => fs.existsSync(path.join(root, 'hyperlinter.config.json'))) ?? process.cwd();
 }
 
 const sectionNames = ['rules', 'clones', 'cohesion', 'coupling', 'moduleFiles', 'publicSurface', 'scoring'] as const;

@@ -7,6 +7,8 @@ interface Command {
   readonly writes: readonly string[];
   readonly requires: readonly string[];
   readonly network: boolean;
+  /** Modifiers adjust the default audit and may combine; every other command runs alone. */
+  readonly modifiesAudit?: true;
 }
 
 const commands: readonly Command[] = [
@@ -29,16 +31,16 @@ const commands: readonly Command[] = [
     json: true, writes: ['source-line-budget.json (advance actions only)'],
     requires: ['source-line-budget.json', 'Git metadata'], network: true },
   { flag: '--fix', description: 'Audit, extract eligible exact clones, then reanalyze changed source.',
-    arguments: [], json: true, writes: ['source', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true },
+    arguments: [], json: true, writes: ['source', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true, modifiesAudit: true },
   { flag: '--fix-private-exports', description: 'Audit, privatize eligible unused exports, then reanalyze changed source.',
-    arguments: [], json: true, writes: ['source', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true },
+    arguments: [], json: true, writes: ['source', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true, modifiesAudit: true },
   { flag: '--write-baseline', description: 'Audit and replace the local public-surface baseline; changes enforcement policy.',
-    arguments: [], json: true, writes: ['baseline', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true },
+    arguments: [], json: true, writes: ['baseline', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true, modifiesAudit: true },
   { flag: '--write-inline-style-baseline', description: 'Replace the local inline-style baseline; changes enforcement policy.',
     arguments: [], json: true, writes: ['baseline'], requires: ['tsconfig.json', 'Git metadata'], network: true },
   { flag: '--build-embeddings', description: 'Audit and refresh the optional semantic cache using configured embeddings; may send implementation text to the provider.',
     arguments: [], json: true, writes: ['semantic cache', 'evidence'],
-    requires: ['tsconfig.json', 'Git metadata', 'semantic configuration and provider credentials when enabled'], network: true },
+    requires: ['tsconfig.json', 'Git metadata', 'semantic configuration and provider credentials when enabled'], network: true, modifiesAudit: true },
 ];
 
 /** Discovery is static: it never reads target configuration or opens the evidence ledger. */

@@ -4,6 +4,7 @@ import ts from 'typescript';
 
 import type { HyperlinterConfig } from '../config';
 import type { ProjectModel } from '../project';
+import { countMeaningfulNodes, isLiteral } from './syntax';
 
 interface ExactClone {
   readonly file: string;
@@ -93,15 +94,6 @@ function isEligibleFunction(statement: ts.Statement): statement is EligibleFunct
       && !parameter.initializer);
 }
 
-function countMeaningfulNodes(root: ts.Node): number {
-  let count = 0;
-  const visit = (node: ts.Node): void => {
-    if (node.kind !== ts.SyntaxKind.Block && !ts.isIdentifier(node) && !ts.isTypeNode(node)) count += 1;
-    ts.forEachChild(node, visit);
-  };
-  visit(root);
-  return count;
-}
 
 function normalizedHash(root: ts.Node, state: NormalizationState, checker: ts.TypeChecker): string {
   return crypto.createHash('sha256').update(normalize(root, state, checker)).digest('hex');
@@ -152,10 +144,6 @@ function recordDifference(first: ts.Node, second: ts.Node, differences: CloneDif
   return true;
 }
 
-function isLiteral(node: ts.Node): node is ts.Expression {
-  return ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)
-    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword;
-}
 
 function identifierKey(node: ts.Identifier, checker: ts.TypeChecker, state: NormalizationState): string {
   const symbol = checker.getSymbolAtLocation(node);

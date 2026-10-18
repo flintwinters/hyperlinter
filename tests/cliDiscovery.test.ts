@@ -61,6 +61,13 @@ test('every discovered chronology exclusion is rejected before accessing the pro
     assert.match(result.stderr, /Chronolint must run separately/);
     assert.equal(result.stdout, '');
   }
+  // Early-return modes previously ignored other commands silently.
+  for (const flags of [['--check-colors', '--fix'], ['--history', '--check-agents']]) {
+    const result = invoke(...flags);
+    assert.equal(result.status, 1, flags.join(' '));
+    assert.match(result.stderr, /Use one command per invocation/);
+    assert.equal(result.stdout, '');
+  }
   assert.deepEqual(readdirSync(root), []);
 });
 

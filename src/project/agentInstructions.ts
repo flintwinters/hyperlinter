@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const MAX_AGENT_INSTRUCTION_LINES = 150;
+const MAX_AGENT_INSTRUCTION_LINES = 150;
 
 export interface AgentInstructions {
   file: string;
@@ -15,8 +15,13 @@ export function agentInstructionsMessage(lines: number): string {
   ].join(' ');
 }
 
+/** Rule and CLI share one limit check. */
+export function oversizedAgentInstructions(root: string): readonly AgentInstructions[] {
+  return agentInstructions(root).filter((instructions) => instructions.lines > MAX_AGENT_INSTRUCTION_LINES);
+}
+
 /** AGENTS.md is a concise semantic entrypoint, not a complete project map. */
-export function agentInstructions(root: string): readonly AgentInstructions[] {
+function agentInstructions(root: string): readonly AgentInstructions[] {
   const fileName = path.join(root, 'AGENTS.md');
   if (!fs.existsSync(fileName)) return [];
   const text = fs.readFileSync(fileName, 'utf8');

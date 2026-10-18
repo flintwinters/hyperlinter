@@ -35,3 +35,5 @@ export const rules: readonly HyperlintRule[] = uniqueRules([
 export { analyzeColorFiles, colorFileLimitRule } from './colorFileLimit';
 export { deadImplementationRule } from './deadImplementation';
 export { moduleCohesionRule } from './moduleCohesion';
+export { nearDuplicatesRule } from './nearDuplicates';
+export { noInlineStylesRule } from './noInlineStyles';

@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import path from 'node:path';
 import ts from 'typescript';
 
 import type { ProjectModel } from './ProjectModel';
@@ -19,7 +18,7 @@ export function semanticFunctions(project: ProjectModel): SemanticFunction[] {
   for (const module of project.getModules()) {
     for (const source of module.sourceFiles) {
       if (source.isDeclarationFile) continue;
-      const file = path.relative(project.getRootDir(), source.fileName).split(path.sep).join('/');
+      const file = project.fileId(source.fileName);
       const visit = (node: ts.Node, ancestry: string): void => {
         const name = 'name' in node && node.name ? (node.name as ts.Node).getText(source) : '';
         const scope = name ? `${ancestry}/${name}` : ancestry;

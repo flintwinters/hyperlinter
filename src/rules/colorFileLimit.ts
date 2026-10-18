@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import { loadColorFilePolicy, type ColorFilePolicy } from '../config';
 import type { HyperlintDiagnostic } from '../diagnostics';
 import { colorLiterals, type ColorLiteral, type ProjectModel } from '../project';
@@ -37,7 +35,7 @@ export function analyzeColorFiles(project: ProjectModel): {
 
 function colorFiles(project: ProjectModel, policy: ColorFilePolicy): readonly ColorFile[] {
   return project.getModules().flatMap(({ sourceFiles }) => sourceFiles.flatMap((source) => {
-    const file = path.relative(project.getRootDir(), source.fileName).split(path.sep).join('/');
+    const file = project.fileId(source.fileName);
     if (source.isDeclarationFile || !policy.sourceRoots.some((root) => root === '.' || file.startsWith(`${root}/`))) return [];
     const literals = colorLiterals(source);
     return literals.length ? [{ file, literals }] : [];

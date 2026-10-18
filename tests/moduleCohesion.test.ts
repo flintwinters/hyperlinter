@@ -107,3 +107,12 @@ test('cohesion configuration rejects invalid quantitative thresholds', () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('engine configuration resolves from the installation outside conventional working directories', (t) => {
+  fs.mkdirSync('artifacts', { recursive: true });
+  const root = fs.mkdtempSync(path.resolve('artifacts/config-root-'));
+  const originalDirectory = process.cwd();
+  t.after(() => { process.chdir(originalDirectory); fs.rmSync(root, { recursive: true, force: true }); });
+  process.chdir(root);
+  assert.equal(loadHyperlinterConfig().rules.moduleScore, 'error');
+});

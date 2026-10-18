@@ -1,6 +1,6 @@
 export { type ModuleGraph, type ModuleId } from './ModuleGraph';
 export { type ModuleMetrics, ProjectModel, type ProjectModule, type PublicSymbol } from './ProjectModel';
-export { MAX_AGENT_INSTRUCTION_LINES, agentInstructions, agentInstructionsMessage } from './agentInstructions';
+export { agentInstructionsMessage, oversizedAgentInstructions } from './agentInstructions';
 export { type ColorLiteral, colorLiterals } from './colorLiterals';
 export { cssFiles } from './cssFiles';
 export { type InlineStyleBaseline, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from './inlineStyles';

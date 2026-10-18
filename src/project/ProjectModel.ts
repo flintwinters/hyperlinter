@@ -342,7 +342,8 @@ export class ProjectModel {
     return path.dirname(path.relative(this.rootDir, fileName)).split(path.sep).join('/');
   }
 
-  private fileId(fileName: string): string {
+  /** Repository-relative, slash-separated identity used by every reported file. */
+  fileId(fileName: string): string {
     return path.relative(this.rootDir, fileName).split(path.sep).join('/');
   }
 

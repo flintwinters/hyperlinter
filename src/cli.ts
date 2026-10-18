@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { HyperlintDiagnostic } from './diagnostics';
-import { type ModuleMetrics, ProjectModel, agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES,
+import { type ModuleMetrics, ProjectModel, agentInstructionsMessage, oversizedAgentInstructions,
   cssFiles, inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline, runSourceBudget } from './project';
 
 import { projectStatePath, RuntimeStore, type RuntimeRun, type VerificationRun, type VerificationStep } from './runtime';
@@ -14,7 +14,7 @@ import { applyExactCloneRefactors } from './clones';
 import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
 import { applyPrivateUnusedExportFixes } from './fixes';
 
-import { colorFileLimitRule, analyzeColorFiles } from './rules';
+import { colorFileLimitRule, analyzeColorFiles, noInlineStylesRule } from './rules';
 import { cliDiscovery, printCliHelp, hyperlinterUpdateNotice } from './commands';
 
 interface Baseline {
@@ -39,6 +39,13 @@ if (arguments_.some(argument => ['--help', '-h', '--discover'].includes(argument
 const chronolint = arguments_.includes('--chronolint');
 if (chronolint && arguments_.some(argument => cliDiscovery.constraints.chronolintExcludes.includes(argument))) {
   process.stderr.write('Chronolint must run separately from fixing, baseline writing, and other analysis modes.\n');
+  process.exit(1);
+}
+const commandFlags = cliDiscovery.commands.flatMap(({ flag, modifiesAudit }) => (
+  flag && arguments_.includes(flag) ? [{ flag, modifiesAudit }] : []));
+if (commandFlags.length > 1 && commandFlags.some(({ modifiesAudit }) => !modifiesAudit)) {
+  process.stderr.write(`Use one command per invocation; ${commandFlags.map(({ flag }) => flag).join(', ')} cannot combine. `
+    + `Only audit modifiers combine: ${cliDiscovery.commands.flatMap(({ flag, modifiesAudit }) => modifiesAudit && flag ? [flag] : []).join(', ')}.\n`);
   process.exit(1);
 }
 const update = hyperlinterUpdateNotice();
@@ -100,8 +107,7 @@ if (arguments_.includes('--check-no-css')) {
 }
 
 if (arguments_.includes('--check-agents')) {
-  const violations = agentInstructions(process.cwd())
-    .filter((instructions) => instructions.lines > MAX_AGENT_INSTRUCTION_LINES);
+  const violations = oversizedAgentInstructions(process.cwd());
   if (json) process.stdout.write(`${JSON.stringify({ violations }, null, 2)}\n`);
   else for (const violation of violations) {
     process.stderr.write(`${agentInstructionsMessage(violation.lines)}\n`);
@@ -159,10 +165,10 @@ if (sourceChanged) result = await analyze(undefined, buildEmbeddings);
 const baseline = readBaseline(baselinePath);
 const styleDiagnostics = result.diagnostics.filter((diagnostic): diagnostic is HyperlintDiagnostic & {
   file: string; line: number; signature: string;
-} => diagnostic.rule === 'HL111' && !!diagnostic.file && !!diagnostic.line && !!diagnostic.signature);
+} => diagnostic.rule === noInlineStylesRule.id && !!diagnostic.file && !!diagnostic.line && !!diagnostic.signature);
 const newStyles = new Set<HyperlintDiagnostic>(newInlineStyles(styleDiagnostics, baseline?.inlineStyles));
 const diagnostics = [
-  ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== 'HL111' || newStyles.has(diagnostic)),
+  ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== noInlineStylesRule.id || newStyles.has(diagnostic)),
   ...(chronolint ? [] : baselineDiagnostics(result.metrics, baseline, loadHyperlinterConfig())),
 ];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);

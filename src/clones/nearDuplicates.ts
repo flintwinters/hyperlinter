@@ -4,6 +4,7 @@ import ts from 'typescript';
 
 import type { HyperlinterConfig } from '../config';
 import type { ProjectModel } from '../project';
+import { countMeaningfulNodes, isLiteral, isMeaningful } from './syntax';
 
 type AnalyzableMethod = ts.FunctionLikeDeclarationBase & { readonly name: ts.Identifier; readonly body: ts.Block };
 
@@ -193,19 +194,7 @@ function identifierKey(node: ts.Identifier, locals: ReadonlyMap<ts.Symbol, numbe
   return `symbol:${checker.getFullyQualifiedName(resolved)}`;
 }
 
-function countMeaningfulNodes(root: ts.Node): number {
-  let count = 0;
-  const visit = (node: ts.Node): void => {
-    if (isMeaningful(node)) count += 1;
-    ts.forEachChild(node, visit);
-  };
-  visit(root);
-  return count;
-}
 
-function isMeaningful(node: ts.Node): boolean {
-  return node.kind !== ts.SyntaxKind.Block && !ts.isIdentifier(node) && !ts.isTypeNode(node);
-}
 
 function nodeCount(root: ts.Node): number {
   let count = 0;
@@ -214,10 +203,6 @@ function nodeCount(root: ts.Node): number {
   return count;
 }
 
-function isLiteral(node: ts.Node): node is ts.Expression {
-  return ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)
-    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword;
-}
 
 function addSimilarity(left: Similarity, right: Similarity): Similarity {
   return {

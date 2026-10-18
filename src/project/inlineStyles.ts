@@ -19,7 +19,7 @@ export function inlineStyles(project: ProjectModel): readonly InlineStyle[] {
   for (const module of project.getModules()) {
     for (const sourceFile of module.sourceFiles) {
       if (!sourceFile.fileName.endsWith('.tsx')) continue;
-      const file = path.relative(project.getRootDir(), sourceFile.fileName).split(path.sep).join('/');
+      const file = project.fileId(sourceFile.fileName);
       for (const node of inlineStyleNodes(sourceFile)) {
         const normalized = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile);
         const signature = createHash('sha256').update(normalized).digest('hex');
@@ -88,7 +88,7 @@ function htmlStyles(project: ProjectModel): InlineStyle[] {
       else if (entry.isFile() && /\.html?$/i.test(entry.name)) {
         const text = fs.readFileSync(file, 'utf8');
         for (const { offset, syntax } of htmlStyleSyntax(text)) findings.push({
-          file: path.relative(project.getRootDir(), file).split(path.sep).join('/'),
+          file: project.fileId(file),
           line: text.slice(0, offset).split('\n').length,
           signature: createHash('sha256').update(syntax).digest('hex'),
         });

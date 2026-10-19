@@ -23,7 +23,8 @@ const commands: readonly Command[] = [
     arguments: [], json: true, writes: [], requires: ['Git metadata'], network: false },
   { flag: '--check-agents', description: 'Check the root agent instruction length.',
     arguments: [], json: true, writes: [], requires: ['Git metadata'], network: false },
-  { flag: '--source-budget', description: 'Check the source-line budget or advance its ledger after refactoring; advancing requires a clean worktree.',
+  { flag: '--source-budget', description: 'Check the source-line budget or advance its ledger after refactoring; '
+      + 'advancing requires a clean worktree.',
     arguments: [{ name: 'action', values: ['check', 'advance', 'advance-if-pending'] }],
     json: true, writes: ['source-line-budget.json (advance actions only)'],
     requires: ['source-line-budget.json', 'Git metadata'], network: false },
@@ -35,7 +36,8 @@ const commands: readonly Command[] = [
     arguments: [], json: true, writes: ['baseline', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: false },
   { flag: '--write-inline-style-baseline', description: 'Replace the local inline-style baseline; changes enforcement policy.',
     arguments: [], json: true, writes: ['baseline'], requires: ['tsconfig.json', 'Git metadata'], network: false },
-  { flag: '--build-embeddings', description: 'Audit and refresh the optional semantic cache using configured embeddings; may send implementation text to the provider.',
+  { flag: '--build-embeddings', description: 'Audit and refresh the optional semantic cache using configured embeddings; '
+      + 'may send implementation text to the provider.',
     arguments: [], json: true, writes: ['semantic cache', 'evidence'],
     requires: ['tsconfig.json', 'Git metadata', 'semantic configuration and provider credentials when enabled'], network: true },
 ];
@@ -70,7 +72,8 @@ export function printCliHelp(): void {
   for (const command of commands) {
     const arguments_ = command.arguments.map(({ values }) => `<${values.join('|')}>`).join(' ');
     lines.push(`  ${command.flag ?? '(default audit)'}${arguments_ ? ` ${arguments_}` : ''}: ${command.description}`);
-    lines.push(`    JSON: ${command.json ? 'yes' : 'no'}; writes: ${command.writes.join(', ') || 'none'}; network: ${command.network ? 'possible' : 'no'}.`);
+    lines.push(`    JSON: ${command.json ? 'yes' : 'no'}; writes: ${command.writes.join(', ') || 'none'}; `
+      + `network: ${command.network ? 'possible' : 'no'}.`);
   }
   lines.push('', 'Options:');
   for (const option of cliDiscovery.options) lines.push(`  ${option.flags.join(', ')}: ${option.description}`);

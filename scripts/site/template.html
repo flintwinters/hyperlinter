@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>typie hyperlinter</title>
+  <meta name="description" content="typie hyperlinter is a TypeScript architecture linter for AI coding agents. Detect dependency cycles, unused functions, duplicated logic, and oversized public APIs.">
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+  <meta name="theme-color" content="#102020">
+  <link rel="canonical" href="https://flintwinters.github.io/hyperlinter/">
+  <link rel="sitemap" type="application/xml" href="https://flintwinters.github.io/hyperlinter/sitemap.xml">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:site_name" content="typie hyperlinter">
+  <meta property="og:title" content="typie hyperlinter">
+  <meta property="og:description" content="A TypeScript architecture linter for AI coding agents. Find dependency cycles, unused functions, duplication, and oversized APIs.">
+  <meta property="og:url" content="https://flintwinters.github.io/hyperlinter/">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="typie hyperlinter">
+  <meta name="twitter:description" content="A TypeScript architecture linter for AI coding agents: find cycles, unused functions, duplication, and oversized public APIs.">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://flintwinters.github.io/hyperlinter/#website",
+        "name": "typie hyperlinter",
+        "url": "https://flintwinters.github.io/hyperlinter/",
+        "inLanguage": "en",
+        "about": {"@id": "https://flintwinters.github.io/hyperlinter/#software"}
+      },
+      {
+        "@type": "SoftwareSourceCode",
+        "@id": "https://flintwinters.github.io/hyperlinter/#software",
+        "name": "typie hyperlinter",
+        "description": "A TypeScript architecture linter that gives AI coding agents mechanical feedback on public APIs, coupling, duplication, and repository structure.",
+        "url": "https://flintwinters.github.io/hyperlinter/",
+        "codeRepository": "https://github.com/flintwinters/hyperlinter",
+        "programmingLanguage": "TypeScript",
+        "runtimePlatform": "Node.js 22 or newer"
+      }
+    ]
+  }
+  </script>
+  <link rel="stylesheet" href="./dist/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header><div class="wrap header">
+    <a class="brand" href="./"><span class="brandMark" aria-hidden="true">↳</span>typie hyperlinter</a>
+    <nav aria-label="Main navigation"><a class="navLink" href="#get-started">Install</a><a class="navLink" href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Docs</a><a class="navLink" href="https://github.com/flintwinters/hyperlinter">GitHub ↗</a></nav>
+  </div></header>
+  <main id="main" class="wrap" tabindex="-1">
+    <p class="eyebrow">TypeScript architecture linter for AI coding agents</p>
+    <h1>typie hyperlinter</h1>
+    <p class="headline">Keep your agent’s codebase maintainable.</p>
+    <p class="intro">Find dependency cycles, duplicated functions, and oversized public APIs across your TypeScript repository. Errors return a failing exit code for your agent or CI to act on.</p>
+    <a class="primary" href="#get-started">Install Hyperlinter ↓</a>
+    <div class="columns">
+      <section aria-labelledby="checks-heading">
+        <h2 id="checks-heading">What it catches</h2>
+        <ul>
+          <li><strong>Dependency cycles</strong><span class="checkDescription">Circular imports and unusually coupled modules.</span></li>
+          <li><strong>Oversized APIs</strong><span class="checkDescription">Public-surface growth, unused exports, and boundary violations.</span></li>
+          <li><strong>Duplicated or unused functions</strong><span class="checkDescription">Source clones and unreachable top-level implementations.</span></li>
+        </ul>
+      </section>
+      <section id="get-started" class="install" tabindex="-1" aria-labelledby="install-heading">
+        <h2 id="install-heading">Try it in your TypeScript repository</h2>
+        <p class="installParagraph">Requires Node.js 22+ and a <code>tsconfig.json</code>. Run from your repository root:</p>
+        <button class="copy" id="copy-commands" type="button" hidden>Copy commands</button>
+        <span id="copy-status" class="note" role="status"></span>
+        <pre aria-label="Install and run Hyperlinter"><code id="install-commands">git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
+npm --prefix tools/hyperlint ci --include=dev
+./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts</code></pre>
+        <p class="installParagraph note">Review the <a href="https://github.com/flintwinters/hyperlinter/blob/main/hyperlinter.config.json">default policy</a>: each source directory needs an index entrypoint. CSS files and inline JSX styles are rejected.</p>
+        <a href="https://github.com/flintwinters/hyperlinter/blob/main/README.md">Setup, commands &amp; limitations ↗</a>
+      </section>
+    </div>
+    <p class="note experiment">Optional semantic grouping uses OpenRouter embeddings to suggest agent examination. It sends function source to the provider and requires an API key; its experimental warnings never block. Ordinary checks need no model or API key.</p>
+  </main>
+  <footer><div class="wrap footerLinks"><a href="https://github.com/flintwinters/hyperlinter">Source code</a><a href="https://github.com/flintwinters/hyperlinter/blob/main/HYPERLINTER.md">Project philosophy</a></div></footer>
+  <script>
+    const copy = document.getElementById('copy-commands');
+    if (navigator.clipboard && window.isSecureContext) {
+      copy.hidden = false;
+      copy.addEventListener('click', async () => {
+        const status = document.getElementById('copy-status');
+        try {
+          await navigator.clipboard.writeText(document.getElementById('install-commands').textContent.trim());
+          status.textContent = 'Copied.';
+        } catch {
+          status.textContent = 'Select the commands below to copy them.';
+        }
+      });
+    }
+  </script>
+</body>
+</html>

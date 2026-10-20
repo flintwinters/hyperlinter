@@ -1,9 +1,14 @@
 """Real CSS-viewport checks with Chromium DevTools; no page JavaScript required."""
 import base64
 import json
+import os
 import shutil
+import socket
 import subprocess
+import tempfile
 import time
+from pathlib import Path
+from urllib.error import URLError
 from urllib.request import urlopen
 
 
@@ -12,28 +17,41 @@ def preview_site(root):
         import websocket
     except ImportError:
         raise SystemExit("site-preview: install Python websocket-client and Chromium.")
-    browser = shutil.which("chromium") or shutil.which("chromium-browser")
+    managed = Path(os.environ.get("PLAYWRIGHT_BROWSERS_PATH", root / "artifacts/browsers"))
+    candidates = sorted(managed.glob("chromium-*/chrome-linux*/chrome"))
+    browser = str(candidates[-1]) if candidates else shutil.which("chromium") or shutil.which("chromium-browser")
     if not browser:
         raise SystemExit("site-preview: install Chromium.")
     output = root / "runtime/site-preview"
-    profile = output / "devtools-profile"
-    profile.mkdir(parents=True, exist_ok=True)
-    marker = profile / "DevToolsActivePort"
-    marker.unlink(missing_ok=True)
-    command = [browser, "--headless", "--no-sandbox", "--disable-gpu", "--remote-debugging-port=0",
+    output.mkdir(parents=True, exist_ok=True)
+    profile = Path(tempfile.mkdtemp(prefix="profile-", dir=output))
+    # Unix Chromium socket paths are short; keep them outside the deep profile
+    # directory while retaining every test artifact inside the checkout.
+    temporary = Path(os.environ.get('UNIBAN_BROWSER_TMPDIR', root / 'artifacts/tmp'))
+    temporary.mkdir(parents=True, exist_ok=True)
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        port = listener.getsockname()[1]
+    command = [browser, "--headless", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage",
+               "--disable-background-networking", "--no-first-run", f"--remote-debugging-port={port}",
                f"--user-data-dir={profile}", "about:blank"]
     with (output / "browser.log").open("w") as log:
-        process = subprocess.Popen(command, stdout=log, stderr=log)
+        process = subprocess.Popen(command, stdout=log, stderr=log, env={**os.environ, 'TMPDIR': str(temporary)})
         connection = None
         try:
-            deadline = time.monotonic() + 10
-            while not marker.exists():
+            target = None
+            deadline = time.monotonic() + 60
+            while target is None:
                 if process.poll() is not None or time.monotonic() > deadline:
                     raise SystemExit("site-preview: Chromium failed to start; see runtime/site-preview/browser.log.")
-                time.sleep(0.05)
-            port = marker.read_text().splitlines()[0]
-            with urlopen(f"http://127.0.0.1:{port}/json", timeout=10) as response:
-                target = json.load(response)[0]
+                try:
+                    with urlopen(f"http://127.0.0.1:{port}/json", timeout=2) as response:
+                        target = next((item for item in json.load(response) if item.get('type') == 'page'
+                                       and item.get('webSocketDebuggerUrl')), None)
+                except (URLError, TimeoutError):
+                    pass
+                if target is None:
+                    time.sleep(0.05)
             connection = websocket.create_connection(target["webSocketDebuggerUrl"], timeout=10, suppress_origin=True)
             sequence = 0
 
@@ -104,11 +122,19 @@ def preview_site(root):
             # Chromium requires document focus for clipboard access even when
             # permission has been granted; select the page before the operation.
             call("Page.bringToFront")
+            position = call("Runtime.evaluate", {"expression": """(() => {
+                const button = document.querySelector('#copy-commands');
+                button.scrollIntoView({block: 'center'});
+                const box = button.getBoundingClientRect();
+                return JSON.stringify({x: box.left + box.width / 2, y: box.top + box.height / 2});
+            })()"""})
+            point = json.loads(position['result']['value'])
+            call('Input.dispatchMouseEvent', {'type': 'mousePressed', 'button': 'left', 'clickCount': 1, **point})
+            call('Input.dispatchMouseEvent', {'type': 'mouseReleased', 'button': 'left', 'clickCount': 1, **point})
             copied = call("Runtime.evaluate", {"awaitPromise": True, "userGesture": True, "expression": """(async () => {
-                document.querySelector('#copy-commands').click();
-                const deadline = Date.now() + 3000;
+                const deadline = Date.now() + 10000;
                 while (document.querySelector('#copy-status').textContent !== 'Copied.') {
-                    if (Date.now() > deadline) throw Error('Copy action failed');
+                    if (Date.now() > deadline) throw Error('Copy action failed: ' + document.querySelector('#copy-status').textContent);
                     await new Promise(resolve => setTimeout(resolve, 20));
                 }
                 return navigator.clipboard.readText();
@@ -140,6 +166,7 @@ def preview_site(root):
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+            shutil.rmtree(profile)
 
 
 def contrast(text, background):

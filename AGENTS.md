@@ -44,7 +44,9 @@ unique diagnostic IDs and reproducible analysis regressions. Optional semantic
 embeddings track current implementations in target-private caches; their
 experimental warnings never accumulate enforcement scores. Semantic thresholds
 may be tuned after agent examination finds declustering unwarranted. The static
-project website lives in `docs/`; GitHub Pages publishes it from `main`.
+project website publishes from `docs/` on `main`. Author markup and StyleX in
+`scripts/site/`; `manage.py site-build` generates the checked HTML and `docs/dist/site.css`.
+Never edit compiled assets directly; site checks reject stale output.
 
 ## First commands
 

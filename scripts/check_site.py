@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urlsplit
 from xml.etree import ElementTree
+from scripts.build_site import build_site
 
 
 class Page(HTMLParser):
@@ -30,6 +31,7 @@ class Page(HTMLParser):
 
 
 def check_site(root):
+    build_site(root, check=True)
     site = root / "docs"
     page = Page((site / "index.html").read_text())
     title = "typie hyperlinter"

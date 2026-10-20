@@ -9,6 +9,7 @@ from rich.console import Console
 from scripts.check_site import check_site
 from scripts.browser_site import preview_site
 from scripts.site_operations import check_install, check_live
+from scripts.build_site import build_site
 from pathlib import Path
 
 
@@ -21,7 +22,7 @@ def main(command: str = typer.Argument(...)):
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/chronology/history.test.ts"], cwd=root).returncode)
     if command == "chronolint":
         sys.exit(subprocess.run(["node", "--import", "tsx", "src/cli.ts", "--chronolint"], cwd=root).returncode)
-    operations = {"site-preview": preview_site, "site-install": check_install, "site-live": check_live}
+    operations = {"site-build": build_site, "site-preview": preview_site, "site-install": check_install, "site-live": check_live}
     if command == "test-debug":
         for file in sorted((root / "tests").rglob("*.test.ts")):
             result = subprocess.run(["node", "--import", "tsx", str(file)], cwd=root)
@@ -32,14 +33,17 @@ def main(command: str = typer.Argument(...)):
         operations[command](root)
         return
     if command != "check":
-        sys.exit("Use: python3 manage.py check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+        sys.exit("Use: python3 manage.py check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-build — compile static StyleX assets; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:
         sys.exit(f"website: {error}")
     console.print("website: passed")
     for script in ("typecheck", "hyperlint", "test"):
-        result = subprocess.run(["npm", "run", script], cwd=root, capture_output=True, text=True)
+        # Analysis fixtures spawn compilers and Git; serialize them to bound
+        # memory rather than making correctness depend on available swap.
+        arguments = ["npm", "run", script] + (["--", "--test-concurrency=1"] if script == "test" else [])
+        result = subprocess.run(arguments, cwd=root, capture_output=True, text=True)
         if result.returncode:
             console.print(result.stdout + result.stderr)
             if script == "test":

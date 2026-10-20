@@ -152,8 +152,11 @@ function check(root: string, ledger: SourceBudgetLedger) {
     `The project has ${total.toLocaleString()} authored source lines, reaching the ${budget.threshold.toLocaleString()}-line checkpoint. ` +
     `Refactor it down to ${budget.refactorTarget.toLocaleString()} lines or fewer ` +
     `(a ${budget.requiredReduction.toLocaleString()}-line reduction from this checkpoint) ` +
-    'as part of this task’s acceptance criteria. Do not treat this as separate or follow-up work: ' +
-    'reduce the repository before reporting the task complete. Prefer static analysis to intelligently ' +
+    'as a required part of the active task. This failure MUST be resolved before you finish or report completion. ' +
+    'Continue working autonomously until the refactor target is met and verification passes; ' +
+    'do not merely disclose the failure, classify it as pre-existing or out of scope, defer it, or ask the user to fix it. ' +
+    'Preserve the budget policy: do not raise thresholds, add exclusions, move code outside counted directories, ' +
+    'remove useful tests, or count formatting-only compression as a refactor. Prefer static analysis to intelligently ' +
     'and deterministically find duplicated logic that can be reused or centralized. ' +
     'Dynamic/manual/non-static analysis and reduction is permitted.',
   );

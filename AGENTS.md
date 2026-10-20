@@ -3,7 +3,7 @@
 Read [HYPERLINTER.md](./HYPERLINTER.md) before changing this repository. It is
 the product manifesto and takes priority over convenience-driven changes.
 
-The CLI surface should be agent-facing-first.  Prioritize discoverability and usability by coding agents.
+The runtime requires Node.js 22+ and the N-API SQLite driver (better-sqlite3 13+). The CLI surface should be agent-facing-first.  Prioritize discoverability and usability by coding agents.
 
 ## Mission
 

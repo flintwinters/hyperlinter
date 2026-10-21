@@ -8,6 +8,32 @@ import { fileURLToPath } from 'node:url';
 import { cssFiles, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from '../../src/project';
 import { ProjectModel } from '../../src/project';
 
+test('stylesheet discovery honors Git source ownership without hiding tracked or new authored CSS', () => {
+  const fixture = path.resolve(`artifacts/css-ownership-${process.pid}`);
+  fs.mkdirSync(fixture, { recursive: true });
+  const git = (...args: string[]) => {
+    const result = spawnSync('git', args, { cwd: fixture, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+  };
+  try {
+    git('init', '--quiet');
+    fs.writeFileSync(path.join(fixture, '.gitignore'), 'cache/\n');
+    fs.mkdirSync(path.join(fixture, 'cache'));
+    fs.writeFileSync(path.join(fixture, 'cache', 'downloaded.css'), 'body {}');
+    fs.writeFileSync(path.join(fixture, 'cache', 'tracked.css'), 'body {}');
+    git('add', '--force', 'cache/tracked.css');
+    fs.writeFileSync(path.join(fixture, 'authored.css'), 'body {}');
+    const dependency = path.join(fixture, 'dependency');
+    fs.mkdirSync(dependency);
+    const nested = spawnSync('git', ['init', '--quiet'], { cwd: dependency, encoding: 'utf8' });
+    assert.equal(nested.status, 0, nested.stderr);
+    fs.writeFileSync(path.join(dependency, 'vendor.css'), 'body {}');
+    assert.deepEqual(cssFiles(fixture), ['authored.css', 'cache/tracked.css']);
+    fs.rmSync(path.join(fixture, 'cache', 'tracked.css'));
+    assert.deepEqual(cssFiles(fixture), ['authored.css']);
+  } finally { fs.rmSync(fixture, { recursive: true, force: true }); }
+});
+
 test('inline style policy detects direct and literal spread styles and preserves legacy counts', () => {
   const fixture = path.resolve(`runtime/inline-styles-fixture-${process.pid}`);
   fs.mkdirSync(fixture, { recursive: true });

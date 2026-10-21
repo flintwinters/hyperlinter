@@ -169,8 +169,10 @@ module scoring; no automatic split is performed. These defaults are initial
 heuristics, not empirically calibrated proof of unrelated responsibilities.
 
 Experimental semantic grouping (`HL116`, warning) is optional and never contributes
-to blocking module scores. Set `semantic.enabled` to `true` in Hyperlinter's
-configuration to refresh and examine embeddings during each analysis, or run
+to blocking module scores. Set `semantic.enabled` to `true` in the target project’s
+`hyperlinter.project.json` to opt that project in without changing engine defaults.
+The project’s semantic settings override the engine’s semantic settings only.
+Enabled analysis refreshes and examines embeddings on each run. Use
 `npm run hyperlint -- --build-embeddings` for an explicit index build.
 `OPENROUTER_API_KEY` must be present in the environment for every embedding build
 (including warm-cache builds); ordinary checks need no key. An explicit build

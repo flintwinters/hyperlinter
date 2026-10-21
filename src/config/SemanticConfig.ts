@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 export interface SemanticConfig {
   readonly enabled: boolean;
   readonly model: string;
@@ -46,4 +49,13 @@ function validateDistance(value: unknown, key: string): void {
   if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 2) {
     throw new Error(`semantic.${key} must be within [0, 2].`);
   }
+}
+
+export function projectSemanticConfig(root: string, defaults: SemanticConfig): SemanticConfig {
+  const file = path.join(root, 'hyperlinter.project.json');
+  if (!fs.existsSync(file)) return defaults;
+  const override = JSON.parse(fs.readFileSync(file, 'utf8')).semantic;
+  if (override === undefined) return defaults;
+  if (typeof override !== 'object' || override === null) throw new Error('Project semantic policy must be an object.');
+  return semanticConfig({ ...defaults, ...override });
 }

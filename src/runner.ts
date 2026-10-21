@@ -11,7 +11,7 @@ import type { ChronologyEvidence } from './temporal';
 
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
   const project = ProjectModel.fromTsConfig(tsconfigPath);
-  const config = loadHyperlinterConfig();
+  const config = loadHyperlinterConfig(undefined, project.getRootDir());
   const diagnostics = rules.flatMap((rule) => rule.analyze(project, config));
   if (config.semantic.enabled || buildEmbeddings) {
     try {

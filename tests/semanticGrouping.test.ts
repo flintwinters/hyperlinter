@@ -167,3 +167,20 @@ test('runner keeps disabled checks offline, optional failure advisory, and expli
     }
   });
 });
+
+test('project semantic opt-in preserves engine policy and validates overrides', async () => {
+  await fixture(async (root) => {
+    const engine = loadHyperlinterConfig();
+    assert.deepEqual(loadHyperlinterConfig(undefined, root), engine);
+    const policy = path.join(root, 'hyperlinter.project.json');
+    fs.writeFileSync(policy, JSON.stringify({ semantic: { enabled: true } }));
+    const configured = loadHyperlinterConfig(undefined, root);
+    assert.deepEqual(configured.semantic, { ...engine.semantic, enabled: true });
+    assert.deepEqual(configured.rules, engine.rules);
+    assert.deepEqual(loadHyperlinterConfig(), engine);
+    fs.writeFileSync(policy, JSON.stringify({ semantic: { enabled: 'yes' } }));
+    assert.throws(() => loadHyperlinterConfig(undefined, root), /semantic.enabled/);
+    fs.writeFileSync(policy, JSON.stringify({ semantic: null }));
+    assert.throws(() => loadHyperlinterConfig(undefined, root), /must be an object/);
+  });
+});

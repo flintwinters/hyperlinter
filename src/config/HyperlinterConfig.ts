@@ -2,7 +2,7 @@ import { chronolintConfig, type ChronolintConfig } from './ChronolintConfig';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { semanticConfig, type SemanticConfig } from './SemanticConfig';
+import { projectSemanticConfig, semanticConfig, type SemanticConfig } from './SemanticConfig';
 
 import type { DiagnosticSeverity } from '../diagnostics';
 
@@ -55,12 +55,13 @@ export interface HyperlinterConfig {
   };
 }
 
-/** Loads versioned engine policy from the Hyperlinter root, never target-project policy. */
-export function loadHyperlinterConfig(root = hyperlinterRoot()): HyperlinterConfig {
+/** Loads engine policy, with optional project-scoped semantic analysis settings. */
+export function loadHyperlinterConfig(root = hyperlinterRoot(), projectRoot?: string): HyperlinterConfig {
   const fileName = path.join(root, 'hyperlinter.config.json');
   if (!fs.existsSync(fileName)) throw new Error(`Missing Hyperlinter configuration: ${fileName}`);
   const value = JSON.parse(fs.readFileSync(fileName, 'utf8')) as unknown;
-  return validateConfig(value, fileName);
+  const config = validateConfig(value, fileName);
+  return projectRoot ? { ...config, semantic: projectSemanticConfig(projectRoot, config.semantic) } : config;
 }
 
 function hyperlinterRoot(): string {

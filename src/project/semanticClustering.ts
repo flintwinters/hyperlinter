@@ -19,26 +19,26 @@ function functionsByModule(functions: readonly SemanticFunction[]): Map<string, 
   return modules;
 }
 
-function completeLinkGroups(
+function completeLinkClusters(
   members: readonly SemanticFunction[], distance: (left: SemanticFunction, right: SemanticFunction) => number, maximum: number,
 ): SemanticFunction[][] {
-  const groups: SemanticFunction[][] = [];
+  const clusters: SemanticFunction[][] = [];
   // Deterministic complete-link assignment prevents chains of weakly related
-  // functions from joining two otherwise unrelated groups.
+  // functions from joining two otherwise unrelated clusters.
   for (const fn of members) {
-    const group = groups.find((candidate) => candidate.every((other) => distance(fn, other) <= maximum));
-    if (group) group.push(fn);
-    else groups.push([fn]);
+    const cluster = clusters.find((candidate) => candidate.every((other) => distance(fn, other) <= maximum));
+    if (cluster) cluster.push(fn);
+    else clusters.push([fn]);
   }
-  return groups;
+  return clusters;
 }
 
-function describe(group: readonly SemanticFunction[]): string {
-  const locations = group.slice(0, 8).map((fn) => `${fn.file}:${fn.line}`).join(', ');
-  return `${group.length} functions [${locations}${group.length > 8 ? ', …' : ''}]`;
+function describe(cluster: readonly SemanticFunction[]): string {
+  const locations = cluster.slice(0, 8).map((fn) => `${fn.file}:${fn.line}`).join(', ');
+  return `${cluster.length} functions [${locations}${cluster.length > 8 ? ', …' : ''}]`;
 }
 
-export function semanticGrouping(
+export function semanticClustering(
   functions: readonly SemanticFunction[], vectors: ReadonlyMap<string, readonly number[]>, config: SemanticConfig,
 ): HyperlintDiagnostic[] {
   const modules = functionsByModule(functions);
@@ -46,8 +46,8 @@ export function semanticGrouping(
   const distance = (left: SemanticFunction, right: SemanticFunction) => cosineDistance(vectors.get(left.id)!, vectors.get(right.id)!);
   for (const [module, members] of modules) {
     if (members.length < 2 * config.minimumClusterFunctions) continue;
-    const groups = completeLinkGroups(members, distance, config.maximumWithinClusterDistance);
-    const large = groups.filter((group) => group.length >= config.minimumClusterFunctions);
+    const clusters = completeLinkClusters(members, distance, config.maximumWithinClusterDistance);
+    const large = clusters.filter((cluster) => cluster.length >= config.minimumClusterFunctions);
     for (let left = 0; left < large.length; left++) {
       for (let right = left + 1; right < large.length; right++) {
         const separation = large[left].reduce((minimum, fn) =>
@@ -55,9 +55,11 @@ export function semanticGrouping(
         if (separation < config.minimumClusterDistance) continue;
         diagnostics.push({
           rule: 'HL116', severity: 'warning', module, score: separation,
-          message: `EXPERIMENTAL semantic grouping: ${describe(large[left])} and ${describe(large[right])}; `
-            + `minimum cross-group cosine distance ${separation.toFixed(3)} >= ${config.minimumClusterDistance}; `
-            + `each group has >= ${config.minimumClusterFunctions} functions. Agent examination requested. `
+          message: `EXPERIMENTAL semantic clustering: ${describe(large[left])} and ${describe(large[right])}; `
+            + `minimum cross-cluster cosine distance ${separation.toFixed(3)} >= ${config.minimumClusterDistance}; `
+            + `each cluster has >= ${config.minimumClusterFunctions} functions. Agent examination requested. `
+            + 'Each module is partitioned into disjoint function clusters; every function belongs to exactly one cluster. '
+            + 'Assignment is ordered first-fit: a function joins the first cluster where it is close enough to every member. '
             + 'This is a noisy advisory warning, not a hard architectural rule or a requirement to refactor. '
             + 'Examine responsibilities, shared state, invariants, and consumers before considering declustering into separate modules. '
             + 'If you do not think declustering is needed, you should probably adjust semantic.minimumClusterFunctions '

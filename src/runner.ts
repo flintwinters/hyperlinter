@@ -1,4 +1,4 @@
-import { semanticFunctions, semanticGrouping, updateEmbeddingIndex, ProjectModel } from './project';
+import { semanticFunctions, semanticClustering, updateEmbeddingIndex, ProjectModel } from './project';
 
 import { projectStatePath, type HyperlintResult } from './runtime';
 import type { HyperlintDiagnostic } from './diagnostics';
@@ -18,7 +18,7 @@ export async function analyze(tsconfigPath?: string, buildEmbeddings = false): P
       const functions = semanticFunctions(project);
       const vectors = await updateEmbeddingIndex(functions, config.semantic.model,
         projectStatePath(project.getRootDir(), 'semantic-embeddings.json'));
-      diagnostics.push(...semanticGrouping(functions, vectors, config.semantic));
+      diagnostics.push(...semanticClustering(functions, vectors, config.semantic));
     } catch (error) {
       if (buildEmbeddings) throw error;
       diagnostics.push({ rule: 'HL116', severity: 'warning',

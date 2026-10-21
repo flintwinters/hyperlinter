@@ -8,7 +8,7 @@ import { loadHyperlinterConfig } from '../src/config';
 import { ProjectModel } from '../src/project';
 import { semanticFunctions, type SemanticFunction } from '../src/project';
 import { openRouterEmbeddings, updateEmbeddingIndex } from '../src/project';
-import { semanticGrouping } from '../src/project';
+import { semanticClustering } from '../src/project';
 import { analyze } from '../src';
 import { moduleScoreDiagnostics } from '../src/scoring';
 
@@ -26,22 +26,26 @@ async function fixture(action: (root: string) => Promise<void>) {
   finally { fs.rmSync(root, { recursive: true, force: true }); }
 }
 
-test('lax grouping requires both large groups and substantial separation; warnings never block', () => {
+test('lax clustering requires both large clusters and substantial separation; warnings never block', () => {
   const members = functions(16);
   const vectors = new Map(members.map((fn, index) => [fn.id, index < 8 ? [1, 0] : [0, 1]]));
-  const warnings = semanticGrouping(members, vectors, semanticDefaults);
+  const warnings = semanticClustering(members, vectors, semanticDefaults);
   assert.equal(warnings.length, 1);
   assert.equal(warnings[0].severity, 'warning');
+  assert.match(warnings[0].message, /disjoint function clusters/);
+  assert.match(warnings[0].message, /every function belongs to exactly one cluster/);
+  assert.match(warnings[0].message, /ordered first-fit/);
+  assert.doesNotMatch(warnings[0].message, /\bgroup(?:s|ing)?\b/i);
   assert.match(warnings[0].message, /probably adjust semantic.minimumClusterFunctions/);
   assert.match(warnings[0].message, /not a hard architectural rule/);
   assert.deepEqual(moduleScoreDiagnostics(warnings, loadHyperlinterConfig()), []);
-  assert.deepEqual(semanticGrouping(members.slice(1), vectors, semanticDefaults), []);
-  assert.deepEqual(semanticGrouping(members, vectors, { ...semanticDefaults, minimumClusterDistance: 1.01 }), []);
-  assert.equal(semanticGrouping(members, vectors, { ...semanticDefaults, minimumClusterDistance: 1 }).length, 1);
+  assert.deepEqual(semanticClustering(members.slice(1), vectors, semanticDefaults), []);
+  assert.deepEqual(semanticClustering(members, vectors, { ...semanticDefaults, minimumClusterDistance: 1.01 }), []);
+  assert.equal(semanticClustering(members, vectors, { ...semanticDefaults, minimumClusterDistance: 1 }).length, 1);
   const similar = new Map(members.map((fn, index) => [fn.id, index < 8 ? [1, 0] : [1, 1]]));
-  assert.deepEqual(semanticGrouping(members, similar, semanticDefaults), []);
+  assert.deepEqual(semanticClustering(members, similar, semanticDefaults), []);
   const differentModules = members.map((fn, index) => ({ ...fn, module: index < 8 ? 'one' : 'two' }));
-  assert.deepEqual(semanticGrouping(differentModules, vectors, semanticDefaults), []);
+  assert.deepEqual(semanticClustering(differentModules, vectors, semanticDefaults), []);
 });
 
 test('inventory includes nested/private/anonymous implementations and excludes declaration-only signatures', async () => {

@@ -7,5 +7,5 @@ export { type InlineStyle, type InlineStyleBaseline, inlineStyleBaseline, inline
 export { moduleCohesion } from './moduleCohesion';
 export { openRouterEmbeddings, updateEmbeddingIndex } from './semanticEmbeddings';
 export { type SemanticFunction, semanticFunctions } from './semanticFunctions';
-export { semanticGrouping } from './semanticGrouping';
+export { semanticClustering } from './semanticClustering';
 export { meaningfulLineCount, runSourceBudget } from './sourceBudget';

@@ -9,7 +9,7 @@ export interface SemanticConfig {
   readonly minimumClusterDistance: number;
 }
 
-/** Experimental advisory policy deliberately tolerates large, distant groups. */
+/** Experimental advisory policy deliberately tolerates large, distant clusters. */
 export const semanticDefaults: SemanticConfig = {
   enabled: false,
   model: 'openai/text-embedding-3-small',

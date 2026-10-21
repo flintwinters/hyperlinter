@@ -168,7 +168,7 @@ consumers, and refactoring instructions. The rule participates in existing
 module scoring; no automatic split is performed. These defaults are initial
 heuristics, not empirically calibrated proof of unrelated responsibilities.
 
-Experimental semantic grouping (`HL116`, warning) is optional and never contributes
+Experimental semantic clustering (`HL116`, warning) is optional and never contributes
 to blocking module scores. Set `semantic.enabled` to `true` in the target project’s
 `hyperlinter.project.json` to opt that project in without changing engine defaults.
 The project’s semantic settings override the engine’s semantic settings only.
@@ -189,10 +189,19 @@ removed functions on each successful build. Failed builds leave the previous
 index intact and do not analyze stale embeddings. Full function text is sent;
 provider size limits cause an availability warning rather than silent truncation.
 
-Within each module, deterministic complete-link assignment groups functions
-whose pairwise cosine distances are at most `maximumWithinClusterDistance`
-(default **0.25**). A warning requires two groups of at least
-`minimumClusterFunctions` (**8 each**) with every cross-group distance at least
+HL116 skips modules with fewer than twice `minimumClusterFunctions` indexed
+functions (**16** by default). In each remaining module, it partitions **all
+indexed functions into disjoint clusters**. Every function belongs to exactly one
+cluster; clusters never overlap.
+Functions are processed in order. Each function joins the first existing cluster
+where its cosine distance to **every member** is at most
+`maximumWithinClusterDistance` (default **0.25**). If no cluster fits, the function
+starts a new cluster. This is ordered first-fit complete-link clustering, so the
+partition depends on processing order and is not an optimal or unique partition.
+
+After constructing the partition, HL116 considers only clusters containing at
+least `minimumClusterFunctions` (**8**) functions. A warning requires two such
+clusters in the **same module**, with **every** cross-cluster distance at least
 `minimumClusterDistance` (**0.8**, on a 0–2 scale). These lax defaults are noisy,
 model-dependent heuristics. Add threshold overrides to the `semantic` object in
 `hyperlinter.config.json`; defaults are defined once in `src/config/SemanticConfig.ts`.

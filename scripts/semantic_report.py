@@ -58,9 +58,9 @@ def category_topography(ax, data):
         density = density_surface(points, x, y, bandwidth)
         levels = density.max() * np.array([0.1, 0.3, 0.5, 0.7, 0.9, 1.001])
         ax.contourf(x, y, density, levels=levels,
-                    colors=[(*to_rgb(color), alpha) for alpha in [0.08, 0.15, 0.23, 0.32, 0.45]])
+                    colors=[(*to_rgb(color), alpha) for alpha in [0.03, 0.05, 0.075, 0.10, 0.14]], zorder=1)
         ax.contour(x, y, density, levels=density.max() * np.array([0.25, 0.65]),
-                   colors=[color], linewidths=0.8, alpha=0.75)
+                   colors=[color], linewidths=1.6, alpha=0.95, zorder=3)
         handles.append(Patch(facecolor=color, label=f"{name} ({len(points):,})", alpha=0.8))
     ax.legend(handles=handles, fontsize=8, loc="upper right")
     ax.set(title=f"Similarity density · all {len(coords):,} functions\nBy code category · Reference axes capture {data['variance']:.1%}",

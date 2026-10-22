@@ -221,6 +221,45 @@ distance/count thresholds, and structural corroboration, supported by the trigge
 evidence and regression tests for reproducible analysis failures. This exception
 applies only to semantic advice; existing enforcement remains policy.
 
+### Offline PNG overview
+
+From any target repository with an existing semantic cache, run the engine CLI:
+
+```bash
+python3 -m pip install -r /path/to/hyperlinter/scripts/requirements-report.txt
+node --import /path/to/hyperlinter/node_modules/tsx/dist/loader.mjs \
+  /path/to/hyperlinter/src/cli.ts --semantic-report --python python3
+```
+
+Reporting never calls the embedding provider or refreshes the cache, even if a
+provider key is present. It describes the saved inventory, which may predate your
+current source. It uses the same average-linkage implementation and project
+thresholds as HL116, and follows Git worktree metadata when locating the cache.
+Missing or empty caches fail with instructions to build embeddings first; that
+separate build sends source to the provider and needs authorization.
+
+The default output is `artifacts/semantic-report/overview.png`, alongside
+`evidence.json` (cluster membership, source locations and full linkage trees) and
+`summary.json` (counts, thresholds and projection variance). These exported files
+contain no source bodies or embedding vectors. Use `--output <directory>` to
+choose a destination and `--python <executable>` to select an interpreter or venv
+with NumPy and Matplotlib installed. JSON stdout lists the generated paths and
+gate counts; `--format=text` prints a readable result. Reporting cannot be
+combined with auditing, fixing or embedding builds.
+
+The PNG includes projected density contours, largest modules, sampled full-space
+cosine distances, and the HL116 gate counts. The map includes every indexed
+function and separates application code, application tests, project tooling,
+Hyperlinter, and Hyperlinter tests. The engine's actual installation path determines
+which code belongs to Hyperlinter; it need not live under `tools/hyperlint`.
+Each category has a filled density surface and only two contour lines. These
+category footprints are **not semantic cluster boundaries**. Cluster membership
+and full linkage trees remain available in the JSON evidence. Gaussian smoothing
+and contour levels relative to each category's peak expose shape rather than
+comparable absolute density. Projected footprints can overlap. The first two
+approximate principal components are illustrative; warning decisions use
+full-space distances. Zero warnings do not prove architectural consistency.
+
 ## Project website
 
 GitHub Pages serves the static `docs/` directory from `main`; no website build

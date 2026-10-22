@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Repeatable repository verification: python3 manage.py check."""
+import os
 import subprocess
 import sys
 
@@ -18,6 +19,15 @@ console = Console(highlight=False, markup=False)
 
 def main(command: str = typer.Argument(...)):
     root = Path(__file__).resolve().parent
+    if command == "test-semantic-report":
+        environment = {**os.environ, "HYPERLINTER_REPORT_PYTHON": sys.executable}
+        for arguments in (["node", "--import", "tsx", "--test", "--test-concurrency=1",
+                           "tests/cliDiscovery.test.ts", "tests/semantic/semanticReport.test.ts"],
+                          [sys.executable, "scripts/test_semantic_report.py"]):
+            result = subprocess.run(arguments, cwd=root, env=environment)
+            if result.returncode:
+                sys.exit(result.returncode)
+        return
     if command == "test-semantic-clustering":
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "--test-concurrency=1",
             "tests/semantic/averageLinkage.test.ts", "tests/semantic/semanticClustering.test.ts"], cwd=root).returncode)
@@ -36,7 +46,7 @@ def main(command: str = typer.Argument(...)):
         operations[command](root)
         return
     if command != "check":
-        sys.exit("Use: python3 manage.py check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-build — compile static StyleX assets; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+        sys.exit("Use: python3 manage.py test-semantic-report — offline PNG regressions (requires reporting Python dependencies); check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-build — compile static StyleX assets; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:

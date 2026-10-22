@@ -16,6 +16,7 @@ import { applyPrivateUnusedExportFixes } from './fixes';
 
 import { colorFileLimitRule, analyzeColorFiles } from './rules';
 import { cliDiscovery, printCliHelp } from './commands';
+import { semanticReport } from './semantic';
 
 interface Baseline {
   metrics: Record<string, Pick<ModuleMetrics, 'publicSurface'>>;
@@ -40,6 +41,28 @@ const chronolint = arguments_.includes('--chronolint');
 if (chronolint && arguments_.some(argument => cliDiscovery.constraints.chronolintExcludes.includes(argument))) {
   process.stderr.write('Chronolint must run separately from fixing, baseline writing, and other analysis modes.\n');
   process.exit(1);
+}
+if (arguments_.includes('--semantic-report')) {
+  try {
+    if (cliDiscovery.commands.some(({ flag }) => flag && flag !== '--semantic-report' && arguments_.includes(flag))) {
+      throw new Error('Semantic reporting must run separately from other commands.');
+    }
+    const option = (name: string, fallback: string) => {
+      const index = arguments_.indexOf(name);
+      if (index === -1) return fallback;
+      const value = arguments_[index + 1];
+      if (!value || value.startsWith('--')) throw new Error(`Missing value for ${name}.`);
+      return value;
+    };
+    const root = process.cwd();
+    const result = semanticReport(root, path.resolve(option('--output', 'artifacts/semantic-report')),
+      option('--python', process.platform === 'win32' ? 'python' : 'python3'));
+    process.stdout.write(json ? `${JSON.stringify(result, null, 2)}\n` : `PNG: ${result.png}\nHL116 gates: ${result.funnel.join(' → ')}\n`);
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  }
+  process.exit();
 }
 // A baseline contains target paths and policy. Git's private metadata keeps it
 // local even when Hyperlinter is installed as a public submodule.

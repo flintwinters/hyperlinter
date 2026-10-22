@@ -9,6 +9,9 @@ interface Command {
 }
 
 const commands: readonly Command[] = [
+  { flag: '--semantic-report', description: 'Generate a PNG overview and JSON evidence from cached semantic embeddings; no provider calls.',
+    arguments: [], json: true, writes: ['overview.png', 'evidence.json', 'summary.json'],
+    requires: ['Git metadata', 'semantic embedding cache', 'Python with reporting dependencies'], network: false },
   { flag: null, description: 'Audit static structure and local chronology; apply local baselines.',
     arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git metadata'], network: false },
   { flag: '--chronolint', description: 'Analyze local Git co-change evidence only; unavailable history fails.',
@@ -50,6 +53,8 @@ export const cliDiscovery = {
   workingDirectory: 'Run audits from the target repository root; discovery works from any directory.',
   commands,
   options: [
+    { flags: ['--output'], description: 'Semantic report output directory; defaults to artifacts/semantic-report.' },
+    { flags: ['--python'], description: 'Semantic report Python interpreter with NumPy and Matplotlib; defaults to python3 (python on Windows).' },
     { flags: ['--help', '-h'], description: 'Show CLI discovery without running an audit.' },
     { flags: ['--discover'], description: 'Describe CLI capabilities without running an audit.' },
     { flags: ['--format'], values: ['json', 'text'], description: 'Defaults to JSON. Use --format=text or --format text for readable output.' },

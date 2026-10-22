@@ -35,6 +35,8 @@ test('discovery works without a project and never audits or mutates the target',
   assert.ok(commands.get('--fix')?.writes.includes('source'));
   assert.ok(commands.get('--write-baseline')?.writes.includes('baseline'));
   assert.equal(commands.get('--build-embeddings')?.network, true);
+  assert.equal(commands.get('--semantic-report')?.network, false);
+  assert.ok(commands.get('--semantic-report')?.writes.includes('overview.png'));
   assert.equal(commands.get('--source-budget')?.json, true);
   const help = invoke('--help', '--format=text');
   assert.equal(invoke('-h', '--format', 'text'), help);
@@ -99,4 +101,22 @@ test('budget and baseline operations default to JSON and invalid formats fail be
   const written = JSON.parse(baseline.stdout);
   assert.equal(written.baselinePath, path.join(root, '.git/hyperlinter/baseline.json'));
   assert.deepEqual(written.baseline, JSON.parse(readFileSync(written.baselinePath, 'utf8')));
+});
+
+
+test('semantic reporting rejects conflicting commands and missing options before touching the project', t => {
+  mkdirSync('artifacts', { recursive: true });
+  const root = mkdtempSync(path.resolve('artifacts/cli-report-conflicts-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const flag of ['--fix', '--build-embeddings', '--write-baseline', '--history']) {
+    const result = invokeCli(root, '--semantic-report', flag);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Semantic reporting must run separately/);
+  }
+  for (const option of ['--python', '--output']) {
+    const result = invokeCli(root, '--semantic-report', option);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Missing value/);
+  }
+  assert.deepEqual(readdirSync(root), []);
 });

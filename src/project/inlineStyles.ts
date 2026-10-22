@@ -3,8 +3,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import ts from 'typescript';
 
-import type { ProjectModel } from './ProjectModel';
-import { sourceFilePaths } from './cssFiles';
+import type { ProjectModel } from './model';
+import { sourceFilePaths } from './files';
 
 export interface InlineStyle {
   file: string;

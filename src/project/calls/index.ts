@@ -1,14 +1,14 @@
 import ts from 'typescript';
 import type { ProjectModel } from '..';
 
-export interface FunctionNode {
+interface FunctionNode {
   name: string;
   file: string;
   line: number;
   module: string;
 }
 
-export interface FunctionCallGraph {
+interface FunctionCallGraph {
   functions: ReadonlyMap<ts.Node, FunctionNode>;
   edges: ReadonlyMap<ts.Node, ReadonlySet<ts.Node>>;
   sites: ReadonlyMap<ts.Node, ReadonlyMap<ts.Node, number>>;

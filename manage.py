@@ -19,7 +19,7 @@ console = Console(highlight=False, markup=False)
 def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*.test.ts")):
     root = Path(__file__).resolve().parent
     if command == "test-calls":
-        sys.exit(subprocess.run(["node", "--import", "tsx", "tests/structure/functionCalls.test.ts"], cwd=root).returncode)
+        sys.exit(subprocess.run(["node", "--import", "tsx", "tests/calls/functionCalls.test.ts"], cwd=root).returncode)
     if command == "test":
         sys.exit(subprocess.run(["npm", "run", "test"], cwd=root).returncode)
     if command == "test-history":

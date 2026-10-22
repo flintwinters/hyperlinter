@@ -1,6 +1,6 @@
 import ts from 'typescript';
 
-import type { ProjectModel, ProjectModule } from './ProjectModel';
+import type { ProjectModel, ProjectModule } from './model';
 
 interface CohesionGroup {
   exports: string[];

@@ -11,7 +11,7 @@
     "test": "node --import tsx --test tests/*.test.ts tests/*/*.test.ts"
   },
   "dependencies": {
-    "better-sqlite3": "^11.8.1",
+    "better-sqlite3": "^12.11.1",
     "css-tree": "^3.2.1",
     "ts-morph": "^28.0.0",
     "typescript": "^5.7.3"

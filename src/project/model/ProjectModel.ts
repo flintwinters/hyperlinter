@@ -1,6 +1,6 @@
 import path from 'node:path';
 import ts from 'typescript';
-import { isSourceDirectory } from './cssFiles';
+import { isSourceDirectory } from '../files';
 
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
 

@@ -65,19 +65,23 @@ export function applyExactCloneRefactors(project: ProjectModel, config: Hyperlin
     byFile.set(clone.first.getSourceFile().fileName, existing);
   }
   for (const [fileName, clones] of byFile) {
-    const source = clones[0].first.getSourceFile();
-    const edits: TextEdit[] = [];
-    for (const [index, clone] of clones.entries()) {
-      const helper = `_hyperlintClone${index}`;
-      const rendered = renderHelper(clone, helper, project.checker);
-      if (!rendered) continue;
-      edits.push({ start: clone.first.getFullStart(), end: clone.first.getFullStart(), text: `${rendered.helper}\n\n` });
-      edits.push({ start: clone.first.body.getStart(source), end: clone.first.body.end, text: rendered.firstBody });
-      edits.push({ start: clone.second.body.getStart(source), end: clone.second.body.end, text: rendered.secondBody });
-    }
-    if (edits.length > 0) ts.sys.writeFile(fileName, applyEdits(source.text, edits));
+    ts.sys.writeFile(fileName, renderCloneRefactors(clones, project.checker));
   }
   return [...byFile.values()].flat();
+}
+
+/** Render a file independently of clone selection and filesystem writes. */
+function renderCloneRefactors(clones: readonly ExactClone[], checker: ts.TypeChecker): string {
+  const source = clones[0].first.getSourceFile();
+  const edits: TextEdit[] = [];
+  for (const [index, clone] of clones.entries()) {
+    const helper = `_hyperlintClone${index}`;
+    const rendered = renderHelper(clone, helper, checker);
+    edits.push({ start: clone.first.getFullStart(), end: clone.first.getFullStart(), text: `${rendered.helper}\n\n` });
+    edits.push({ start: clone.first.body.getStart(source), end: clone.first.body.end, text: rendered.firstBody });
+    edits.push({ start: clone.second.body.getStart(source), end: clone.second.body.end, text: rendered.secondBody });
+  }
+  return applyEdits(source.text, edits);
 }
 
 function isEligibleFunction(statement: ts.Statement): statement is EligibleFunction {

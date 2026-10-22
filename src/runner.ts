@@ -2,7 +2,7 @@ import { semanticFunctions, semanticGrouping, updateEmbeddingIndex, ProjectModel
 
 import { projectStatePath, type HyperlintResult } from './runtime';
 import type { HyperlintDiagnostic } from './diagnostics';
-import { loadHyperlinterConfig } from './config';
+import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
 
 import { rules } from './rules';
 import { moduleScoreDiagnostics } from './scoring';
@@ -12,6 +12,11 @@ import type { ChronologyEvidence } from './temporal';
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
   const project = ProjectModel.fromTsConfig(tsconfigPath);
   const config = loadHyperlinterConfig();
+  return analyzeProject(project, config, buildEmbeddings);
+}
+
+/** Execute analysis against one prepared compiler model and one policy snapshot. */
+async function analyzeProject(project: ProjectModel, config: HyperlinterConfig, buildEmbeddings: boolean): Promise<HyperlintResult> {
   const diagnostics = rules.flatMap((rule) => rule.analyze(project, config));
   if (config.semantic.enabled || buildEmbeddings) {
     try {

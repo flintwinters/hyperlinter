@@ -17,6 +17,10 @@ console = Console(highlight=False, markup=False)
 
 def main(command: str = typer.Argument(...)):
     root = Path(__file__).resolve().parent
+    if command == "test-calls":
+        sys.exit(subprocess.run(["node", "--import", "tsx", "tests/structure/functionCalls.test.ts"], cwd=root).returncode)
+    if command == "test":
+        sys.exit(subprocess.run(["npm", "run", "test"], cwd=root).returncode)
     if command == "test-history":
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/chronology/history.test.ts"], cwd=root).returncode)
     if command == "chronolint":
@@ -32,7 +36,7 @@ def main(command: str = typer.Argument(...)):
         operations[command](root)
         return
     if command != "check":
-        sys.exit("Use: python3 manage.py check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+        sys.exit("Use: python3 manage.py check — verify project; test — run all regressions; test-calls — function graph regressions; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:

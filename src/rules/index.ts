@@ -1,3 +1,4 @@
+import { functionCyclesRule, functionGenerationGapRule } from './functionCalls';
 import { uniqueRules, type HyperlintRule } from './contracts';
 import { moduleCohesionRule } from './moduleCohesion';
 import { deadImplementationRule } from './deadImplementation';
@@ -15,6 +16,8 @@ import { exactDuplicatesRule } from './exactDuplicates';
 import { nearDuplicatesRule } from './nearDuplicates';
 
 export const rules: readonly HyperlintRule[] = uniqueRules([
+  functionCyclesRule,
+  functionGenerationGapRule,
   deadImplementationRule,
   moduleCohesionRule,
   agentInstructionsRule,

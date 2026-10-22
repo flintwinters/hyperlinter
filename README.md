@@ -154,6 +154,27 @@ length (`HL112`), unused public exports (`HL102`), and public-surface growth
 
 Run `python3 manage.py check` for typechecking and regression tests.
 
+Function call structure is enforced by two error rules. `HL120` rejects directed
+cycles, including direct self-recursion, between statically resolved local
+implementations. It reports a real cycle with source locations. `HL121` limits
+calls to `functionCalls.maximumGenerationGap` generations (default **2**, allowing
+one intermediate generation to be skipped). Leaves have generation zero; every
+other function has one plus the maximum generation of its callees. Diagnostics
+identify the offending call and the longest chain establishing its caller's
+generation. Cycles and all callers reaching them have no finite generation and
+receive no secondary gap diagnostics. Configure severity through
+`rules.functionCycles` and `rules.functionGenerationGap`.
+
+The graph includes function declarations, arrows, function expressions, methods,
+and constructors, including nested implementations and resolved imports/reexports.
+Only explicit call/new expressions with a statically resolved local implementation
+establish edges. Passing a callback or referencing a function does not establish
+an invocation. External implementations, unresolved dynamic dispatch, callback
+invocation through external APIs, and implicit getter/setter calls are outside
+this analysis; absence of a diagnostic does not prove runtime acyclicity.
+Generations describe the known local graph, including tests. Shared leaf helpers
+can violate the gap limit; avoid adding forwarding wrappers merely to satisfy it.
+
 Module cohesion (`HL115`, info) prompts the coder to refactor when **both**
 configured signals cross their thresholds:
 

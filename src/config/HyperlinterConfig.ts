@@ -7,7 +7,7 @@ import { semanticConfig, type SemanticConfig } from './SemanticConfig';
 import type { DiagnosticSeverity } from '../diagnostics';
 import { fraction, isObject, nonNegativeInteger, positiveInteger, positiveNumber, severity, unitInterval } from './validation';
 
-const ruleNames = ['dependencyCycles', 'deadImplementation', 'moduleCohesion', 'unusedPublicSurface', 'couplingOutliers',
+const ruleNames = ['functionCycles', 'functionGenerationGap', 'dependencyCycles', 'deadImplementation', 'moduleCohesion', 'unusedPublicSurface', 'couplingOutliers',
   'exactDuplicates', 'nearDuplicates', 'publicSurfaceGrowth', 'publicSurfaceLimit', 'moduleEntrypoint',
   'singlePublicMethod', 'noCssFiles', 'noInlineStyles', 'moduleScore', 'moduleFileLimit'] as const;
 
@@ -17,6 +17,7 @@ type Validator = (value: unknown, fileName: string, key: string) => number;
 const numericSections = {
   clones: { exactMinimumMeaningfulNodes: positiveInteger, nearMinimumMeaningfulNodes: positiveInteger,
     nearMinimumSimilarity: fraction, nearMinimumClusterMethods: positiveInteger, nearMinimumSharedSubtreeHashes: positiveInteger },
+  functionCalls: { maximumGenerationGap: positiveInteger },
   coupling: { minimumOutlierValue: positiveInteger, minimumZScore: positiveNumber },
   moduleFiles: { maximum: positiveInteger },
   cohesion: { minimumExports: positiveInteger, minimumGroupExports: positiveInteger,

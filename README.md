@@ -165,6 +165,13 @@ generation. Cycles and all callers reaching them have no finite generation and
 receive no secondary gap diagnostics. Configure severity through
 `rules.functionCycles` and `rules.functionGenerationGap`.
 
+To inspect threshold sensitivity on the current checkout, install the optional
+plotting dependency with `python3 -m pip install --target runtime/plot-deps matplotlib`
+and run `python3 manage.py plot-call-gaps`. PNG, SVG, CSV, and JSON evidence are
+written under `artifacts/call-generation-limits/`. Counts represent distinct
+caller/callee pairs; source/test series classify the caller while retaining the
+same project-wide generations.
+
 The graph includes function declarations, arrows, function expressions, methods,
 and constructors, including nested implementations and resolved imports/reexports.
 Only explicit call/new expressions with a statically resolved local implementation

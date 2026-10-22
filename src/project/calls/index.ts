@@ -1,5 +1,5 @@
 import ts from 'typescript';
-import type { ProjectModel } from '../ProjectModel';
+import type { ProjectModel } from '..';
 
 export interface FunctionNode {
   name: string;
@@ -22,8 +22,9 @@ export function functionCallGraph(project: ProjectModel): FunctionCallGraph {
   if (existing) return existing;
   const functions = new Map<ts.Node, FunctionNode>();
   const symbols = new Map<ts.Symbol, ts.Node>();
-  const sources = project.getModules().flatMap(module => module.sourceFiles).filter(file => !file.isDeclarationFile);
-  for (const source of sources) {
+  const sources = project.getModules().flatMap(module => module.sourceFiles
+    .filter(file => !file.isDeclarationFile).map(source => ({ source, module: module.id })));
+  for (const { source, module } of sources) {
     const pending: ts.Node[] = [source];
     while (pending.length) {
       const node = pending.pop()!;
@@ -32,7 +33,7 @@ export function functionCallGraph(project: ProjectModel): FunctionCallGraph {
           || ts.isPropertyDeclaration(node.parent) ? node.parent.name : undefined);
         const name = named?.getText(source) ?? (ts.isConstructorDeclaration(node) ? 'constructor' : '<anonymous>');
         functions.set(node, { name, file: project.fileId(source.fileName),
-          module: project.getModuleIdForFile(source.fileName)!,
+          module,
           line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 });
         const symbol = named && project.checker.getSymbolAtLocation(named);
         if (symbol) symbols.set(symbol, node);
@@ -43,7 +44,8 @@ export function functionCallGraph(project: ProjectModel): FunctionCallGraph {
   const edges = new Map<ts.Node, Set<ts.Node>>([...functions.keys()].map(node => [node, new Set()]));
   const sites = new Map<ts.Node, Map<ts.Node, number>>([...functions.keys()].map(node => [node, new Map()]));
   for (const owner of functions.keys()) {
-    const pending = [owner];
+    if (!ts.isFunctionLike(owner) || !('body' in owner) || !owner.body) continue;
+    const pending: ts.Node[] = [owner.body, ...owner.parameters];
     while (pending.length) {
       const node = pending.pop()!;
       if (node !== owner && functions.has(node)) continue;

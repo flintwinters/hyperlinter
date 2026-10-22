@@ -113,19 +113,19 @@ export function meaningfulLineCount(source: string, extension: string): number {
 
 function authoredSourceLineCount(root: string, ledger: SourceBudgetLedger): number {
   let total = 0;
-  const visit = (directory: string): void => {
+  const pending = ledger.sourceDirectories.map(directory => resolve(root, directory));
+  for (const directory of pending) {
+    if (!statSync(directory).isDirectory()) sourceBudgetError(`${directory} is not a source directory`);
+  }
+  while (pending.length) {
+    const directory = pending.pop()!;
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const entryPath = join(directory, entry.name);
-      if (entry.isDirectory()) visit(entryPath);
+      if (entry.isDirectory()) pending.push(entryPath);
       else if (entry.isFile() && ledger.extensions.includes(entry.name.slice(entry.name.lastIndexOf('.')))) {
         total += meaningfulLineCount(readFileSync(entryPath, 'utf8'), entry.name.slice(entry.name.lastIndexOf('.')));
       }
     }
-  };
-  for (const directory of ledger.sourceDirectories) {
-    const directoryPath = resolve(root, directory);
-    if (!statSync(directoryPath).isDirectory()) sourceBudgetError(`${directory} is not a source directory`);
-    visit(directoryPath);
   }
   return total;
 }

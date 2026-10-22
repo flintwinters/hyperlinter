@@ -12,7 +12,7 @@ interface Command {
 }
 
 const commands: readonly Command[] = [
-  { flag: null, description: 'Audit static structure and local chronology; apply local baselines.',
+  { flag: null, description: 'Audit static structure, function-call cycles and generation gaps, and local chronology; apply local baselines.',
     arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true },
   { flag: '--chronolint', description: 'Analyze local Git co-change evidence only; unavailable history fails.',
     arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git history'], network: true },

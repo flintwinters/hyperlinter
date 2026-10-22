@@ -50,6 +50,10 @@ embeddings track current implementations in target-private caches; their
 experimental warnings never accumulate enforcement scores. Semantic thresholds
 may be tuned after agent examination finds declustering unwarranted. The static
 project website lives in `docs/`; GitHub Pages publishes it from `main`.
+Local impact audits aggregate consumer history, namespaced ledger snapshots, and
+available independent task outcomes under ignored `artifacts/`. Keep engine
+self-checks separate from consumers, preserve unknown provenance, and assess
+maintainability using concrete outcomes alongside structural scores.
 
 ## First commands
 

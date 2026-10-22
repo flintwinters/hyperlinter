@@ -10,6 +10,8 @@ from scripts.check_site import check_site
 from scripts.plot_call_gaps import plot_call_gaps
 from scripts.browser_site import preview_site
 from scripts.site_operations import check_install, check_live
+from scripts.impact.audit import audit
+from scripts.impact.report import render
 from pathlib import Path
 
 
@@ -18,6 +20,15 @@ console = Console(highlight=False, markup=False)
 
 def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*.test.ts")):
     root = Path(__file__).resolve().parent
+    if command == "impact-audit":
+        audit(root, pattern)
+        render(root / "artifacts/impact-audit")
+        return
+    if command == "impact-report":
+        render(root / "artifacts/impact-audit")
+        return
+    if command == "test-impact":
+        sys.exit(subprocess.run([sys.executable, "-m", "unittest", "scripts.impact.test_audit"], cwd=root).returncode)
     if command == "test-calls":
         sys.exit(subprocess.run(["node", "--import", "tsx", "tests/calls/functionCalls.test.ts"], cwd=root).returncode)
     if command == "test":
@@ -40,12 +51,16 @@ def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*
         operations[command](root)
         return
     if command != "check":
-        sys.exit("Use: python3 manage.py check — verify project; plot-call-gaps — chart generation-limit violations; test — run all regressions; test-calls — function graph regressions; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+        sys.exit("Use: python3 manage.py check — verify project; impact-audit [directory|cached] — aggregate local adoption evidence; impact-report — regenerate aggregate exports and reviewed report; test-impact — audit regressions; plot-call-gaps — chart generation-limit violations; test — run all regressions; test-calls — function graph regressions; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:
         sys.exit(f"website: {error}")
     console.print("website: passed")
+    audit_tests = subprocess.run([sys.executable, "-m", "unittest", "scripts.impact.test_audit"], cwd=root)
+    if audit_tests.returncode:
+        sys.exit(audit_tests.returncode)
+    console.print("impact audit: passed")
     for script in ("typecheck", "hyperlint", "test"):
         result = subprocess.run(["npm", "run", script], cwd=root, capture_output=True, text=True)
         if result.returncode:

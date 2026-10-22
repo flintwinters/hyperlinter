@@ -157,20 +157,36 @@ Run `python3 manage.py check` for typechecking and regression tests.
 Function call structure is enforced by two error rules. `HL120` rejects directed
 cycles, including direct self-recursion, between statically resolved local
 implementations. It reports a real cycle with source locations. `HL121` limits
-calls to `functionCalls.maximumGenerationGap` generations (default **2**, allowing
-one intermediate generation to be skipped). Leaves have generation zero; every
-other function has one plus the maximum generation of its callees. Diagnostics
-identify the offending call and the longest chain establishing its caller's
-generation. Cycles and all callers reaching them have no finite generation and
-receive no secondary gap diagnostics. Configure severity through
-`rules.functionCycles` and `rules.functionGenerationGap`.
+calls using independently configurable source and test limits:
+
+```json
+"functionCalls": {
+  "sourceMaximumGenerationGap": 4,
+  "testMaximumGenerationGap": false
+}
+```
+
+Each limit accepts a positive integer or `false` to disable that category. Set
+both to `false` to disable generation-gap checking entirely; cycle checking
+remains independent. The caller determines the category: files under `test/`,
+`tests/`, or `__tests__/` directories and files named `*.test.*` or `*.spec.*`
+are tests. This includes colocated tests and test helpers. All implementations
+remain in the graph even when their category's gap checks are disabled.
+
+Leaves have generation zero; every other function has one plus the maximum
+generation of its callees. Diagnostics identify the offending call and the
+longest chain establishing its caller's generation. Cycles and all callers
+reaching them have no finite generation and receive no secondary gap
+diagnostics. Configure severity through `rules.functionCycles` and
+`rules.functionGenerationGap`.
 
 To inspect threshold sensitivity on the current checkout, install the optional
 plotting dependency with `python3 -m pip install --target runtime/plot-deps matplotlib`
 and run `python3 manage.py plot-call-gaps`. PNG, SVG, CSV, and JSON evidence are
 written under `artifacts/call-generation-limits/`. Counts represent distinct
 caller/callee pairs; source/test series classify the caller while retaining the
-same project-wide generations.
+same project-wide generations. The chart measures all thresholds regardless of
+the enabled enforcement categories.
 
 The graph includes function declarations, arrows, function expressions, methods,
 and constructors, including nested implementations and resolved imports/reexports.

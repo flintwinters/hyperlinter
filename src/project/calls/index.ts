@@ -14,6 +14,11 @@ export interface FunctionCallGraph {
   sites: ReadonlyMap<ts.Node, ReadonlyMap<ts.Node, number>>;
 }
 
+/** Caller paths own source/test policy, including colocated tests and test helpers. */
+export function isTestFile(file: string): boolean {
+  return /(?:^|\/)(?:tests?|__tests__)(?:\/)|\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(file.replaceAll('\\', '/'));
+}
+
 const graphs = new WeakMap<ProjectModel, FunctionCallGraph>();
 
 /** Only statically resolved invocations establish edges; references alone are not calls. */

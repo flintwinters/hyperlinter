@@ -9,6 +9,11 @@ export function positiveInteger(value: unknown, fileName: string, key: string): 
   return integerAtLeast(value, 1, fileName, key, 'positive');
 }
 
+/** False disables a quantitative check; enabled limits remain positive integers. */
+export function positiveIntegerOrDisabled(value: unknown, fileName: string, key: string): number | false {
+  return value === false ? false : positiveInteger(value, fileName, key);
+}
+
 export function nonNegativeInteger(value: unknown, fileName: string, key: string): number {
   return integerAtLeast(value, 0, fileName, key, 'non-negative');
 }

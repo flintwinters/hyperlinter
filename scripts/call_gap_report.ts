@@ -1,5 +1,5 @@
 import { ProjectModel } from '../src/project';
-import { functionCallGraph, functionGenerations } from '../src/project/calls';
+import { functionCallGraph, functionGenerations, isTestFile } from '../src/project/calls';
 
 const graph = functionCallGraph(ProjectModel.fromTsConfig());
 const generations = functionGenerations(graph);
@@ -12,7 +12,7 @@ for (const [caller, targets] of graph.edges) for (const target of targets) {
   if (!from || !to) { excludedEdges++; continue; }
   const gap = from.depth - to.depth;
   const bucket = histogram.get(gap) ?? { source: 0, tests: 0 };
-  if (graph.functions.get(caller)!.file.startsWith('tests/')) bucket.tests++;
+  if (isTestFile(graph.functions.get(caller)!.file)) bucket.tests++;
   else bucket.source++;
   histogram.set(gap, bucket);
 }

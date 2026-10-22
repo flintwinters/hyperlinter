@@ -19,5 +19,12 @@
     "a/index.ts": "export { leaf as renamed } from './leaf';",
     "a/leaf.ts": "export const leaf = () => 1;",
     "b/index.ts": "import { renamed } from '../a'; export function middle() { return renamed(); } export function top() { return middle() + renamed(); }"
+  },
+  "policies": {
+    "src/index.ts": "export function leaf() {} export function one() { leaf(); } export function two() { one(); } export function three() { two(); } export function four() { three(); } export function five() { four(); leaf(); }",
+    "tests/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
+    "test/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
+    "src/check.spec.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
+    "__tests__/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }"
   }
 }

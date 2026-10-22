@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { loadHyperlinterConfig } from '../../src/config';
 import { ProjectModel } from '../../src/project';
-import { functionCallGraph, functionGenerations } from '../../src/project/calls';
+import { functionCallGraph, functionGenerations, isTestFile } from '../../src/project/calls';
 import { functionCyclesRule, functionGenerationGapRule } from '../../src/rules/functionCalls';
 import { cycleWitness, stronglyConnectedComponents } from '../../src/graphs';
 
@@ -42,14 +42,14 @@ test('longest leaf distance exposes shortcuts and enforces the inclusive configu
     const generations = functionGenerations(graph);
     assert.deepEqual(Object.fromEntries([...graph.functions].map(([node, entry]) => [entry.name, generations.get(node)?.depth])),
       { three: 3, two: 2, one: 1, leaf: 0 });
-    const findings = functionGenerationGapRule.analyze(project, config);
+    const findings = functionGenerationGapRule.analyze(project, { ...config, functionCalls: { ...config.functionCalls, sourceMaximumGenerationGap: 2 } });
     assert.equal(findings.length, 1);
     assert.equal(findings[0].rule, 'HL121');
     assert.equal(findings[0].line, 1);
     assert.match(findings[0].message, /three -> leaf.*3 generations.*maximum 2/);
     assert.match(findings[0].message, /Longest caller chain: three .* -> two .* -> one .* -> leaf /);
-    assert.equal(functionGenerationGapRule.analyze(project, { ...config, functionCalls: { maximumGenerationGap: 1 } }).length, 2);
-    assert.equal(functionGenerationGapRule.analyze(project, { ...config, functionCalls: { maximumGenerationGap: 3 } }).length, 0);
+    assert.equal(functionGenerationGapRule.analyze(project, { ...config, functionCalls: { ...config.functionCalls, sourceMaximumGenerationGap: 1 } }).length, 2);
+    assert.equal(functionGenerationGapRule.analyze(project, { ...config, functionCalls: { ...config.functionCalls, sourceMaximumGenerationGap: 3 } }).length, 0);
   });
 });
 
@@ -85,7 +85,7 @@ test('cycles and every caller reaching them have undefined generations', () => {
 
 test('directory reexports preserve cross-module generation edges', () => {
   withProject('reexports', project => {
-    const findings = functionGenerationGapRule.analyze(project, { ...config, functionCalls: { maximumGenerationGap: 1 } });
+    const findings = functionGenerationGapRule.analyze(project, { ...config, functionCalls: { ...config.functionCalls, sourceMaximumGenerationGap: 1 } });
     assert.equal(findings.length, 1);
     assert.match(findings[0].message, /top -> leaf/);
     assert.equal(findings[0].module, 'b');
@@ -104,13 +104,60 @@ test('graph algorithms handle long chains and produce actual directed witness ed
   for (let i = 1; i < witness.length; i++) assert.ok(graph.get(witness[i - 1])!.has(witness[i]));
 });
 
-test('function-call policy rejects zero, fractional, missing and nonnumeric generation limits', () => {
+test('source and test limits validate independently and accept false as disabled', () => {
   fs.mkdirSync('artifacts', { recursive: true });
   const root = fs.mkdtempSync(path.resolve('artifacts/call-config-'));
   try {
-    for (const maximumGenerationGap of [0, -1, 1.5, '2', undefined]) {
-      fs.writeFileSync(path.join(root, 'hyperlinter.config.json'), JSON.stringify({ ...config, functionCalls: { maximumGenerationGap } }));
-      assert.throws(() => loadHyperlinterConfig(root), /functionCalls.maximumGenerationGap/);
+    for (const key of ['sourceMaximumGenerationGap', 'testMaximumGenerationGap']) {
+      for (const invalid of [0, -1, 1.5, '2', true, null, undefined]) {
+        fs.writeFileSync(path.join(root, 'hyperlinter.config.json'), JSON.stringify({
+          ...config, functionCalls: { ...config.functionCalls, [key]: invalid },
+        }));
+        assert.throws(() => loadHyperlinterConfig(root), new RegExp(`functionCalls.${key}`));
+      }
+      for (const valid of [false, 1, 4]) {
+        fs.writeFileSync(path.join(root, 'hyperlinter.config.json'), JSON.stringify({
+          ...config, functionCalls: { ...config.functionCalls, [key]: valid },
+        }));
+        assert.equal(loadHyperlinterConfig(root).functionCalls[key as keyof typeof config.functionCalls], valid);
+      }
     }
+    assert.deepEqual(config.functionCalls, { sourceMaximumGenerationGap: 4, testMaximumGenerationGap: false });
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('test classification covers test directories and colocated test/spec files without matching source names', () => {
+  for (const file of ['tests/helper.ts', 'test/index.ts', 'src/__tests__/helper.ts', 'src/unit.test.ts',
+    'src/unit.spec.tsx', 'packages/a/test/helper.ts', 'src/check.test.mts', 'src/check.spec.cts', 'tests\\helper.ts']) {
+    assert.equal(isTestFile(file), true, file);
+  }
+  for (const file of ['src/contest.ts', 'src/testsHelper.ts', 'src/test.ts', 'src/latest.ts', 'src/index.ts']) {
+    assert.equal(isTestFile(file), false, file);
+  }
+});
+
+test('caller classification applies independent limits; disabled tests still contribute graph evidence', () => {
+  withProject('policies', project => {
+    const analyze = (source: number | false, tests: number | false) => functionGenerationGapRule.analyze(project, {
+      ...config, functionCalls: { sourceMaximumGenerationGap: source, testMaximumGenerationGap: tests },
+    });
+    const defaults = functionGenerationGapRule.analyze(project, config);
+    assert.equal(defaults.length, 1);
+    assert.equal(defaults[0].file, 'src/index.ts');
+    assert.match(defaults[0].message, /5 generations.*maximum 4/);
+    const all = analyze(4, 4);
+    assert.equal(all.length, 5);
+    assert.equal(all.filter(finding => isTestFile(finding.file!)).length, 4);
+    const testsOnly = analyze(false, 5);
+    assert.equal(testsOnly.length, 4);
+    assert.ok(testsOnly.every(finding => isTestFile(finding.file!)));
+    assert.deepEqual(analyze(false, false), []);
+    assert.deepEqual(analyze(5, 6), []);
+    assert.deepEqual(analyze(4, false), defaults);
+  });
+  withProject('cycles', project => {
+    const disabled = { ...config, functionCalls: { sourceMaximumGenerationGap: false as const, testMaximumGenerationGap: false as const } };
+    assert.deepEqual(functionGenerationGapRule.analyze(project, disabled), []);
+    assert.equal(functionCyclesRule.analyze(project, disabled).length, 2);
+  });
 });

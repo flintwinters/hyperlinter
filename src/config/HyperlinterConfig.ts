@@ -5,19 +5,19 @@ import { fileURLToPath } from 'node:url';
 import { semanticConfig, type SemanticConfig } from './SemanticConfig';
 
 import type { DiagnosticSeverity } from '../diagnostics';
-import { fraction, isObject, nonNegativeInteger, positiveInteger, positiveNumber, severity, unitInterval } from './validation';
+import { fraction, isObject, nonNegativeInteger, positiveInteger, positiveIntegerOrDisabled, positiveNumber, severity, unitInterval } from './validation';
 
 const ruleNames = ['functionCycles', 'functionGenerationGap', 'dependencyCycles', 'deadImplementation', 'moduleCohesion', 'unusedPublicSurface', 'couplingOutliers',
   'exactDuplicates', 'nearDuplicates', 'publicSurfaceGrowth', 'publicSurfaceLimit', 'moduleEntrypoint',
   'singlePublicMethod', 'noCssFiles', 'noInlineStyles', 'moduleScore', 'moduleFileLimit'] as const;
 
-type Validator = (value: unknown, fileName: string, key: string) => number;
+type Validator = (value: unknown, fileName: string, key: string) => number | false;
 
-/** One table owns both the numeric configuration shape and its validation. */
-const numericSections = {
+/** One table owns policy value types and their validation. */
+const policySections = {
   clones: { exactMinimumMeaningfulNodes: positiveInteger, nearMinimumMeaningfulNodes: positiveInteger,
     nearMinimumSimilarity: fraction, nearMinimumClusterMethods: positiveInteger, nearMinimumSharedSubtreeHashes: positiveInteger },
-  functionCalls: { maximumGenerationGap: positiveInteger },
+  functionCalls: { sourceMaximumGenerationGap: positiveIntegerOrDisabled, testMaximumGenerationGap: positiveIntegerOrDisabled },
   coupling: { minimumOutlierValue: positiveInteger, minimumZScore: positiveNumber },
   moduleFiles: { maximum: positiveInteger },
   cohesion: { minimumExports: positiveInteger, minimumGroupExports: positiveInteger,
@@ -27,11 +27,12 @@ const numericSections = {
     minimumShared: positiveInteger, minimumRate: fraction, minimumLift: positiveNumber },
 } satisfies Record<string, Record<string, Validator>>;
 
-export type ChronolintConfig = NumericSections['chronolint'];
+export type ChronolintConfig = PolicySections['chronolint'];
 
-type NumericSections = { readonly [S in keyof typeof numericSections]: { readonly [K in keyof (typeof numericSections)[S]]: number } };
+type Validated<T> = T extends Validator ? ReturnType<T> : never;
+type PolicySections = { readonly [S in keyof typeof policySections]: { readonly [K in keyof (typeof policySections)[S]]: Validated<(typeof policySections)[S][K]> } };
 
-export type HyperlinterConfig = NumericSections & {
+export type HyperlinterConfig = PolicySections & {
   readonly semantic: SemanticConfig;
   readonly rules: Readonly<Record<(typeof ruleNames)[number], DiagnosticSeverity>>;
   readonly scoring: {
@@ -56,9 +57,9 @@ function hyperlinterRoot(): string {
 
 function section<T extends Record<string, Validator>>(
   value: unknown, validators: T, fileName: string, name: string,
-): { readonly [K in keyof T]: number } {
+): { readonly [K in keyof T]: ReturnType<T[K]> } {
   if (!isObject(value)) throw new Error(`${fileName}: ${name} must be an object.`);
-  return Object.fromEntries(Object.entries(validators).map(([key, validate]) => [key, validate(value[key], fileName, `${name}.${key}`)])) as { [K in keyof T]: number };
+  return Object.fromEntries(Object.entries(validators).map(([key, validate]) => [key, validate(value[key], fileName, `${name}.${key}`)])) as { [K in keyof T]: ReturnType<T[K]> };
 }
 
 function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
@@ -69,7 +70,7 @@ function validateConfig(value: unknown, fileName: string): HyperlinterConfig {
   return {
     semantic: semanticConfig(value.semantic),
     rules: Object.fromEntries(ruleNames.map((name) => [name, severity(rules[name], fileName, `rules.${name}`)])) as HyperlinterConfig['rules'],
-    ...Object.fromEntries(Object.entries(numericSections).map(([name, validators]) => [name, section(value[name], validators, fileName, name)])) as NumericSections,
+    ...Object.fromEntries(Object.entries(policySections).map(([name, validators]) => [name, section(value[name], validators, fileName, name)])) as PolicySections,
     scoring: {
       severityWeights: section(scoring.severityWeights, { error: nonNegativeInteger, smell: nonNegativeInteger, info: nonNegativeInteger },
         fileName, 'scoring.severityWeights'),

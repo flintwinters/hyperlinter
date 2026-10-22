@@ -34,7 +34,7 @@ records local evidence. CLI discovery (`--help`, `--discover`) exposes static ca
 without opening target policy or evidence; its catalog owns chronology exclusions.
 Other CLI runs check the installed Git checkout for upstream updates and emit
 advisory update instructions on stderr without affecting enforcement.
-Function-call analysis enforces acyclicity and bounded generation gaps on resolved local calls;
+Function-call analysis enforces acyclicity and independently configurable source/test generation gaps on resolved local calls;
 cycles and their callers have no finite generation. Dynamic dispatch and external callback execution remain outside this evidence.
 Dead implementation analysis conservatively roots exports and executable
 references; it does not infer application entrypoints.

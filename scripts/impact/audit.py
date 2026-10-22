@@ -2,6 +2,7 @@
 import datetime
 import json
 import os
+import re
 import sqlite3
 import subprocess
 from pathlib import Path
@@ -37,8 +38,14 @@ def discover(roots):
             for name in relevant:
                 marker = path / name
                 try:
-                    if name in {".gitmodules", "package.json", "manage.py"} and "hyperlint" not in marker.read_text().lower():
-                        continue
+                    if name in {".gitmodules", "package.json", "manage.py"}:
+                        contents = marker.read_text().lower()
+                        if "hyperlint" not in contents:
+                            continue
+                        if name != ".gitmodules" and not re.search(
+                            r'tools/hyperlint|hyperlinter/src/cli|(?:npx|tsx|node)[^\n]*hyperlint|"hyperlint"\s*:', contents
+                        ):
+                            continue  # A relay's documentation is not an independent analyzed codebase.
                     project = Path(git(path, "rev-parse", "--show-toplevel"))
                     # Engine checkouts are evidence sources, not extra consumer projects.
                     if project.name == "hyperlint" and project.parent.name == "tools":

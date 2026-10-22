@@ -89,6 +89,7 @@ def table(headers, rows):
 
 def render(output: Path):
     report = json.loads((output / "report.json").read_text())
+    report["inventory"] = json.loads((output / "inventory.json").read_text())
     # Recompute derived scope totals from preserved exports, without rerunning
     # consumers or refreshing their source databases.
     for project in report["projects"]:

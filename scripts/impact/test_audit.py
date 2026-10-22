@@ -102,6 +102,11 @@ class AuditTests(unittest.TestCase):
         inventory = discover([self.root])
         self.assertEqual(len(inventory["projects"]), 1)
         self.assertEqual(len(inventory["projects"][0]["checkouts"]), 2)
+        relay = self.root / "relay"
+        relay.mkdir()
+        self.command("git", "-C", str(relay), "init")
+        (relay / "manage.py").write_text('"""Run the explorer\'s pinned Hyperlinter through explorer_command."""\n')
+        self.assertEqual(len(discover([self.root])["projects"]), 1)
 
     def test_snapshot_excludes_engine_generated_and_declaration_files(self):
         self.command("git", "init")

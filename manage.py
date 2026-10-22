@@ -18,6 +18,9 @@ console = Console(highlight=False, markup=False)
 
 def main(command: str = typer.Argument(...)):
     root = Path(__file__).resolve().parent
+    if command == "test-semantic-clustering":
+        sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "--test-concurrency=1",
+            "tests/semantic/averageLinkage.test.ts", "tests/semantic/semanticClustering.test.ts"], cwd=root).returncode)
     if command == "test-history":
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/chronology/history.test.ts"], cwd=root).returncode)
     if command == "chronolint":
@@ -42,7 +45,7 @@ def main(command: str = typer.Argument(...)):
     for script in ("typecheck", "hyperlint", "test"):
         # Analysis fixtures spawn compilers and Git; serialize them to bound
         # memory rather than making correctness depend on available swap.
-        arguments = ["npm", "run", script] + (["--", "--test-concurrency=1"] if script == "test" else [])
+        arguments = ["npm", "run", script]
         result = subprocess.run(arguments, cwd=root, capture_output=True, text=True)
         if result.returncode:
             console.print(result.stdout + result.stderr)

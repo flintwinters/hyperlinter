@@ -5,7 +5,7 @@ export interface SemanticConfig {
   readonly enabled: boolean;
   readonly model: string;
   readonly minimumClusterFunctions: number;
-  readonly maximumWithinClusterDistance: number;
+  readonly maximumMergeDistance: number;
   readonly minimumClusterDistance: number;
 }
 
@@ -14,13 +14,16 @@ export const semanticDefaults: SemanticConfig = {
   enabled: false,
   model: 'openai/text-embedding-3-small',
   minimumClusterFunctions: 8,
-  maximumWithinClusterDistance: 0.25,
+  maximumMergeDistance: 0.25,
   minimumClusterDistance: 0.8,
 };
 
 export function semanticConfig(value: unknown): SemanticConfig {
   if (value === undefined) return semanticDefaults;
   if (typeof value !== 'object' || value === null) throw new Error('semantic must be an object.');
+  if ('maximumWithinClusterDistance' in value) {
+    throw new Error('Use semantic.maximumMergeDistance for the average-linkage cut; maximumWithinClusterDistance is obsolete.');
+  }
   const config = { ...semanticDefaults, ...value };
   validateIdentity(config);
   validateThresholds(config);
@@ -37,11 +40,11 @@ function validateThresholds(config: SemanticConfig): void {
   if (!Number.isInteger(config.minimumClusterFunctions) || config.minimumClusterFunctions < 2) {
     throw new Error('semantic.minimumClusterFunctions must be an integer >= 2.');
   }
-  for (const key of ['maximumWithinClusterDistance', 'minimumClusterDistance'] as const) {
+  for (const key of ['maximumMergeDistance', 'minimumClusterDistance'] as const) {
     validateDistance(config[key], key);
   }
-  if (config.minimumClusterDistance <= config.maximumWithinClusterDistance) {
-    throw new Error('semantic.minimumClusterDistance must exceed maximumWithinClusterDistance.');
+  if (config.minimumClusterDistance <= config.maximumMergeDistance) {
+    throw new Error('semantic.minimumClusterDistance must exceed maximumMergeDistance.');
   }
 }
 

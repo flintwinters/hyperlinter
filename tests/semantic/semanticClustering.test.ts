@@ -3,14 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 
-import { semanticConfig, semanticDefaults } from '../src/config';
-import { loadHyperlinterConfig } from '../src/config';
-import { ProjectModel } from '../src/project';
-import { semanticFunctions, type SemanticFunction } from '../src/project';
-import { openRouterEmbeddings, updateEmbeddingIndex } from '../src/project';
-import { semanticClustering } from '../src/project';
-import { analyze } from '../src';
-import { moduleScoreDiagnostics } from '../src/scoring';
+import { semanticConfig, semanticDefaults } from '../../src/config';
+import { loadHyperlinterConfig } from '../../src/config';
+import { ProjectModel } from '../../src/project';
+import { semanticFunctions, type SemanticFunction } from '../../src/semantic';
+import { openRouterEmbeddings, updateEmbeddingIndex, readSemanticCache } from '../../src/semantic';
+import { semanticClustering, semanticClusterEvidence } from '../../src/semantic';
+import { analyze } from '../../src';
+import { moduleScoreDiagnostics } from '../../src/scoring';
 
 function functions(count: number, module = 'service'): SemanticFunction[] {
   return Array.from({ length: count }, (_, index) => ({
@@ -34,7 +34,8 @@ test('lax clustering requires both large clusters and substantial separation; wa
   assert.equal(warnings[0].severity, 'warning');
   assert.match(warnings[0].message, /disjoint function clusters/);
   assert.match(warnings[0].message, /every function belongs to exactly one cluster/);
-  assert.match(warnings[0].message, /ordered first-fit/);
+  assert.match(warnings[0].message, /Average linkage/);
+  assert.doesNotMatch(warnings[0].message, /first-fit|order-dependent/);
   assert.doesNotMatch(warnings[0].message, /\bgroup(?:s|ing)?\b/i);
   assert.match(warnings[0].message, /probably adjust semantic.minimumClusterFunctions/);
   assert.match(warnings[0].message, /not a hard architectural rule/);
@@ -135,7 +136,7 @@ test('semantic configuration rejects invalid thresholds and remains opt-in', () 
   for (const value of [
     { minimumClusterFunctions: 1 }, { minimumClusterFunctions: 2.5 },
     { minimumClusterDistance: 3 }, { minimumClusterDistance: NaN },
-    { maximumWithinClusterDistance: -1 }, { maximumWithinClusterDistance: 0.9 },
+    { maximumMergeDistance: -1 }, { maximumMergeDistance: 0.9 },
     { model: '' }, { enabled: 'true' },
   ]) assert.throws(() => semanticConfig(value), /semantic\./);
 });
@@ -186,5 +187,36 @@ test('project semantic opt-in preserves engine policy and validates overrides', 
     assert.throws(() => loadHyperlinterConfig(undefined, root), /semantic.enabled/);
     fs.writeFileSync(policy, JSON.stringify({ semantic: null }));
     assert.throws(() => loadHyperlinterConfig(undefined, root), /must be an object/);
+  });
+});
+
+
+test('semantic evidence and diagnostics agree, independent of source traversal order', () => {
+  const members = functions(16);
+  const vectors = new Map(members.map((fn, i) => [fn.id, i < 8 ? [1, 0] : [0, 1]]));
+  const original = semanticClusterEvidence(members, vectors, semanticDefaults)[0];
+  const reversed = semanticClusterEvidence([...members].reverse(), vectors, semanticDefaults)[0];
+  assert.deepEqual(reversed.clusters, original.clusters);
+  assert.deepEqual(reversed.tree.merges, original.tree.merges);
+  assert.equal(original.largeClusters, 2);
+  assert.equal(original.bestSeparation, 1);
+  assert.equal(original.tree.merges.length, 15);
+  assert.equal(semanticClustering(members, vectors, semanticDefaults)[0].score, original.separated?.distance);
+  assert.throws(() => semanticConfig({ maximumWithinClusterDistance: 0.25 }), /obsolete/);
+});
+
+
+test('offline cache reader resolves the active corpus and rejects incomplete vectors', async () => {
+  await fixture(async root => {
+    const file = path.join(root, 'cache.json');
+    const active = functions(2);
+    const vectors = { [active[0].hash]: [1, 0], [active[1].hash]: [0, 1] };
+    fs.writeFileSync(file, JSON.stringify({ model: 'cached-model', active, vectors }));
+    const cache = readSemanticCache(file);
+    assert.equal(cache.model, 'cached-model');
+    assert.deepEqual(cache.functions, active);
+    assert.deepEqual(cache.vectors.get(active[1].id), [0, 1]);
+    fs.writeFileSync(file, JSON.stringify({ model: 'cached-model', active, vectors: { [active[0].hash]: [1, 0] } }));
+    assert.throws(() => readSemanticCache(file), /Invalid embedding vectors/);
   });
 });

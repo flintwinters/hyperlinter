@@ -1,4 +1,5 @@
-import { semanticFunctions, semanticClustering, updateEmbeddingIndex, ProjectModel } from './project';
+import { semanticFunctions, semanticClustering, updateEmbeddingIndex } from './semantic';
+import { ProjectModel } from './project';
 
 import { projectStatePath, type HyperlintResult } from './runtime';
 import type { HyperlintDiagnostic } from './diagnostics';

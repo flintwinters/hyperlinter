@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import ts from 'typescript';
 
-import type { ProjectModel } from './ProjectModel';
+import type { ProjectModel } from '../project';
 
 export interface SemanticFunction {
   id: string;

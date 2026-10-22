@@ -40,8 +40,8 @@ Regular analysis includes chronolint, which reads pinned first-parent Git snapsh
 and regular runs record provenance; unavailable history is advisory in regular
 analysis and fails the dedicated command. Intentional invalid examples are `.fixture` data parsed explicitly by tests. Run `python3 manage.py check` to verify types, self-analysis, and regressions. Cohesion combines internal behavior/state groups with consumer overlap;
 keep its quantitative evidence conservative as analysis expands. Preserve
-unique diagnostic IDs and reproducible analysis regressions. Use “cluster” for semantic partitions: they are disjoint, exhaustive within a module, and order-dependent. Optional semantic
-embeddings track current implementations in target-private caches; their
+unique diagnostic IDs and reproducible analysis regressions. Use “cluster” for semantic partitions: they are disjoint and exhaustive within a module; average-linkage trees use stable source keys for tie-breaking. Optional semantic
+`semantic` owns the implementation inventory, embeddings, clustering evidence and prompts; target-private caches retain vectors. Its
 experimental warnings never accumulate enforcement scores. Semantic thresholds
 may be tuned after agent examination finds declustering unwarranted. The static
 project website publishes from `docs/` on `main`. Author markup and StyleX in

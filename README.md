@@ -189,17 +189,25 @@ removed functions on each successful build. Failed builds leave the previous
 index intact and do not analyze stale embeddings. Full function text is sent;
 provider size limits cause an availability warning rather than silent truncation.
 
-HL116 skips modules with fewer than twice `minimumClusterFunctions` indexed
-functions (**16** by default). In each remaining module, it partitions **all
-indexed functions into disjoint clusters**. Every function belongs to exactly one
-cluster; clusters never overlap.
-Functions are processed in order. Each function joins the first existing cluster
-where its cosine distance to **every member** is at most
-`maximumWithinClusterDistance` (default **0.25**). If no cluster fits, the function
-starts a new cluster. This is ordered first-fit complete-link clustering, so the
-partition depends on processing order and is not an optimal or unique partition.
+For each module, HL116 builds an **average-linkage agglomerative hierarchy** from
+cosine distances in the full embedding space. Every function starts as a singleton
+cluster. At each step, the two clusters with the smallest mean cross-cluster
+pairwise distance merge. The update weights each function equally, so larger
+clusters contribute proportionally more pairs. The full merge tree is retained.
+Stable source identities define leaf order and break exact distance ties; source
+traversal order does not select the partition.
 
-After constructing the partition, HL116 considers only clusters containing at
+The hierarchy is cut at `maximumMergeDistance` (default **0.25**), producing
+**disjoint clusters covering every indexed function**. This cutoff limits the
+average distance at a merge, **not** every pairwise distance inside a cluster.
+The obsolete `maximumWithinClusterDistance` setting is rejected with a migration
+message rather than silently applying its old diameter interpretation. The
+experimental numeric defaults are unchanged, but their merge-cut meaning differs
+from the former first-fit algorithm.
+
+Modules with fewer than twice `minimumClusterFunctions` indexed functions
+(**16** by default) cannot trigger a warning. Within eligible modules, HL116
+considers only clusters containing at
 least `minimumClusterFunctions` (**8**) functions. A warning requires two such
 clusters in the **same module**, with **every** cross-cluster distance at least
 `minimumClusterDistance` (**0.8**, on a 0–2 scale). These lax defaults are noisy,

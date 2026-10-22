@@ -82,3 +82,13 @@ export async function updateEmbeddingIndex(
   }
   return new Map(functions.map((fn) => [fn.id, vectors[fn.hash]]));
 }
+
+/** Offline consumers validate and reuse the saved corpus without refreshing or contacting a provider. */
+export function readSemanticCache(file: string): {
+  model: string; functions: readonly SemanticFunction[]; vectors: ReadonlyMap<string, readonly number[]>;
+} {
+  const index = JSON.parse(fs.readFileSync(file, 'utf8')) as EmbeddingIndex;
+  const values = index.active.map(fn => index.vectors[fn.hash]);
+  validateVectors(values, index.active.length);
+  return { model: index.model, functions: index.active, vectors: new Map(index.active.map((fn, i) => [fn.id, values[i]])) };
+}

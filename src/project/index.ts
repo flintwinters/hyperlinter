@@ -5,7 +5,4 @@ export { type ColorLiteral, colorLiterals } from './colorLiterals';
 export { cssFiles } from './cssFiles';
 export { type InlineStyle, type InlineStyleBaseline, inlineStyleBaseline, inlineStyleNodes, inlineStyles, newInlineStyles } from './inlineStyles';
 export { moduleCohesion } from './moduleCohesion';
-export { openRouterEmbeddings, updateEmbeddingIndex } from './semanticEmbeddings';
-export { type SemanticFunction, semanticFunctions } from './semanticFunctions';
-export { semanticClustering } from './semanticClustering';
 export { meaningfulLineCount, runSourceBudget } from './sourceBudget';

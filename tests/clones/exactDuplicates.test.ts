@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'node:path';
 
-import ts from 'typescript';
+import { projectFor } from './fixtures';
 
 import { findExactClones } from '../../src/clones';
 import { loadHyperlinterConfig } from '../../src/config';
@@ -10,15 +10,6 @@ import { findNearDuplicateClusters } from '../../src/clones';
 
 const config = loadHyperlinterConfig();
 
-function projectFor(fileName: string) {
-  const program = ts.createProgram([fileName], { strict: true, allowNonTsExtensions: true });
-  const sourceFile = program.getSourceFile(fileName)!;
-  return {
-    checker: program.getTypeChecker(),
-    getModuleIdForFile: () => 'clones.ts',
-    getModules: () => [{ id: 'clones.ts', sourceFiles: [sourceFile] }],
-  } as never;
-}
 
 function find(fileName: string) {
   return findExactClones(projectFor(fileName), config);

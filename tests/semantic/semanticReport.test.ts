@@ -48,6 +48,7 @@ test('portable offline CLI renders the authoritative partition using worktree me
   assert.equal(result.status, 0, result.stderr);
   const report = JSON.parse(result.stdout);
   assert.deepEqual(report.funnel, [1, 1, 1, 1]);
+  assert.ok(fs.existsSync(report.samples));
   assert.equal(report.model, 'saved-model');
   assert.equal(fs.readFileSync(report.png).subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   const evidence = JSON.parse(fs.readFileSync(report.evidence, 'utf8'));
@@ -58,5 +59,5 @@ test('portable offline CLI renders the authoritative partition using worktree me
     assert.ok(!content.includes('PRIVATE_SOURCE_MUST_NOT_BE_EXPORTED'));
     assert.ok(!content.includes('"vectors"'));
   }
-  assert.deepEqual(fs.readdirSync(path.join(root, 'metadata/hyperlinter')), ['semantic-embeddings.json']);
+  assert.deepEqual(fs.readdirSync(path.join(root, 'metadata/hyperlinter')), ['semantic-embeddings.json', 'semantic-projection.npz']);
 });

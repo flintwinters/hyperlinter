@@ -7,6 +7,8 @@ from pathlib import Path
 
 import numpy as np
 
+from semantic_projection import annotate, project, samples
+
 
 COLORS = {"Application": "#56b4e9", "Application tests": "#e69f00", "Project tooling": "#009e73",
           "Hyperlinter": "#cc79a7", "Hyperlinter tests": "#f0e442"}
@@ -61,15 +63,15 @@ def category_topography(ax, data):
                    colors=[color], linewidths=0.8, alpha=0.75)
         handles.append(Patch(facecolor=color, label=f"{name} ({len(points):,})", alpha=0.8))
     ax.legend(handles=handles, fontsize=8, loc="upper right")
-    ax.set(title=f"Similarity density · all {len(coords):,} functions\nBy code category · PCs explain {data['variance']:.1%}",
-           xlabel="Approximate PC1", ylabel="Approximate PC2")
+    ax.set(title=f"Similarity density · all {len(coords):,} functions\nBy code category · Reference axes capture {data['variance']:.1%}",
+           xlabel=data["axisLabels"][0], ylabel=data["axisLabels"][1])
 
 
-def analyze_index(index, evidence):
+def analyze_index(index, evidence, reference=None, annotations=None):
     """Render numeric distributions; clustering decisions come directly from Hyperlinter."""
     config = evidence["config"]
     active = index["active"]
-    keys = list(dict.fromkeys(fn["hash"] for fn in active))
+    keys = sorted({fn["hash"] for fn in active})
     vectors = np.asarray([index["vectors"][key] for key in keys], dtype=np.float32)
     if vectors.ndim != 2 or not np.isfinite(vectors).all():
         raise ValueError("Embedding vectors must be a finite matrix.")
@@ -95,19 +97,11 @@ def analyze_index(index, evidence):
     keep = np.array([active[a]["module"] != active[b]["module"] for a, b in zip(left, right)])
     left, right = left[keep][:10000], right[keep][:10000]
     cross = np.clip(1 - np.einsum("ij,ij->i", vectors[mapping[left]], vectors[mapping[right]]), 0, 2)
-    # Approximate PCA on unique normalized vectors; duplicates do not overweight the map.
-    centered = vectors - vectors.mean(axis=0)
-    rank = min(12, *centered.shape)
-    q, _ = np.linalg.qr(centered @ rng.normal(size=(centered.shape[1], rank)))
-    for _ in range(3):
-        q, _ = np.linalg.qr(centered @ (centered.T @ q))
-    _, singular, axes = np.linalg.svd(q.T @ centered, full_matrices=False)
-    coords = np.zeros((len(active), 2))
-    projected = (centered @ axes[:2].T)[mapping]
-    coords[:, :projected.shape[1]] = projected
-    variance = float(np.sum(singular[:2] ** 2) / max(np.sum(centered ** 2), 1e-20))
+    unique_coords, projection = project(vectors, index["model"], reference)
+    coords, labels = annotate(unique_coords[mapping], projection, annotations)
+    variance = sum(projection["axisVariance"])
     return {"active": active, "records": records, "within": within, "cross": cross.tolist(), "coords": coords.tolist(),
-            "variance": variance, "funnel": evidence["funnel"],
+            "variance": variance, "projection": projection, "axisLabels": labels, "funnel": evidence["funnel"],
             "uniqueVectors": len(keys), "model": index["model"], "config": config, "algorithm": evidence["algorithm"]}
 
 
@@ -154,16 +148,23 @@ def main():
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--title", required=True)
     parser.add_argument("--engine-prefix", default=None)
+    parser.add_argument("--projection", type=Path)
+    parser.add_argument("--annotations", type=Path)
     args = parser.parse_args()
     evidence = json.loads(args.evidence.read_text())
-    data = analyze_index(json.loads(args.cache.read_text()), evidence)
+    data = analyze_index(json.loads(args.cache.read_text()), evidence, args.projection, args.annotations)
     data["title"] = args.title
     data["enginePrefix"] = args.engine_prefix
     args.output.mkdir(parents=True, exist_ok=True)
     write_overview(data, args.output / "overview.png")
-    summary = {key: data[key] for key in ["model", "algorithm", "config", "funnel", "variance", "uniqueVectors", "records", "enginePrefix"]}
+    summary = {key: data[key] for key in ["model", "algorithm", "config", "funnel", "variance", "uniqueVectors", "records", "enginePrefix", "projection", "axisLabels"]}
+    (args.output / "axis-samples.json").write_text(json.dumps({"projection": data["projection"], "labels": data["axisLabels"],
+        "axes": samples(data["active"], np.asarray(data["coords"]))}, indent=2))
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (ValueError, OSError) as error:
+        raise SystemExit(str(error))

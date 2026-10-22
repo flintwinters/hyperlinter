@@ -260,6 +260,44 @@ comparable absolute density. Projected footprints can overlap. The first two
 approximate principal components are illustrative; warning decisions use
 full-space distances. Zero warnings do not prove architectural consistency.
 
+#### Naming and stabilizing projection axes
+
+The first report fits PCA on sorted, unique, normalized vectors using a dedicated
+random seed and a deterministic sign convention (largest absolute loading is
+positive). It saves the mean and two axes in the target-private
+`.git/hyperlinter/semantic-projection.npz`. Later reports project onto this same
+reference basis and origin, so adding functions does not silently flip or rotate
+the map. The displayed variance fractions describe the current corpus on those
+reference axes; they need not remain its leading principal components. A model
+or dimension change fails explicitly and requires a new reviewed reference.
+
+`axis-samples.json` contains four distinct-file function locations near each
+axis's minimum, 10th percentile, median, 90th percentile and maximum. Read the
+corresponding cached function bodies before naming an axis: ownership colors,
+short identifiers and a handful of extremes can suggest misleading labels.
+These exports contain locations and coordinates, never source bodies.
+
+Store reviewed labels in the target's `hyperlinter.semantic-report.json`:
+
+```json
+{
+  "projectionId": "copy the id from axis-samples.json",
+  "axes": [
+    {"label": "PC1 · reviewed negative tendency → positive tendency", "direction": 1},
+    {"label": "PC2 · reviewed negative tendency → positive tendency", "direction": -1}
+  ]
+}
+```
+
+Directions must be `1` or `-1`; they orient the displayed axes consistently with
+the reviewed labels. Optional review notes and sample evidence are preserved in
+the exported projection metadata. Labels are project/model-specific human
+interpretations, not universal meanings or quality metrics. An ID mismatch fails
+rather than attaching an old interpretation to a different basis. Back up the
+private reference with its annotations. To recalibrate, archive the reference
+and annotations, generate an unlabeled report, inspect new samples, and record
+new labels and the new projection ID. Reporting remains entirely offline.
+
 ## Project website
 
 GitHub Pages serves the static `docs/` directory from `main`; no website build

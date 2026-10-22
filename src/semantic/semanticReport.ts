@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { loadHyperlinterConfig } from '../config';
 import { readSemanticCache } from './semanticEmbeddings';
 import { semanticClusterEvidence } from './semanticClustering';
@@ -35,12 +35,21 @@ export function semanticReport(root: string, output: string, python: string) {
   fs.writeFileSync(evidencePath, JSON.stringify({ algorithm: 'average-linkage', model: cache.model, config, records, funnel }));
   const result = spawnSync(python, [path.join(engine, 'scripts/semantic_report.py'), '--cache', cachePath,
     '--evidence', evidencePath, '--output', output, '--title', path.basename(root),
-    '--engine-prefix', path.relative(root, engine).split(path.sep).join('/') || '.'], { encoding: 'utf8' });
+    '--engine-prefix', path.relative(root, engine).split(path.sep).join('/') || '.',
+    '--projection', projectStatePath(root, 'semantic-projection.npz'),
+    '--annotations', path.join(root, 'hyperlinter.semantic-report.json')], { encoding: 'utf8' });
   if (result.error || result.status !== 0) {
-    throw new Error(`Semantic PNG rendering failed: ${result.error?.message ?? result.stderr.trim()}. `
-      + `Install reporting dependencies with your Python: -m pip install -r ${path.join(engine, 'scripts/requirements-report.txt')}; `
-      + 'select that interpreter with --python.');
+    throw renderingError(result, engine);
   }
   return { png: path.join(output, 'overview.png'), evidence: evidencePath,
-    summary: path.join(output, 'summary.json'), model: cache.model, funnel };
+    summary: path.join(output, 'summary.json'), samples: path.join(output, 'axis-samples.json'), model: cache.model, funnel };
+}
+
+
+function renderingError(result: SpawnSyncReturns<string>, engine: string): Error {
+  const dependencyHint = result.error || /ModuleNotFoundError|No module named/.test(result.stderr)
+    ? ` Install reporting dependencies with your Python: -m pip install -r ${path.join(engine, 'scripts/requirements-report.txt')}; `
+      + 'select that interpreter with --python.'
+    : '';
+  return new Error(`Semantic PNG rendering failed: ${result.error?.message ?? result.stderr.trim()}.${dependencyHint}`);
 }

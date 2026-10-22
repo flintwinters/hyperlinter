@@ -37,11 +37,13 @@ export function semanticReport(root: string, output: string, python: string) {
     '--evidence', evidencePath, '--output', output, '--title', path.basename(root),
     '--engine-prefix', path.relative(root, engine).split(path.sep).join('/') || '.',
     '--projection', projectStatePath(root, 'semantic-projection.npz'),
-    '--annotations', path.join(root, 'hyperlinter.semantic-report.json')], { encoding: 'utf8' });
+    '--annotations', path.join(root, 'hyperlinter.semantic-report.json'),
+    '--residual-projection', projectStatePath(root, 'semantic-residual-projection.npz')], { encoding: 'utf8' });
   if (result.error || result.status !== 0) {
     throw renderingError(result, engine);
   }
-  return { png: path.join(output, 'overview.png'), evidence: evidencePath,
+  return { png: path.join(output, 'overview.png'), residual: path.join(output, 'residual.png'),
+    evidence: evidencePath,
     summary: path.join(output, 'summary.json'), samples: path.join(output, 'axis-samples.json'), model: cache.model, funnel };
 }
 

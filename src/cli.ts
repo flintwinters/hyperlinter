@@ -57,7 +57,8 @@ if (arguments_.includes('--semantic-report')) {
     const root = process.cwd();
     const result = semanticReport(root, path.resolve(option('--output', 'artifacts/semantic-report')),
       option('--python', process.platform === 'win32' ? 'python' : 'python3'));
-    process.stdout.write(json ? `${JSON.stringify(result, null, 2)}\n` : `PNG: ${result.png}\nHL116 gates: ${result.funnel.join(' → ')}\n`);
+    process.stdout.write(json ? `${JSON.stringify(result, null, 2)}\n`
+      : `PNG: ${result.png}\nResidual PNG: ${result.residual}\nHL116 gates: ${result.funnel.join(' → ')}\n`);
   } catch (error) {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;

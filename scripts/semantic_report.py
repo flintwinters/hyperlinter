@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from semantic_projection import annotate, project, samples
+from semantic_residual import residual_view
 
 
 COLORS = {"Application": "#56b4e9", "Application tests": "#e69f00", "Project tooling": "#009e73",
@@ -67,7 +68,7 @@ def category_topography(ax, data):
            xlabel=data["axisLabels"][0], ylabel=data["axisLabels"][1])
 
 
-def analyze_index(index, evidence, reference=None, annotations=None):
+def analyze_index(index, evidence, reference=None, annotations=None, residual_reference=None):
     """Render numeric distributions; clustering decisions come directly from Hyperlinter."""
     config = evidence["config"]
     active = index["active"]
@@ -100,22 +101,35 @@ def analyze_index(index, evidence, reference=None, annotations=None):
     unique_coords, projection = project(vectors, index["model"], reference)
     coords, labels = annotate(unique_coords[mapping], projection, annotations)
     variance = sum(projection["axisVariance"])
+    residual = residual_view(vectors, mapping, index["model"], reference, projection, residual_reference, annotations) if reference else None
     return {"active": active, "records": records, "within": within, "cross": cross.tolist(), "coords": coords.tolist(),
-            "variance": variance, "projection": projection, "axisLabels": labels, "funnel": evidence["funnel"],
+            "variance": variance, "residual": residual, "projection": projection, "axisLabels": labels, "funnel": evidence["funnel"],
             "uniqueVectors": len(keys), "model": index["model"], "config": config, "algorithm": evidence["algorithm"]}
 
 
-def write_overview(data, path):
+def report_figure(rows, columns, size):
+    """One visual style for overview and residual comparison figures."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     plt.style.use("dark_background")
-    fig, axes = plt.subplots(2, 2, figsize=(18, 12), facecolor="#0b1220")
-    for ax in axes.flat:
+    fig, axes = plt.subplots(rows, columns, figsize=size, facecolor="#0b1220")
+    for ax in np.asarray(axes).flat:
         ax.set_facecolor("#111827")
         ax.spines[["top", "right"]].set_visible(False)
         ax.grid(alpha=0.12)
         ax.set_axisbelow(True)
+    return fig, axes
+
+
+def save_figure(fig, path):
+    import matplotlib.pyplot as plt
+    fig.savefig(path, dpi=160, facecolor=fig.get_facecolor())
+    plt.close(fig)
+
+
+def write_overview(data, path):
+    fig, axes = report_figure(2, 2, (18, 12))
     category_topography(axes[0, 0], data)
     top = sorted(data["records"], key=lambda r: r["functions"])[-12:]
     axes[0, 1].barh([r["module"] for r in top], [r["functions"] for r in top], color=[COLORS[family(r["module"], data.get("enginePrefix"))] for r in top])
@@ -137,8 +151,28 @@ def write_overview(data, path):
     fig.suptitle(f"{data['title']} · Semantic evidence\n{len(data['active']):,} functions · {data['uniqueVectors']:,} unique vectors · {data['model']}", fontsize=19)
     fig.text(0.02, 0.015, "Contours: density by code category, relative to each category peak; these are not HL116 cluster boundaries. HL116 uses full-space distances. Zero warnings ≠ proof of consistency.", fontsize=10, color="#bcc7d9")
     fig.tight_layout(rect=(0.01, 0.04, 0.99, 0.93), h_pad=4, w_pad=3)
-    fig.savefig(path, dpi=160, facecolor=fig.get_facecolor())
-    plt.close(fig)
+    save_figure(fig, path)
+
+
+def write_residual_comparison(data, path):
+    residual = data["residual"]
+    fig, axes = report_figure(1, 2, (18, 8))
+    category_topography(axes[0], data)
+    axes[0].set_title(f"Original reference PCs · {data['variance']:.1%} of original variance")
+    if residual["available"]:
+        category_topography(axes[1], {**data, **residual})
+        axes[1].set_title(f"After removing both reference PCs\nNew axes: {residual['variance']:.1%} of remaining variance "
+                          f"({residual['variance'] * residual['retainedVariance']:.1%} of original)")
+    else:
+        axes[1].text(0.5, 0.5, "No meaningful variance remains after removing both PCs", ha="center", transform=axes[1].transAxes)
+    fig.suptitle(f"{data['title']} · Reference PC1 + PC2 removed\n"
+                 f"{residual['removedVariance']:.1%} removed · {residual['retainedVariance']:.1%} retained", fontsize=19)
+    fig.text(0.02, 0.025, "Centered-vector components subtracted; residuals are not renormalized. "
+             "Right-hand axes are fitted to the residual space; any names are sample-based interpretations.\n"
+             "Each panel uses its own coordinate scales. Original embeddings, cosine distances and HL116 decisions are unchanged.",
+             fontsize=11, color="#bcc7d9")
+    fig.tight_layout(rect=(0.01, 0.09, 0.99, 0.90), w_pad=3)
+    save_figure(fig, path)
 
 
 def main():
@@ -150,16 +184,24 @@ def main():
     parser.add_argument("--engine-prefix", default=None)
     parser.add_argument("--projection", type=Path)
     parser.add_argument("--annotations", type=Path)
+    parser.add_argument("--residual-projection", type=Path)
     args = parser.parse_args()
     evidence = json.loads(args.evidence.read_text())
-    data = analyze_index(json.loads(args.cache.read_text()), evidence, args.projection, args.annotations)
+    data = analyze_index(json.loads(args.cache.read_text()), evidence, args.projection, args.annotations, args.residual_projection)
     data["title"] = args.title
     data["enginePrefix"] = args.engine_prefix
     args.output.mkdir(parents=True, exist_ok=True)
     write_overview(data, args.output / "overview.png")
+    if data["residual"] is not None:
+        write_residual_comparison(data, args.output / "residual.png")
+        residual = data["residual"]
+        (args.output / "residual-samples.json").write_text(json.dumps({
+            "projection": residual["projection"], "removedProjectionId": residual["removedProjectionId"],
+            "labels": residual["axisLabels"], "axes": samples(data["active"], np.asarray(residual["coords"])) if residual["available"] else []}, indent=2))
     summary = {key: data[key] for key in ["model", "algorithm", "config", "funnel", "variance", "uniqueVectors", "records", "enginePrefix", "projection", "axisLabels"]}
     (args.output / "axis-samples.json").write_text(json.dumps({"projection": data["projection"], "labels": data["axisLabels"],
         "axes": samples(data["active"], np.asarray(data["coords"]))}, indent=2))
+    summary["residual"] = {key: value for key, value in data["residual"].items() if key != "coords"} if data["residual"] else None
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2))
 
 

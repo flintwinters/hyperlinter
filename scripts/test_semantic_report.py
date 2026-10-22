@@ -7,9 +7,46 @@ import numpy as np
 
 from semantic_report import analyze_index, density_surface, family, write_overview
 from semantic_projection import annotate, project, samples
+from semantic_residual import remove_components, residual_view
 
 
 class ReportTests(unittest.TestCase):
+    def test_deflation_removes_both_components_without_renormalizing(self):
+        vectors = np.array([[1., 2., 3.], [3., 4., 5.], [-1., -2., -3.]])
+        mean = vectors.mean(axis=0)
+        axes = np.array([[1., 0., 0.], [0., 1., 0.]])
+        residual, removal = remove_components(vectors, mean, axes)
+        np.testing.assert_allclose(residual @ axes.T, 0, atol=1e-12)
+        np.testing.assert_allclose(residual[:, 2], (vectors - mean)[:, 2])
+        self.assertFalse(removal["renormalized"])
+        self.assertAlmostEqual(removal["retainedVariance"] + removal["removedVariance"], 1)
+        self.assertGreater(np.linalg.norm(residual[1]), 1)
+        empty, removed = remove_components(vectors[:, :2], mean[:2], np.eye(2))
+        np.testing.assert_allclose(empty, 0, atol=1e-12)
+        self.assertEqual(removed["retainedVariance"], 0)
+        self.assertEqual(removed["removedVariance"], 1)
+        _, constant = remove_components(np.ones((2, 3)), np.ones(3), axes)
+        self.assertEqual(constant["removedVariance"], 0)
+
+    def test_residual_projection_reuses_its_basis_and_stays_outside_removed_subspace(self):
+        rng = np.random.default_rng(7)
+        vectors = rng.normal(size=(25, 6))
+        vectors /= np.linalg.norm(vectors, axis=1)[:, None]
+        artifacts = Path(__file__).resolve().parents[1] / "artifacts"
+        artifacts.mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=artifacts, prefix="residual-") as directory:
+            reference = Path(directory) / "reference.npz"
+            remaining = Path(directory) / "remaining.npz"
+            _, original = project(vectors, "model", reference)
+            result = residual_view(vectors, np.arange(len(vectors)), "model", reference, original, remaining)
+            repeated = residual_view(vectors, np.arange(len(vectors)), "model", reference, original, remaining)
+            np.testing.assert_allclose(result["coords"], repeated["coords"])
+            self.assertEqual(result["removedProjectionId"], original["id"])
+            self.assertLess(result["maximumRemainingComponent"], 1e-12)
+            with np.load(reference) as source, np.load(remaining) as target:
+                np.testing.assert_allclose(source["axes"] @ target["axes"].T, 0, atol=1e-12)
+            self.assertTrue(result["available"])
+
     def test_reference_basis_preserves_coordinates_when_the_corpus_changes(self):
         vectors = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
         artifacts = Path(__file__).resolve().parents[1] / "artifacts"
@@ -37,6 +74,18 @@ class ReportTests(unittest.TestCase):
             np.testing.assert_allclose(labeled[:, 0], -before[:, 0])
             np.testing.assert_allclose(labeled[:, 1], before[:, 1])
             self.assertEqual(labels[0], "PC1: reviewed direction")
+            # Original and residual interpretations are independently bound to their bases.
+            residual_value = {"projectionId": "original", "residual": {
+                "projectionId": metadata["id"], "axes": [
+                    {"label": "Residual one"}, {"label": "Residual two", "direction": -1}]}}
+            annotations.write_text(json.dumps(residual_value))
+            reviewed, names = annotate(before, metadata, annotations, "residual", ["Residual PC1", "Residual PC2"])
+            np.testing.assert_allclose(reviewed[:, 1], -before[:, 1])
+            self.assertEqual(names, ["Residual one", "Residual two"])
+            residual_value.pop("residual")
+            annotations.write_text(json.dumps(residual_value))
+            _, defaults = annotate(before, metadata, annotations, "residual", ["Residual PC1", "Residual PC2"])
+            self.assertEqual(defaults, ["Residual PC1", "Residual PC2"])
 
     def test_canonical_input_order_and_samples_do_not_expose_source(self):
         active = [{"id": str(i), "hash": str(i), "file": f"feature/{i}.ts", "line": 1,

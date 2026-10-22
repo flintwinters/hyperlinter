@@ -49,6 +49,10 @@ test('portable offline CLI renders the authoritative partition using worktree me
   const report = JSON.parse(result.stdout);
   assert.deepEqual(report.funnel, [1, 1, 1, 1]);
   assert.ok(fs.existsSync(report.samples));
+  assert.equal(fs.readFileSync(report.residual).subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+  const summary = JSON.parse(fs.readFileSync(report.summary, 'utf8'));
+  assert.equal(summary.residual.available, false);
+  assert.equal(summary.residual.renormalized, false);
   assert.equal(report.model, 'saved-model');
   assert.equal(fs.readFileSync(report.png).subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   const evidence = JSON.parse(fs.readFileSync(report.evidence, 'utf8'));

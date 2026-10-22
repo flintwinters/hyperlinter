@@ -10,7 +10,8 @@ interface Command {
 
 const commands: readonly Command[] = [
   { flag: '--semantic-report', description: 'Generate a PNG overview and JSON evidence from cached semantic embeddings; no provider calls.',
-    arguments: [], json: true, writes: ['overview.png', 'evidence.json', 'summary.json', 'axis-samples.json', 'target-private reference projection'],
+    arguments: [], json: true, writes: ['overview.png', 'evidence.json', 'summary.json', 'axis-samples.json',
+      'residual.png', 'residual-samples.json', 'target-private reference projections'],
     requires: ['Git metadata', 'semantic embedding cache', 'Python with reporting dependencies'], network: false },
   { flag: null, description: 'Audit static structure and local chronology; apply local baselines.',
     arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git metadata'], network: false },

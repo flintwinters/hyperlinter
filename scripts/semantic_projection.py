@@ -38,13 +38,19 @@ def project(vectors, model, reference=None):
     return (vectors - mean) @ axes.T, {"id": identity, "kind": "reference PCA", "axisVariance": variance.tolist()}
 
 
-def annotate(coords, projection, file=None):
+def annotate(coords, projection, file=None, section=None, labels=("Reference PC1", "Reference PC2")):
     """Human interpretations belong to the target project and one reviewed basis."""
     if file is None or not file.exists():
-        return coords, ["Reference PC1", "Reference PC2"]
+        return coords, list(labels)
     value = json.loads(file.read_text())
     if not isinstance(value, dict):
         raise ValueError("Axis annotations must be a JSON object.")
+    if section is not None:
+        value = value.get(section)
+        if value is None:
+            return coords, list(labels)
+        if not isinstance(value, dict):
+            raise ValueError("Axis annotation sections must be JSON objects.")
     if value.get("projectionId") != projection["id"]:
         raise ValueError("Axis annotations refer to a different projection; review samples before relabeling.")
     axes = value.get("axes", [])

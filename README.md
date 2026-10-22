@@ -298,6 +298,32 @@ private reference with its annotations. To recalibrate, archive the reference
 and annotations, generate an unlabeled report, inspect new samples, and record
 new labels and the new projection ID. Reporting remains entirely offline.
 
+#### Remove the two reference PCs
+
+Every report also writes `residual.png`, a side-by-side comparison of the
+original reference map and a newly fitted PCA map after subtracting both saved
+reference components. For each normalized embedding `x`, the subtraction is
+`r = (x - reference_mean) - U Uᵀ (x - reference_mean)`, where `U` is an
+orthonormal basis of the two saved directions. Residuals are **not renormalized**;
+their remaining magnitudes and variance are preserved. This removes geometric
+directions, not precisely the concepts suggested by their human labels.
+
+The comparison states how much original variance was removed and retained, and
+how much the two new axes capture relative to both the residual and original
+variance. Each panel has its own coordinate scales. The new axes default to
+generic residual-PC labels. To name them after sample review, add a `residual` object to `hyperlinter.semantic-report.json` with its own
+`projectionId` from `residual-samples.json` and two `axes` entries in the same
+format as the original annotations. Each set of names is bound to its own basis.
+`residual-samples.json` exports locations for further review, and `summary.json`
+records the deflation and residual projection metadata. A separate private
+`semantic-residual-projection.npz` stabilizes the new map and is bound to the
+removed projection ID. Archive both references when recalibrating. Degenerate
+corpora with no meaningful residual variance show an explicit empty-state panel.
+
+The existing overview, embedding cache, original-space cosine distributions,
+clustering evidence and HL116 warning decisions continue to use original vectors.
+This is an offline exploratory view, not a change to enforcement.
+
 ## Project website
 
 GitHub Pages serves the static `docs/` directory from `main`; no website build

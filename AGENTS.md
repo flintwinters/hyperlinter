@@ -5,6 +5,9 @@ the product manifesto and takes priority over convenience-driven changes.
 
 The CLI surface should be agent-facing-first.  Prioritize discoverability and usability by coding agents.
 
+The main goal of hyperlinter is to exercise and extract learning from new projects using it so that it can get better.
+It is imperative that agents using hyperlinter keep it up to date and add versatile (not project-specific) features when a genuine need arises.
+
 ## Mission
 
 Hyperlinter is agent-first: machine-readable JSON is the default CLI interface;

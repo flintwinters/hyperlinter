@@ -4,6 +4,7 @@ import ts from 'typescript';
 
 import type { HyperlinterConfig } from '../config';
 import type { ProjectModel } from '../project';
+import { countMeaningfulNodes, isLiteral } from './syntax';
 
 interface ExactClone {
   readonly file: string;
@@ -64,19 +65,23 @@ export function applyExactCloneRefactors(project: ProjectModel, config: Hyperlin
     byFile.set(clone.first.getSourceFile().fileName, existing);
   }
   for (const [fileName, clones] of byFile) {
-    const source = clones[0].first.getSourceFile();
-    const edits: TextEdit[] = [];
-    for (const [index, clone] of clones.entries()) {
-      const helper = `_hyperlintClone${index}`;
-      const rendered = renderHelper(clone, helper, project.checker);
-      if (!rendered) continue;
-      edits.push({ start: clone.first.getFullStart(), end: clone.first.getFullStart(), text: `${rendered.helper}\n\n` });
-      edits.push({ start: clone.first.body.getStart(source), end: clone.first.body.end, text: rendered.firstBody });
-      edits.push({ start: clone.second.body.getStart(source), end: clone.second.body.end, text: rendered.secondBody });
-    }
-    if (edits.length > 0) ts.sys.writeFile(fileName, applyEdits(source.text, edits));
+    ts.sys.writeFile(fileName, renderCloneRefactors(clones, project.checker));
   }
   return [...byFile.values()].flat();
+}
+
+/** Render a file independently of clone selection and filesystem writes. */
+function renderCloneRefactors(clones: readonly ExactClone[], checker: ts.TypeChecker): string {
+  const source = clones[0].first.getSourceFile();
+  const edits: TextEdit[] = [];
+  for (const [index, clone] of clones.entries()) {
+    const helper = `_hyperlintClone${index}`;
+    const rendered = renderHelper(clone, helper, checker);
+    edits.push({ start: clone.first.getFullStart(), end: clone.first.getFullStart(), text: `${rendered.helper}\n\n` });
+    edits.push({ start: clone.first.body.getStart(source), end: clone.first.body.end, text: rendered.firstBody });
+    edits.push({ start: clone.second.body.getStart(source), end: clone.second.body.end, text: rendered.secondBody });
+  }
+  return applyEdits(source.text, edits);
 }
 
 function isEligibleFunction(statement: ts.Statement): statement is EligibleFunction {
@@ -93,15 +98,6 @@ function isEligibleFunction(statement: ts.Statement): statement is EligibleFunct
       && !parameter.initializer);
 }
 
-function countMeaningfulNodes(root: ts.Node): number {
-  let count = 0;
-  const visit = (node: ts.Node): void => {
-    if (node.kind !== ts.SyntaxKind.Block && !ts.isIdentifier(node) && !ts.isTypeNode(node)) count += 1;
-    ts.forEachChild(node, visit);
-  };
-  visit(root);
-  return count;
-}
 
 function normalizedHash(root: ts.Node, state: NormalizationState, checker: ts.TypeChecker): string {
   return crypto.createHash('sha256').update(normalize(root, state, checker)).digest('hex');
@@ -152,10 +148,6 @@ function recordDifference(first: ts.Node, second: ts.Node, differences: CloneDif
   return true;
 }
 
-function isLiteral(node: ts.Node): node is ts.Expression {
-  return ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isBigIntLiteral(node)
-    || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword || node.kind === ts.SyntaxKind.NullKeyword;
-}
 
 function identifierKey(node: ts.Identifier, checker: ts.TypeChecker, state: NormalizationState): string {
   const symbol = checker.getSymbolAtLocation(node);

@@ -26,6 +26,9 @@ export function semanticConfig(value: unknown): SemanticConfig {
   }
   const config = { ...semanticDefaults, ...value };
   validateIdentity(config);
+  for (const key of ['maximumMergeDistance', 'minimumClusterDistance'] as const) {
+    validateDistance(config[key], key);
+  }
   validateThresholds(config);
   return config;
 }
@@ -39,9 +42,6 @@ function validateIdentity(config: SemanticConfig): void {
 function validateThresholds(config: SemanticConfig): void {
   if (!Number.isInteger(config.minimumClusterFunctions) || config.minimumClusterFunctions < 2) {
     throw new Error('semantic.minimumClusterFunctions must be an integer >= 2.');
-  }
-  for (const key of ['maximumMergeDistance', 'minimumClusterDistance'] as const) {
-    validateDistance(config[key], key);
   }
   if (config.minimumClusterDistance <= config.maximumMergeDistance) {
     throw new Error('semantic.minimumClusterDistance must exceed maximumMergeDistance.');

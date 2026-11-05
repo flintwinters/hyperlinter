@@ -1,4 +1,3 @@
-import path from 'node:path';
 import ts from 'typescript';
 
 import type { HyperlinterConfig } from '../config';
@@ -73,7 +72,7 @@ export const deadImplementationRule: HyperlintRule = {
       return {
         rule: 'HL114', severity: config.rules.deadImplementation,
         module: project.getModuleIdForFile(file.fileName),
-        file: path.relative(project.getRootDir(), file.fileName).split(path.sep).join('/'),
+        file: project.fileId(file.fileName),
         line: file.getLineAndCharacterOfPosition(declaration.getStart()).line + 1,
         message: `Dead implementation ${symbol.getName()}: unreachable from exports or code outside candidate implementations.`,
       };

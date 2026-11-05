@@ -1,56 +1,21 @@
+import { cycleWitness, stronglyConnectedComponents } from '../../graphs';
 import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { HyperlinterConfig } from '../../config';
-import { type ModuleId, type ModuleGraph, type ProjectModel } from '../../project';
+import { type ProjectModel } from '../../project';
 
 import type { HyperlintRule } from '../contracts';
 
 export const dependencyCyclesRule: HyperlintRule = {
   id: 'HL101',
   analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
-    return stronglyConnectedComponents(project.getDependencyGraph())
+    const graph = new Map([...project.getDependencyGraph().dependencies].map(([id, targets]) => [id, new Set(targets)]));
+    return stronglyConnectedComponents(graph)
       .filter((component) => component.length > 1)
       .map((component) => ({
         rule: 'HL101',
         severity: config.rules.dependencyCycles,
         module: component[0],
-        message: `Circular dependency: ${component.join(' -> ')} -> ${component[0]}.`,
+        message: `Circular dependency: ${cycleWitness(graph, component).join(' -> ')}.`,
       }));
   },
 };
-
-function stronglyConnectedComponents(graph: ModuleGraph): ModuleId[][] {
-  let index = 0;
-  const indexes = new Map<ModuleId, number>();
-  const lowLinks = new Map<ModuleId, number>();
-  const stack: ModuleId[] = [];
-  const onStack = new Set<ModuleId>();
-  const components: ModuleId[][] = [];
-
-  const visit = (module: ModuleId): void => {
-    indexes.set(module, index);
-    lowLinks.set(module, index++);
-    stack.push(module);
-    onStack.add(module);
-    for (const dependency of graph.dependencies.get(module) ?? []) {
-      if (!indexes.has(dependency)) {
-        visit(dependency);
-        lowLinks.set(module, Math.min(lowLinks.get(module)!, lowLinks.get(dependency)!));
-      } else if (onStack.has(dependency)) {
-        lowLinks.set(module, Math.min(lowLinks.get(module)!, indexes.get(dependency)!));
-      }
-    }
-    if (lowLinks.get(module) === indexes.get(module)) {
-      const component: ModuleId[] = [];
-      let member: ModuleId;
-      do {
-        member = stack.pop()!;
-        onStack.delete(member);
-        component.push(member);
-      } while (member !== module);
-      components.push(component.sort());
-    }
-  };
-
-  for (const module of graph.dependencies.keys()) if (!indexes.has(module)) visit(module);
-  return components;
-}

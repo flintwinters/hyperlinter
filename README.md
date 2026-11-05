@@ -17,6 +17,12 @@ npm --prefix tools/hyperlint ci --include=dev
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
 ```
 
+Each run checks the installed checkout against `origin`'s default branch using
+`git ls-remote` with a two-second timeout. When upstream updates are available,
+an advisory `INFO` on stderr provides ordered update commands (structured JSON
+in the default output mode). The check never changes files or enforcement status;
+offline checks are silently skipped. Help and discovery do not access the network.
+
 Run the command from the target repository root. It reads that repository's
 `tsconfig.json`, persists local run evidence in `tools/hyperlint/runtime/`, and
 uses the target repository's local `.git/hyperlinter/baseline.json` for
@@ -37,7 +43,9 @@ architectural boundary.
 Directory modules may own at most 12 source files from the configured TypeScript
 project, including their entrypoint. Descendant directories own their files
 separately; styles, generated files and tests receive no filename exemptions.
-The versioned `moduleFiles.maximum` policy controls this limit (`HL117`).
+The limit pushes flat directories into a hierarchy of cohesive subdirectory modules;
+merging unrelated files to lower the count defeats it. The versioned
+`moduleFiles.maximum` policy controls this limit (`HL117`).
 
 ## Optional hardcoded-color file cap
 
@@ -145,6 +153,50 @@ length (`HL112`), unused public exports (`HL102`), and public-surface growth
 (`HL113`). Historical ledger entries retain their original IDs.
 
 Run `python3 manage.py check` for typechecking and regression tests.
+
+Function call structure is enforced by two error rules. `HL120` rejects directed
+cycles, including direct self-recursion, between statically resolved local
+implementations. It reports a real cycle with source locations. `HL121` limits
+calls using independently configurable source and test limits:
+
+```json
+"functionCalls": {
+  "sourceMaximumGenerationGap": 4,
+  "testMaximumGenerationGap": false
+}
+```
+
+Each limit accepts a positive integer or `false` to disable that category. Set
+both to `false` to disable generation-gap checking entirely; cycle checking
+remains independent. The caller determines the category: files under `test/`,
+`tests/`, or `__tests__/` directories and files named `*.test.*` or `*.spec.*`
+are tests. This includes colocated tests and test helpers. All implementations
+remain in the graph even when their category's gap checks are disabled.
+
+Leaves have generation zero; every other function has one plus the maximum
+generation of its callees. Diagnostics identify the offending call and the
+longest chain establishing its caller's generation. Cycles and all callers
+reaching them have no finite generation and receive no secondary gap
+diagnostics. Configure severity through `rules.functionCycles` and
+`rules.functionGenerationGap`.
+
+To inspect threshold sensitivity on the current checkout, install the optional
+plotting dependency with `python3 -m pip install --target runtime/plot-deps matplotlib`
+and run `python3 manage.py plot-call-gaps`. PNG, SVG, CSV, and JSON evidence are
+written under `artifacts/call-generation-limits/`. Counts represent distinct
+caller/callee pairs; source/test series classify the caller while retaining the
+same project-wide generations. The chart measures all thresholds regardless of
+the enabled enforcement categories.
+
+The graph includes function declarations, arrows, function expressions, methods,
+and constructors, including nested implementations and resolved imports/reexports.
+Only explicit call/new expressions with a statically resolved local implementation
+establish edges. Passing a callback or referencing a function does not establish
+an invocation. External implementations, unresolved dynamic dispatch, callback
+invocation through external APIs, and implicit getter/setter calls are outside
+this analysis; absence of a diagnostic does not prove runtime acyclicity.
+Generations describe the known local graph, including tests. Shared leaf helpers
+can violate the gap limit; avoid adding forwarding wrappers merely to satisfy it.
 
 Module cohesion (`HL115`, info) prompts the coder to refactor when **both**
 configured signals cross their thresholds:
@@ -355,8 +407,8 @@ Run `python3 manage.py chronolint` in this repository, or the host's root
 substantial series of changes. For machine-readable evidence use
 `node --import tsx tools/hyperlint/src/cli.ts --chronolint --format=json` from the
 host (use `src/cli.ts` standalone). Regular Hyperlinter analysis includes
-chronolint, so ordinary lint and verification record the same historical evidence
-alongside static findings. The dedicated command runs only chronology. `--history` still reads recorded lint and verification runs; it
+chronolint, so ordinary lint records the same historical evidence
+alongside static findings. The dedicated command runs only chronology. `--history` reads recorded lint runs; it
 also exposes chronology evidence for both regular and dedicated runs. Chronolint rejects fixing,
 baseline-writing, and other analysis modes in the same invocation.
 
@@ -405,3 +457,5 @@ Interpret evidence with care: commit boundaries are human choices, formatting
 changes can co-vary without shared ownership, and Git's explicit 50% similarity
 rename detection is heuristic. Read the supporting diffs before deciding on an
 architectural change. Insufficient support yields coverage, not invented findings.
+
+Target repositories can explicitly opt out of analysis rules with `"disabledRules": ["HL120", "HL121"]` in `hyperlinter.project.json`. This is target policy; engine defaults and other repositories remain unchanged.

@@ -12,7 +12,7 @@ export const nearDuplicatesRule: HyperlintRule = {
       const names = cluster.methods.map((method) => method.name.text).join(', ');
       const similarity = Math.round(cluster.similarity * 100);
       return {
-        rule: 'HL105', severity: config.rules.nearDuplicates, file: first.getSourceFile().fileName,
+        rule: 'HL105', severity: config.rules.nearDuplicates, file: project.fileId(first.getSourceFile().fileName),
         module: project.getModuleIdForFile(first.getSourceFile().fileName),
         line: first.getSourceFile().getLineAndCharacterOfPosition(first.getStart()).line + 1,
         score: cluster.similarity,

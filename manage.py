@@ -8,16 +8,19 @@ import typer
 from rich.console import Console
 
 from scripts.check_site import check_site
+from scripts.plot_call_gaps import plot_call_gaps
 from scripts.browser_site import preview_site
 from scripts.site_operations import check_install, check_live
 from scripts.build_site import build_site
+from scripts.impact.audit import audit
+from scripts.impact.report import render
 from pathlib import Path
 
 
 console = Console(highlight=False, markup=False)
 
 
-def main(command: str = typer.Argument(...)):
+def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*.test.ts")):
     root = Path(__file__).resolve().parent
     if command == "test-semantic-report":
         environment = {**os.environ, "HYPERLINTER_REPORT_PYTHON": sys.executable}
@@ -31,13 +34,29 @@ def main(command: str = typer.Argument(...)):
     if command == "test-semantic-clustering":
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "--test-concurrency=1",
             "tests/semantic/averageLinkage.test.ts", "tests/semantic/semanticClustering.test.ts"], cwd=root).returncode)
+    if command == "impact-audit":
+        audit(root, pattern)
+        render(root / "artifacts/impact-audit")
+        return
+    if command == "impact-report":
+        render(root / "artifacts/impact-audit")
+        return
+    if command == "test-impact":
+        sys.exit(subprocess.run([sys.executable, "-m", "unittest", "scripts.impact.test_audit"], cwd=root).returncode)
+    if command == "test-calls":
+        sys.exit(subprocess.run(["node", "--import", "tsx", "tests/calls/functionCalls.test.ts"], cwd=root).returncode)
+    if command == "test":
+        sys.exit(subprocess.run(["npm", "run", "test"], cwd=root).returncode)
     if command == "test-history":
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/chronology/history.test.ts"], cwd=root).returncode)
     if command == "chronolint":
         sys.exit(subprocess.run(["node", "--import", "tsx", "src/cli.ts", "--chronolint"], cwd=root).returncode)
-    operations = {"site-build": build_site, "site-preview": preview_site, "site-install": check_install, "site-live": check_live}
+    operations = {"plot-call-gaps": plot_call_gaps, "site-build": build_site, "site-preview": preview_site, "site-install": check_install, "site-live": check_live}
     if command == "test-debug":
-        for file in sorted((root / "tests").rglob("*.test.ts")):
+        files = sorted((root / "tests").glob(pattern))
+        if not files or any(not file.name.endswith(".test.ts") for file in files):
+            sys.exit("test-debug: select existing *.test.ts files under tests/")
+        for file in files:
             result = subprocess.run(["node", "--import", "tsx", str(file)], cwd=root)
             if result.returncode:
                 sys.exit(result.returncode)
@@ -46,12 +65,16 @@ def main(command: str = typer.Argument(...)):
         operations[command](root)
         return
     if command != "check":
-        sys.exit("Use: python3 manage.py test-semantic-report — offline PNG regressions (requires reporting Python dependencies); check — verify project; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-build — compile static StyleX assets; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+        sys.exit("Use: python3 manage.py check — verify project; test-semantic-report — offline PNG regressions; test-semantic-clustering — semantic regressions; site-build — compile static StyleX assets; impact-audit [directory|cached] — aggregate local adoption evidence; impact-report — regenerate aggregate exports and reviewed report; test-impact — audit regressions; plot-call-gaps — chart generation-limit violations; test — run all regressions; test-calls — function graph regressions; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:
         sys.exit(f"website: {error}")
     console.print("website: passed")
+    audit_tests = subprocess.run([sys.executable, "-m", "unittest", "scripts.impact.test_audit"], cwd=root)
+    if audit_tests.returncode:
+        sys.exit(audit_tests.returncode)
+    console.print("impact audit: passed")
     for script in ("typecheck", "hyperlint", "test"):
         # Analysis fixtures spawn compilers and Git; serialize them to bound
         # memory rather than making correctness depend on available swap.

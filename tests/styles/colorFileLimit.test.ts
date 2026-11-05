@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 import test, { type TestContext } from 'node:test';
 import ts from 'typescript';
 
-import { loadColorFilePolicy } from '../src/config';
-import { colorLiterals } from '../src/project';
-import { ProjectModel } from '../src/project';
-import { colorFileLimitRule } from '../src/rules';
-import { analyze } from '../src';
+import { loadColorFilePolicy } from '../../src/config';
+import { colorLiterals } from '../../src/project';
+import { ProjectModel } from '../../src/project';
+import { colorFileLimitRule } from '../../src/rules';
+import { analyze } from '../../src';
 
 
 function literals(text: string): readonly string[] {
@@ -101,7 +101,7 @@ test('rejects invalid policy instead of silently disabling enforcement', (t) => 
 
 test('CLI inventories colors and styles enforcement respects the configured severity', (t) => {
   const root = fixture(t);
-  const cli = fileURLToPath(new URL('../src/cli.ts', import.meta.url));
+  const cli = fileURLToPath(new URL('../../src/cli.ts', import.meta.url));
   const tsx = fileURLToPath(import.meta.resolve('tsx'));
   const run = (flag: string) => spawnSync(process.execPath, ['--import', tsx, cli, flag, '--format=json'], {
     cwd: root, encoding: 'utf8',

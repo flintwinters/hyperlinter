@@ -5,6 +5,9 @@ the product manifesto and takes priority over convenience-driven changes.
 
 The runtime requires Node.js 22+ and the N-API SQLite driver (better-sqlite3 13+). The CLI surface should be agent-facing-first.  Prioritize discoverability and usability by coding agents.
 
+The main goal of hyperlinter is to exercise and extract learning from new projects using it so that it can get better.
+It is imperative that agents using hyperlinter keep it up to date and add versatile (not project-specific) features when a genuine need arises.
+
 ## Mission
 
 Hyperlinter is agent-first: machine-readable JSON is the default CLI interface;
@@ -28,10 +31,15 @@ useful, deterministic feedback.
 
 ## Architecture and current focus
 
-The TypeScript project model owns compiler and reference evidence; registered
-rules produce diagnostics (including a 12-file direct module ownership limit), module scoring aggregates pressure, and the CLI
+Compiler evidence, authored-file traversal, and function-call analysis have separate
+project module boundaries. The TypeScript project model owns compiler and reference evidence; registered
+rules produce diagnostics (including a 12-file direct ownership limit that pressures flat directories, tests included, into hierarchies), module scoring aggregates pressure, and the CLI
 records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
 without opening target policy or evidence; its catalog owns chronology exclusions.
+Other CLI runs check the installed Git checkout for upstream updates and emit
+advisory update instructions on stderr without affecting enforcement.
+Function-call analysis enforces acyclicity and independently configurable source/test generation gaps on resolved local calls;
+cycles and their callers have no finite generation. Dynamic dispatch and external callback execution remain outside this evidence.
 Dead implementation analysis conservatively roots exports and executable
 references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.
@@ -47,6 +55,10 @@ may be tuned after agent examination finds declustering unwarranted. The static
 project website publishes from `docs/` on `main`. Author markup and StyleX in
 `scripts/site/`; `manage.py site-build` generates the checked HTML and `docs/dist/site.css`.
 Never edit compiled assets directly; site checks reject stale output.
+Local impact audits aggregate consumer history, namespaced ledger snapshots, and
+available independent task outcomes under ignored `artifacts/`. Keep engine
+self-checks separate from consumers, preserve unknown provenance, and assess
+maintainability using concrete outcomes alongside structural scores.
 
 ## First commands
 

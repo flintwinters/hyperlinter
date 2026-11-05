@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
-import { loadHyperlinterConfig, chronolintConfig } from '../../src/config';
+import { loadHyperlinterConfig } from '../../src/config';
 import type { HistoryCommit } from '../../src/history';
 import { correlate, correlationDiagnostics, type TemporalRule, type CorrelationFinding, temporalRules } from '../../src/temporal';
 import { moduleScoreDiagnostics } from '../../src/scoring';
@@ -51,10 +53,15 @@ test('creation limits overlap; excluded renames still traverse identities', () =
 });
 
 
-test('versioned chronology configuration rejects invalid engine policy', async () => {
-  for (const options of [undefined, { ...config.chronolint, window: 0 }, { ...config.chronolint, maximumFiles: 1.2 },
-    { ...config.chronolint, minimumRate: 1.01 }, { ...config.chronolint, minimumLift: Infinity }])
-    assert.throws(() => chronolintConfig(options), /chronolint|chronology/i);
+test('versioned chronology configuration rejects invalid engine policy', (t) => {
+  fs.mkdirSync('artifacts', { recursive: true });
+  const root = fs.mkdtempSync(path.resolve('artifacts/chronolint-config-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const chronolint of [undefined, { ...config.chronolint, window: 0 }, { ...config.chronolint, maximumFiles: 1.2 },
+    { ...config.chronolint, minimumRate: 1.01 }, { ...config.chronolint, minimumLift: 0 }]) {
+    fs.writeFileSync(path.join(root, 'hyperlinter.config.json'), JSON.stringify({ ...config, chronolint }));
+    assert.throws(() => loadHyperlinterConfig(root), /chronolint/);
+  }
 });
 
 test('non-content commits add no observations and both dependency directions remain advisory', () => {

@@ -3,8 +3,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import ts from 'typescript';
 
-import type { ProjectModel } from './ProjectModel';
-import { isSourceDirectory } from './cssFiles';
+import type { ProjectModel } from './model';
+import { sourceFilePaths } from './files';
 
 export interface InlineStyle {
   file: string;
@@ -19,7 +19,7 @@ export function inlineStyles(project: ProjectModel): readonly InlineStyle[] {
   for (const module of project.getModules()) {
     for (const sourceFile of module.sourceFiles) {
       if (!sourceFile.fileName.endsWith('.tsx')) continue;
-      const file = path.relative(project.getRootDir(), sourceFile.fileName).split(path.sep).join('/');
+      const file = project.fileId(sourceFile.fileName);
       for (const node of inlineStyleNodes(sourceFile)) {
         const normalized = printer.printNode(ts.EmitHint.Unspecified, node, sourceFile);
         const signature = createHash('sha256').update(normalized).digest('hex');
@@ -78,24 +78,17 @@ export function newInlineStyles<T extends InlineStyle>(
  * Scan HTML as markup: comments and raw-text elements are not executable tags.
  */
 function htmlStyles(project: ProjectModel): InlineStyle[] {
-  const findings: InlineStyle[] = [], visited = new Set<string>();
-  const visit = (directory: string): void => {
-    if (visited.has(directory) || !isSourceDirectory(project.getRootDir(), directory)) return;
-    visited.add(directory);
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const file = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(file);
-      else if (entry.isFile() && /\.html?$/i.test(entry.name)) {
-        const text = fs.readFileSync(file, 'utf8');
-        for (const { offset, syntax } of htmlStyleSyntax(text)) findings.push({
-          file: path.relative(project.getRootDir(), file).split(path.sep).join('/'),
-          line: text.slice(0, offset).split('\n').length,
-          signature: createHash('sha256').update(syntax).digest('hex'),
-        });
-      }
-    }
-  };
-  for (const module of project.getModules()) for (const file of module.sourceFiles) visit(path.dirname(file.fileName));
+  const findings: InlineStyle[] = [];
+  const directories = project.getModules().flatMap(module => module.sourceFiles.map(file => path.dirname(file.fileName)));
+  for (const file of sourceFilePaths(project.getRootDir(), directories)) {
+    if (!/\.html?$/i.test(file)) continue;
+    const text = fs.readFileSync(file, 'utf8');
+    for (const { offset, syntax } of htmlStyleSyntax(text)) findings.push({
+      file: project.fileId(file),
+      line: text.slice(0, offset).split('\n').length,
+      signature: createHash('sha256').update(syntax).digest('hex'),
+    });
+  }
   return findings.sort((left, right) => left.file.localeCompare(right.file) || left.line - right.line);
 }
 function htmlStyleSyntax(text: string): { offset: number; syntax: string }[] {

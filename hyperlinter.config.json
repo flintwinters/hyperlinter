@@ -14,7 +14,9 @@
     "noCssFiles": "error",
     "noInlineStyles": "error",
     "moduleScore": "error",
-    "moduleFileLimit": "error"
+    "moduleFileLimit": "error",
+    "functionCycles": "error",
+    "functionGenerationGap": "error"
   },
   "clones": {
     "exactMinimumMeaningfulNodes": 20,
@@ -57,5 +59,9 @@
     "minimumShared": 5,
     "minimumRate": 0.8,
     "minimumLift": 2
+  },
+  "functionCalls": {
+    "sourceMaximumGenerationGap": 4,
+    "testMaximumGenerationGap": false
   }
 }

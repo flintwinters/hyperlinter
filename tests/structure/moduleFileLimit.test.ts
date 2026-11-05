@@ -3,10 +3,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import test, { type TestContext } from 'node:test';
 
-import { loadHyperlinterConfig } from '../src/config';
-import { ProjectModel } from '../src/project';
-import { moduleFileLimitRule } from '../src/rules/structural';
-import { analyze } from '../src';
+import { loadHyperlinterConfig } from '../../src/config';
+import { ProjectModel } from '../../src/project';
+import { moduleFileLimitRule } from '../../src/rules/structural';
+import { analyze } from '../../src';
 
 const config = loadHyperlinterConfig();
 
@@ -36,7 +36,9 @@ test('reports 13 directly owned files, including the entrypoint and every file r
   const findings = moduleFileLimitRule.analyze(ProjectModel.fromTsConfig(tsconfig), config);
   assert.deepEqual(findings, [{
     rule: 'HL117', severity: 'error', module: 'frontend', score: 13,
-    message: 'Module owns 13 source files; maximum is 12. Extract cohesive directory modules with index entrypoints.',
+    message: 'Directory directly owns 13 source files; maximum is 12. This limit exists to grow a hierarchy: '
+      + 'move groups of related files into subdirectories, each with its own index entrypoint (tests too, e.g. tests/<area>/). '
+      + 'Do not merge unrelated files or pack code into existing files to lower the count.',
   }]);
   assert.equal((await analyze(tsconfig)).diagnostics.filter((finding) => finding.rule === 'HL117').length, 1);
 });

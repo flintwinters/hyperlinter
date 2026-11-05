@@ -1,0 +1,30 @@
+{
+  "cycles": {
+    "a/index.ts": "import { second } from '../b'; export function first() { second(); } export function self() { self(); } export function caller() { first(); }",
+    "b/index.ts": "import { first as alias } from '../a'; export function second() { alias(); }"
+  },
+  "generations": {
+    "a/index.ts": "export function leaf() { return 1; } export function one() { return leaf(); } export function two() { return one() + leaf(); } export function three() { return two() + leaf(); }"
+  },
+  "implementations": {
+    "a/index.ts": "export function overloaded(x: string): number; export function overloaded(x: number): number; export function overloaded(x: string | number) { return overloaded(1); } export const arrow = () => arrow(); export class Service { constructor() { new Service(); } method() { this.method(); } } export const object = { method() { object.method(); } }; export const field = class { run = () => this.run(); };"
+  },
+  "ownership": {
+    "a/index.ts": "declare function external(callback: () => void): void; export function outer() { function inner() { outer(); } external(inner); return inner; } export function referenceOnly() { return referenceOnly; } export function run() { external(() => referenceOnly()); }"
+  },
+  "cycleAncestors": {
+    "a/index.ts": "export function leaf() {} export function loop() { loop(); } export function parent() { loop(); leaf(); } export function grandparent() { parent(); leaf(); }"
+  },
+  "reexports": {
+    "a/index.ts": "export { leaf as renamed } from './leaf';",
+    "a/leaf.ts": "export const leaf = () => 1;",
+    "b/index.ts": "import { renamed } from '../a'; export function middle() { return renamed(); } export function top() { return middle() + renamed(); }"
+  },
+  "policies": {
+    "src/index.ts": "export function leaf() {} export function one() { leaf(); } export function two() { one(); } export function three() { two(); } export function four() { three(); } export function five() { four(); leaf(); }",
+    "tests/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
+    "test/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
+    "src/check.spec.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
+    "__tests__/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }"
+  }
+}

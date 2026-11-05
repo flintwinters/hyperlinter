@@ -3,7 +3,10 @@ import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { ProjectModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
-/** Bound directly owned implementation, not descendants belonging to other modules. */
+/**
+ * Pressure flat directories into a hierarchy: bound directly owned files, not
+ * descendants, which become separate modules behind their own index.
+ */
 export const moduleFileLimitRule: HyperlintRule = {
   id: 'HL117',
   analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
@@ -16,9 +19,14 @@ export const moduleFileLimitRule: HyperlintRule = {
         severity: config.rules.moduleFileLimit,
         module: module.id,
         score: count,
-        message: `Module owns ${count} source files; maximum is ${config.moduleFiles.maximum}. `
-          + 'Extract cohesive directory modules with index entrypoints.',
+        message: moduleFileLimitMessage(count, config.moduleFiles.maximum),
       }] : [];
     });
   },
 };
+
+function moduleFileLimitMessage(count: number, maximum: number): string {
+  return `Directory directly owns ${count} source files; maximum is ${maximum}. This limit exists to grow a hierarchy: `
+    + 'move groups of related files into subdirectories, each with its own index entrypoint (tests too, e.g. tests/<area>/). '
+    + 'Do not merge unrelated files or pack code into existing files to lower the count.';
+}

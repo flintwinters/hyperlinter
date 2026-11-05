@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import type { HyperlintDiagnostic } from './diagnostics';
-import { type ModuleMetrics, ProjectModel, agentInstructions, agentInstructionsMessage, MAX_AGENT_INSTRUCTION_LINES,
+import { type ModuleMetrics, ProjectModel, agentInstructionsMessage, oversizedAgentInstructions,
   cssFiles, inlineStyleBaseline, inlineStyles, newInlineStyles, type InlineStyleBaseline, runSourceBudget } from './project';
 
-import { projectStatePath, RuntimeStore, type RuntimeRun, type VerificationRun, type VerificationStep } from './runtime';
+import { projectStatePath, RuntimeStore, type RuntimeRun } from './runtime';
 
 import { analyzeChronolint } from './index';
 import { analyze } from './runner';
@@ -14,8 +14,8 @@ import { applyExactCloneRefactors } from './clones';
 import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
 import { applyPrivateUnusedExportFixes } from './fixes';
 
-import { colorFileLimitRule, analyzeColorFiles } from './rules';
-import { cliDiscovery, printCliHelp } from './commands';
+import { colorFileLimitRule, analyzeColorFiles, noInlineStylesRule } from './rules';
+import { cliDiscovery, printCliHelp, hyperlinterUpdateNotice } from './commands';
 import { semanticReport } from './semantic';
 
 interface Baseline {
@@ -41,6 +41,19 @@ const chronolint = arguments_.includes('--chronolint');
 if (chronolint && arguments_.some(argument => cliDiscovery.constraints.chronolintExcludes.includes(argument))) {
   process.stderr.write('Chronolint must run separately from fixing, baseline writing, and other analysis modes.\n');
   process.exit(1);
+}
+const commandFlags = cliDiscovery.commands.flatMap(({ flag, modifiesAudit }) => (
+  flag && arguments_.includes(flag) ? [{ flag, modifiesAudit }] : []));
+if (commandFlags.length > 1 && commandFlags.some(({ modifiesAudit }) => !modifiesAudit)) {
+  process.stderr.write(`Use one command per invocation; ${commandFlags.map(({ flag }) => flag).join(', ')} cannot combine. `
+    + `Only audit modifiers combine: ${cliDiscovery.commands.filter(command => command.modifiesAudit).map(command => command.flag).join(', ')}.\n`);
+  process.exit(1);
+}
+const update = hyperlinterUpdateNotice();
+if (update) {
+  const quote = (argument: string) => "'" + argument.replaceAll("'", "'\\''") + "'";
+  process.stderr.write(json ? `${JSON.stringify(update)}\n`
+    : `INFO ${update.code}: ${update.message}\n${update.commands.map(command => command.map(quote).join(' ')).join('\n')}\n`);
 }
 if (arguments_.includes('--semantic-report')) {
   try {
@@ -118,8 +131,7 @@ if (arguments_.includes('--check-no-css')) {
 }
 
 if (arguments_.includes('--check-agents')) {
-  const violations = agentInstructions(process.cwd())
-    .filter((instructions) => instructions.lines > MAX_AGENT_INSTRUCTION_LINES);
+  const violations = oversizedAgentInstructions(process.cwd());
   if (json) process.stdout.write(`${JSON.stringify({ violations }, null, 2)}\n`);
   else for (const violation of violations) {
     process.stderr.write(`${agentInstructionsMessage(violation.lines)}\n`);
@@ -140,15 +152,10 @@ const runtime = new RuntimeStore();
 
 if (arguments_.includes('--history')) {
   const history = runtime.history().map(run => ({ ...run, chronology: runtime.chronology(run.id) }));
-  const verifications = runtime.verificationHistory().map((verification) => ({
-    ...verification,
-    steps: runtime.verificationSteps(verification.id),
-  }));
-  if (json) process.stdout.write(`${JSON.stringify({ runs: history, verifications }, null, 2)}\n`);
+  if (json) process.stdout.write(`${JSON.stringify({ runs: history }, null, 2)}\n`);
   else {
     printHistory(history);
     for (const run of history) if (run.chronology) printChronology(run.chronology);
-    printVerificationHistory(verifications);
   }
   runtime.close();
   process.exit();
@@ -177,10 +184,10 @@ if (sourceChanged) result = await analyze(undefined, buildEmbeddings);
 const baseline = readBaseline(baselinePath);
 const styleDiagnostics = result.diagnostics.filter((diagnostic): diagnostic is HyperlintDiagnostic & {
   file: string; line: number; signature: string;
-} => diagnostic.rule === 'HL111' && !!diagnostic.file && !!diagnostic.line && !!diagnostic.signature);
+} => diagnostic.rule === noInlineStylesRule.id && !!diagnostic.file && !!diagnostic.line && !!diagnostic.signature);
 const newStyles = new Set<HyperlintDiagnostic>(newInlineStyles(styleDiagnostics, baseline?.inlineStyles));
 const diagnostics = [
-  ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== 'HL111' || newStyles.has(diagnostic)),
+  ...result.diagnostics.filter((diagnostic) => diagnostic.rule !== noInlineStylesRule.id || newStyles.has(diagnostic)),
   ...(chronolint ? [] : baselineDiagnostics(result.metrics, baseline, loadHyperlinterConfig())),
 ];
 const run = runtime.record({ ...result, diagnostics }, Date.now() - startedAt, startedAt);
@@ -233,44 +240,23 @@ function baselineDiagnostics(
   });
 }
 
+function printTable(columns: readonly string[], rows: readonly (readonly unknown[])[]): void {
+  // A leading '#' marks a right-aligned numeric column.
+  const lines = [columns.map((column) => column.replace(/^#/, '')).join(' | '),
+    columns.map((column) => (column.startsWith('#') ? '---:' : '---')).join(' | '), ...rows.map((row) => row.join(' | '))];
+  process.stdout.write(`${lines.join('\n')}\n`);
+}
+
 function printMetrics(metrics: readonly ModuleMetrics[]): void {
-  process.stdout.write('Module | Public surface | Declarations | Ratio | Dependencies | Dependents | Cross-module refs\n');
-  process.stdout.write('--- | ---: | ---: | ---: | ---: | ---: | ---:\n');
-  for (const metric of metrics) {
-    const ratio = Math.round(metric.publicSurfaceRatio * 100);
-    process.stdout.write(
-      `${metric.module} | ${metric.publicSurface} | ${metric.declarations} | ${ratio}% | ` +
-      `${metric.dependencies} | ${metric.dependents} | ${metric.crossModuleReferences}\n`,
-    );
-  }
+  printTable(['Module', '#Public surface', '#Declarations', '#Ratio', '#Dependencies', '#Dependents', '#Cross-module refs'],
+    metrics.map((metric) => [metric.module, metric.publicSurface, metric.declarations, `${Math.round(metric.publicSurfaceRatio * 100)}%`,
+      metric.dependencies, metric.dependents, metric.crossModuleReferences]));
 }
 
 function printHistory(runs: readonly RuntimeRun[]): void {
-  process.stdout.write('Run | Started | Duration | Revision | Modules | Diagnostics | Errors | Smells\n');
-  process.stdout.write('---: | --- | ---: | --- | ---: | ---: | ---: | ---:\n');
-  for (const run of runs) {
-    const revision = run.revision?.slice(0, 12) ?? 'unknown';
-    const startedAt = new Date(run.startedAt * 1000).toISOString();
-    process.stdout.write(
-      `${run.id} | ${startedAt} | ${run.durationMs}ms | ${revision} | ` +
-      `${run.modules} | ${run.diagnostics} | ${run.errors} | ${run.smells}\n`,
-    );
-  }
-}
-
-function printVerificationHistory(
-  runs: readonly (VerificationRun & { steps: readonly VerificationStep[] })[],
-): void {
-  if (runs.length === 0) return;
-  process.stdout.write('\nVerification run | Status | Duration | Revision | Host | Steps\n');
-  process.stdout.write('---: | --- | ---: | --- | --- | ---:\n');
-  for (const run of runs) {
-    const revision = run.revision?.slice(0, 12) ?? 'unknown';
-    const status = run.status;
-    const duration = run.durationMs === null ? 'running' : `${run.durationMs}ms`;
-    const host = run.host?.hostname ?? 'unknown';
-    process.stdout.write(`${run.id} | ${status} | ${duration} | ${revision} | ${host} | ${run.steps.length}\n`);
-  }
+  printTable(['#Run', 'Started', '#Duration', 'Revision', '#Modules', '#Diagnostics', '#Errors', '#Smells'],
+    runs.map((run) => [run.id, new Date(run.startedAt * 1000).toISOString(), `${run.durationMs}ms`, run.revision?.slice(0, 12) ?? 'unknown',
+      run.modules, run.diagnostics, run.errors, run.smells]));
 }
 
 function formatDiagnostic(diagnostic: HyperlintDiagnostic): string {

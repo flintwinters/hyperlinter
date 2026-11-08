@@ -1,11 +1,11 @@
 import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { HyperlinterConfig } from '../../config';
-import type { ProjectModel } from '../../project';
+import type { StructuralModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
-export const publicSurfaceRule: HyperlintRule = {
+export const publicSurfaceRule: HyperlintRule<StructuralModel> = {
   id: 'HL102',
-  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+  analyze(project: StructuralModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     return project.getModules().flatMap((module) => {
       const unused = project.getPublicSurface(module)
         .filter((entry) => entry.externalReferences === 0);

@@ -1,13 +1,13 @@
 import { cycleWitness, stronglyConnectedComponents } from '../../graphs';
 import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { HyperlinterConfig } from '../../config';
-import { type ProjectModel } from '../../project';
+import type { StructuralModel } from '../../project';
 
 import type { HyperlintRule } from '../contracts';
 
-export const dependencyCyclesRule: HyperlintRule = {
+export const dependencyCyclesRule: HyperlintRule<StructuralModel> = {
   id: 'HL101',
-  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+  analyze(project: StructuralModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     const graph = new Map([...project.getDependencyGraph().dependencies].map(([id, targets]) => [id, new Set(targets)]));
     return stronglyConnectedComponents(graph)
       .filter((component) => component.length > 1)

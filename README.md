@@ -2,9 +2,27 @@
 
 Project website: [typie hyperlinter](https://flintwinters.github.io/hyperlinter/).
 
-Hyperlinter is a TypeScript linter for code and repository structure. It uses
-the TypeScript compiler graph to report dependency cycles, unused public
-exports, and coupling outliers, and also checks local source patterns.
+Hyperlinter is a linter for code and repository structure in TypeScript and
+Rust. It uses the TypeScript compiler graph, or Rust syntax and Cargo targets,
+to report dependency cycles, unused public exports, and coupling outliers, and
+also checks local source patterns.
+
+### Rust
+
+When the target root contains authored Cargo packages (Git-tracked or untracked
+but not ignored `Cargo.toml` files), module-structure rules also run on Rust:
+dependency cycles, unused public surface, public-surface limits, entrypoint
+boundaries, directory file limits, single-declaration public files, and
+coupling. A directory module's entrypoint is `mod.rs`, `lib.rs`, `main.rs`
+(without a sibling `lib.rs`), or `name.rs` beside a `name/` directory. Each
+other Cargo target root (extra binaries, tests, benches, examples) is its own
+module, because Cargo requires those roots to stay flat. Evidence is syntactic
+(tree-sitter): `crate::`, `self::`, `super::`, child-module, `use`-alias and
+workspace-crate paths are resolved, including inside macro token trees. It
+does not see paths through external crates, macro-generated items, `#[path]`
+modules, or custom `[[bin]]`/`[[test]]` paths. Function-call, dead-code,
+cohesion, clone, style and semantic analysis remain TypeScript-only. Repositories
+with both a `tsconfig.json` and Cargo packages are analyzed in both languages.
 
 ## Add to a project
 

@@ -16,10 +16,11 @@ const commands: readonly Command[] = [
     arguments: [], json: true, writes: ['overview.png', 'evidence.json', 'summary.json', 'axis-samples.json',
       'residual.png', 'residual-samples.json', 'target-private reference projections'],
     requires: ['Git metadata', 'semantic embedding cache', 'Python with reporting dependencies'], network: false },
-  { flag: null, description: 'Audit static structure, function-call cycles and generation gaps, and local chronology; apply local baselines.',
-    arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true },
+  { flag: null, description: 'Audit module structure (TypeScript and Rust), TypeScript function-call, clone and style evidence, '
+      + 'and local chronology; apply local baselines.',
+    arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json or Cargo.toml', 'Git metadata'], network: true },
   { flag: '--chronolint', description: 'Analyze local Git co-change evidence only; unavailable history fails.',
-    arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json', 'Git history'], network: true },
+    arguments: [], json: true, writes: ['evidence'], requires: ['tsconfig.json or Cargo.toml', 'Git history'], network: true },
   { flag: '--history', description: 'Read recorded audit evidence; initialize the ledger if absent.',
     arguments: [], json: true, writes: ['ledger initialization'], requires: ['Git metadata'], network: true },
   { flag: '--check-colors', description: 'Inventory literal color files and enforce the optional project cap.',
@@ -40,7 +41,7 @@ const commands: readonly Command[] = [
   { flag: '--fix-private-exports', description: 'Audit, privatize eligible unused exports, then reanalyze changed source.',
     arguments: [], json: true, writes: ['source', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true, modifiesAudit: true },
   { flag: '--write-baseline', description: 'Audit and replace the local public-surface baseline; changes enforcement policy.',
-    arguments: [], json: true, writes: ['baseline', 'evidence'], requires: ['tsconfig.json', 'Git metadata'], network: true, modifiesAudit: true },
+    arguments: [], json: true, writes: ['baseline', 'evidence'], requires: ['tsconfig.json or Cargo.toml', 'Git metadata'], network: true, modifiesAudit: true },
   { flag: '--write-inline-style-baseline', description: 'Replace the local inline-style baseline; changes enforcement policy.',
     arguments: [], json: true, writes: ['baseline'], requires: ['tsconfig.json', 'Git metadata'], network: true },
   { flag: '--build-embeddings', description: 'Audit and refresh the optional semantic cache using configured embeddings; '

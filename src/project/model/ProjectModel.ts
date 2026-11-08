@@ -3,43 +3,23 @@ import ts from 'typescript';
 import { isSourceDirectory } from '../files';
 
 import type { ModuleGraph, ModuleId } from './ModuleGraph';
+import {
+  buildModuleGraph, moduleMetrics, type LanguageProfile, type ModuleFileMetrics, type ModuleMetrics,
+  type PrivateModuleImport, type PublicName, type StructuralModel, type StructuralModule,
+} from './StructuralModel';
 
-export interface ProjectModule {
-  id: ModuleId;
+export interface ProjectModule extends StructuralModule {
   sourceFiles: readonly ts.SourceFile[];
   entryPoint: ts.SourceFile | null;
 }
 
-export interface ModuleFileMetrics {
-  file: string;
-  declarations: number;
-  exports: number;
-}
-
-export interface PrivateModuleImport {
-  module: ModuleId;
-  file: string;
-  targetModule: ModuleId;
-  targetFile: string;
-}
-
-export interface PublicSymbol {
-  name: string;
+export interface PublicSymbol extends PublicName {
   symbol: ts.Symbol;
-  externalReferences: number;
 }
 
-export interface ModuleMetrics {
-  module: ModuleId;
-  declarations: number;
-  publicSurface: number;
-  publicSurfaceRatio: number;
-  dependencies: number;
-  dependents: number;
-  crossModuleReferences: number;
-}
-
-export class ProjectModel {
+/** TypeScript compiler evidence; also satisfies the language-neutral structural contract. */
+export class ProjectModel implements StructuralModel {
+  readonly language: LanguageProfile = { name: 'typescript', entrypoint: 'index' };
   readonly program: ts.Program;
   readonly checker: ts.TypeChecker;
   private readonly rootDir: string;
@@ -68,9 +48,11 @@ export class ProjectModel {
     }
     for (const [id, files] of filesByModule) {
       const entryPoints = files.filter((file) => this.isEntryPoint(file));
+      const sourceFiles = files.sort((left, right) => left.fileName.localeCompare(right.fileName));
       this.modulesById.set(id, {
         id,
-        sourceFiles: files.sort((left, right) => left.fileName.localeCompare(right.fileName)),
+        files: sourceFiles.map((file) => file.fileName),
+        sourceFiles,
         entryPoint: entryPoints.length === 1 ? entryPoints[0] : null,
       });
     }
@@ -106,26 +88,26 @@ export class ProjectModel {
     return this.rootDir;
   }
 
-  getImports(module: ProjectModule | ModuleId): readonly ModuleId[] {
+  getImports(module: StructuralModule | ModuleId): readonly ModuleId[] {
     return this.graph.dependencies.get(this.moduleIdOf(module)) ?? [];
   }
 
-  getDependents(module: ProjectModule | ModuleId): readonly ModuleId[] {
+  getDependents(module: StructuralModule | ModuleId): readonly ModuleId[] {
     return this.graph.dependents.get(this.moduleIdOf(module)) ?? [];
   }
 
-  getExports(module: ProjectModule | ModuleId): readonly PublicSymbol[] {
+  getExports(module: StructuralModule | ModuleId): readonly PublicSymbol[] {
     const projectModule = this.getModule(module);
     if (!projectModule) return [];
     return this.exportsOfFiles(projectModule.sourceFiles);
   }
 
-  getPublicSurface(module: ProjectModule | ModuleId): readonly PublicSymbol[] {
+  getPublicSurface(module: StructuralModule | ModuleId): readonly PublicSymbol[] {
     const projectModule = this.getModule(module);
     return projectModule?.entryPoint ? this.exportsOfFiles([projectModule.entryPoint]) : [];
   }
 
-  getFileMetrics(module: ProjectModule | ModuleId): readonly ModuleFileMetrics[] {
+  getFileMetrics(module: StructuralModule | ModuleId): readonly ModuleFileMetrics[] {
     const projectModule = this.getModule(module);
     if (!projectModule) return [];
     return projectModule.sourceFiles.map((sourceFile) => ({
@@ -135,7 +117,7 @@ export class ProjectModel {
     }));
   }
 
-  getEntrypointFiles(module: ProjectModule | ModuleId): readonly string[] {
+  getEntrypointFiles(module: StructuralModule | ModuleId): readonly string[] {
     const projectModule = this.getModule(module);
     if (!projectModule) return [];
     return projectModule.sourceFiles
@@ -194,23 +176,11 @@ export class ProjectModel {
     return this.graph;
   }
 
-  getMetrics(module: ProjectModule | ModuleId): ModuleMetrics {
+  getMetrics(module: StructuralModule | ModuleId): ModuleMetrics {
     const projectModule = this.getModule(module);
     if (!projectModule) throw new Error(`Unknown module: ${this.moduleIdOf(module)}`);
-    const declarations = this.topLevelSymbolsAcross(projectModule.sourceFiles).size;
-    const publicSurface = this.getPublicSurface(projectModule).length;
-    const imports = this.getImports(projectModule);
-    const references = this.crossModuleReferenceCount(projectModule);
-
-    return {
-      module: projectModule.id,
-      declarations,
-      publicSurface,
-      publicSurfaceRatio: declarations === 0 ? 0 : publicSurface / declarations,
-      dependencies: imports.length,
-      dependents: this.getDependents(projectModule).length,
-      crossModuleReferences: references,
-    };
+    return moduleMetrics(this, projectModule.id, this.topLevelSymbolsAcross(projectModule.sourceFiles).size,
+      this.crossModuleReferenceCount(projectModule));
   }
 
   getAllMetrics(): readonly ModuleMetrics[] {
@@ -238,14 +208,7 @@ export class ProjectModel {
   }
 
   private buildGraph(): ModuleGraph {
-    const dependencies = new Map([...this.modulesById.keys()].map((id) => [id, new Set<ModuleId>()]));
-    const dependents = new Map([...this.modulesById.keys()].map((id) => [id, new Set<ModuleId>()]));
-    for (const { module, target } of this.importEdges()) {
-      dependencies.get(module.id)!.add(target.id);
-      dependents.get(target.id)!.add(module.id);
-    }
-    const sorted = (map: Map<ModuleId, Set<ModuleId>>) => new Map([...map].map(([id, values]) => [id, [...values].sort()]));
-    return { dependencies: sorted(dependencies), dependents: sorted(dependents) };
+    return buildModuleGraph(this.modulesById.keys(), this.importEdges().map(({ module, target }) => [module.id, target.id]));
   }
 
   private indexExternalReferences(): void {
@@ -311,11 +274,11 @@ export class ProjectModel {
     return symbols;
   }
 
-  private getModule(module: ProjectModule | ModuleId): ProjectModule | undefined {
-    return typeof module === 'string' ? this.modulesById.get(module) : module;
+  private getModule(module: StructuralModule | ModuleId): ProjectModule | undefined {
+    return this.modulesById.get(this.moduleIdOf(module));
   }
 
-  private moduleIdOf(module: ProjectModule | ModuleId): ModuleId {
+  private moduleIdOf(module: StructuralModule | ModuleId): ModuleId {
     return typeof module === 'string' ? module : module.id;
   }
 

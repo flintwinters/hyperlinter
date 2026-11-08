@@ -1,30 +1,35 @@
 import { semanticFunctions, semanticClustering, updateEmbeddingIndex } from './semantic';
-import { ProjectModel } from './project';
+import { loadProjects, type LoadedProjects } from './project';
 
 import { projectStatePath, type HyperlintResult } from './runtime';
 import type { HyperlintDiagnostic } from './diagnostics';
 import { loadHyperlinterConfig } from './config';
 
-import { rules } from './rules';
+import { repositoryRules, structuralRules, typescriptRules } from './rules';
 import { moduleScoreDiagnostics } from './scoring';
 import { analyzeProjectChronology } from './chronolint';
 import type { ChronologyEvidence } from './temporal';
 
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
-  const project = ProjectModel.fromTsConfig(tsconfigPath);
-  return analyzeProject(project, buildEmbeddings);
+  return analyzeProjects(await loadProjects(tsconfigPath), buildEmbeddings);
 }
 
-/** Execute analysis against one prepared compiler model and its project policy. */
-async function analyzeProject(project: ProjectModel, buildEmbeddings: boolean): Promise<HyperlintResult> {
-  const config = loadHyperlinterConfig(undefined, project.getRootDir());
-  const diagnostics = rules.filter(rule => !config.disabledRules.includes(rule.id))
-    .flatMap((rule) => rule.analyze(project, config));
-  if (config.semantic.enabled || buildEmbeddings) {
+/** Execute analysis against every prepared language model and the root's project policy. */
+async function analyzeProjects(
+  { rootDir, typescript, models }: LoadedProjects, buildEmbeddings: boolean,
+): Promise<HyperlintResult> {
+  const config = loadHyperlinterConfig(undefined, rootDir);
+  const enabled = <Rule extends { id: string }>(entries: readonly Rule[]) => entries.filter(rule => !config.disabledRules.includes(rule.id));
+  const diagnostics = [
+    ...enabled(repositoryRules).flatMap((rule) => rule.analyze(models[0], config)),
+    ...models.flatMap((model) => enabled(structuralRules).flatMap((rule) => rule.analyze(model, config))),
+    ...(typescript ? enabled(typescriptRules).flatMap((rule) => rule.analyze(typescript, config)) : []),
+  ];
+  if (typescript && (config.semantic.enabled || buildEmbeddings)) {
     try {
-      const functions = semanticFunctions(project);
+      const functions = semanticFunctions(typescript);
       const vectors = await updateEmbeddingIndex(functions, config.semantic.model,
-        projectStatePath(project.getRootDir(), 'semantic-embeddings.json'));
+        projectStatePath(rootDir, 'semantic-embeddings.json'));
       diagnostics.push(...semanticClustering(functions, vectors, config.semantic));
     } catch (error) {
       if (buildEmbeddings) throw error;
@@ -35,7 +40,7 @@ async function analyzeProject(project: ProjectModel, buildEmbeddings: boolean): 
   }
   let chronology: ChronologyEvidence | undefined;
   try {
-    const temporal = analyzeProjectChronology(project, config.chronolint);
+    const temporal = analyzeProjectChronology(models, config.chronolint);
     chronology = temporal.chronology;
     diagnostics.push(...temporal.diagnostics);
   } catch (error) {
@@ -46,6 +51,6 @@ async function analyzeProject(project: ProjectModel, buildEmbeddings: boolean): 
   return {
     chronology,
     diagnostics: [...diagnostics, ...moduleScoreDiagnostics(diagnostics, config)],
-    metrics: project.getAllMetrics(),
+    metrics: models.flatMap((model) => model.getAllMetrics()),
   };
 }

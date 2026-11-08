@@ -2,7 +2,7 @@
   "name": "hyperlinter",
   "version": "0.1.0",
   "private": true,
-  "description": "Repository-scale TypeScript architecture linter",
+  "description": "Repository-scale TypeScript and Rust architecture linter",
   "type": "module",
   "scripts": {
     "hyperlint": "node --import tsx src/cli.ts",
@@ -13,8 +13,10 @@
   "dependencies": {
     "better-sqlite3": "^13.0.3",
     "css-tree": "^3.2.1",
+    "tree-sitter-rust": "^0.24.0",
     "ts-morph": "^28.0.0",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "web-tree-sitter": "^0.25.10"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",

@@ -1,12 +1,12 @@
 import type { HyperlinterConfig } from '../../config';
 import type { HyperlintDiagnostic } from '../../diagnostics';
-import type { ProjectModel } from '../../project';
+import type { StructuralModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
 /** One-symbol public files are needless architectural boundaries. */
-export const singlePublicMethodRule: HyperlintRule = {
+export const singlePublicMethodRule: HyperlintRule<StructuralModel> = {
   id: 'HL109',
-  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+  analyze(project: StructuralModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     return project.getModules().flatMap((module) => project.getFileMetrics(module)
       .filter((file) => project.getEntrypointFiles(module).includes(file.file))
       .filter((file) => file.declarations === 1 && file.exports === 1)

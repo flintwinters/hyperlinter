@@ -1,11 +1,11 @@
 import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { HyperlinterConfig } from '../../config';
-import type { ModuleMetrics, ProjectModel } from '../../project';
+import type { ModuleMetrics, StructuralModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
-export const moduleCouplingRule: HyperlintRule = {
+export const moduleCouplingRule: HyperlintRule<StructuralModel> = {
   id: 'HL103',
-  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+  analyze(project: StructuralModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
     const metrics = project.getAllMetrics();
     return metrics.flatMap((module) => couplingDiagnostics(module, metrics, config));
   },

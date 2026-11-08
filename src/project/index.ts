@@ -1,4 +1,7 @@
-export { type ModuleMetrics, ProjectModel, type ProjectModule, type PublicSymbol } from './model';
+export {
+  type ModuleMetrics, ProjectModel, type ProjectModule, type PublicSymbol, type StructuralModel,
+} from './model';
+export { loadProjects, type LoadedProjects } from './load';
 export { agentInstructionsMessage, oversizedAgentInstructions } from './agentInstructions';
 export { type ColorLiteral, colorLiterals } from './colorLiterals';
 export { cssFiles } from './files';

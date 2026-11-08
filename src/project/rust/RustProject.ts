@@ -1,0 +1,165 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  buildModuleGraph, moduleMetrics, type LanguageProfile, type ModuleFileMetrics, type ModuleGraph, type ModuleId,
+  type ModuleMetrics, type PrivateModuleImport, type PublicName, type StructuralModel, type StructuralModule,
+} from '../model';
+import { discoverCrates } from './crates';
+import { crateModules, type CrateModules } from './modules';
+import { crateReferences, type RustReference } from './references';
+import { rustFileParser, type RustItem, type ScopeFacts } from './syntax';
+
+interface FileModule {
+  id: ModuleId;
+  entrypoint: boolean;
+}
+
+/**
+ * Rust structural evidence from syntax alone. Modules follow Hyperlinter's
+ * directory convention: `mod.rs`, a library or binary root, or `name.rs` with
+ * a `name/` child directory is the module entrypoint. Each additional Cargo
+ * target root (tests, benches, examples, extra binaries) is its own module
+ * because Cargo requires those roots to stay flat.
+ */
+export class RustProject implements StructuralModel {
+  readonly language: LanguageProfile = { name: 'rust', entrypoint: 'mod.rs, lib.rs, main.rs, or <module>.rs' };
+  private readonly modules = new Map<ModuleId, StructuralModule>();
+  private readonly fileModules = new Map<string, FileModule>();
+  private readonly items = new Map<string, RustItem[]>();
+  private readonly consumers = new Map<ModuleId, Map<string, Set<ModuleId>>>();
+  private readonly globConsumers = new Map<ModuleId, Set<ModuleId>>();
+  private readonly crossReferences = new Map<ModuleId, number>();
+  private readonly privateImports = new Map<string, PrivateModuleImport>();
+  private readonly graph: ModuleGraph;
+
+  private constructor(private readonly rootDir: string, crates: readonly CrateModules[], files: ReadonlyMap<string, ScopeFacts>) {
+    const crateRoots = new Set(crates.map(({ crate }) => crate.root));
+    const parents = new Set(crates.flatMap((modules) => [...modules.parents]));
+    for (const [file, facts] of files) {
+      this.items.set(file, facts.items);
+      this.fileModules.set(file, this.fileModule(file, crateRoots, parents));
+    }
+    for (const [file, { id }] of [...this.fileModules].sort(([left], [right]) => left.localeCompare(right))) {
+      const module = this.modules.get(id) ?? { id, files: [] };
+      this.modules.set(id, { id, files: [...module.files, file] });
+    }
+    const libraries = new Map(crates.flatMap((modules) => modules.crate.library ? [[modules.crate.library, modules] as const] : []));
+    const edges: [ModuleId, ModuleId][] = [];
+    for (const reference of crates.flatMap((modules) => crateReferences(modules, libraries))) {
+      const edge = this.indexReference(reference);
+      if (edge) edges.push(edge);
+    }
+    this.graph = buildModuleGraph(this.modules.keys(), edges);
+  }
+
+  /** Undefined when the repository has no Cargo package with a conventional target. */
+  static async load(rootDir: string): Promise<RustProject | undefined> {
+    const crates = discoverCrates(rootDir);
+    if (!crates.length) return undefined;
+    const parse = await rustFileParser();
+    const files = new Map<string, ScopeFacts>();
+    const facts = (file: string): ScopeFacts => {
+      if (!files.has(file)) files.set(file, parse(fs.readFileSync(file, 'utf8')));
+      return files.get(file)!;
+    };
+    return new RustProject(rootDir, crates.map((crate) => crateModules(crate, facts)), files);
+  }
+
+  getRootDir(): string {
+    return this.rootDir;
+  }
+
+  getModules(): readonly StructuralModule[] {
+    return [...this.modules.values()].sort((left, right) => left.id.localeCompare(right.id));
+  }
+
+  getImports(module: StructuralModule | ModuleId): readonly ModuleId[] {
+    return this.graph.dependencies.get(idOf(module)) ?? [];
+  }
+
+  getDependencyGraph(): ModuleGraph {
+    return this.graph;
+  }
+
+  getPublicSurface(module: StructuralModule | ModuleId): readonly PublicName[] {
+    const id = idOf(module);
+    const names = new Set(this.entrypoints(id).flatMap((file) => this.items.get(file)!.filter((item) => item.public)
+      .map((item) => item.name)));
+    const globs = this.globConsumers.get(id) ?? new Set();
+    return [...names].sort().map((name) => ({
+      name,
+      externalReferences: new Set([...globs, ...(this.consumers.get(id)?.get(name) ?? [])]).size,
+    }));
+  }
+
+  getFileMetrics(module: StructuralModule | ModuleId): readonly ModuleFileMetrics[] {
+    return (this.modules.get(idOf(module))?.files ?? []).map((file) => {
+      const items = this.items.get(file)!;
+      return {
+        file: this.fileId(file),
+        declarations: new Set(items.filter((item) => item.declared).map((item) => item.name)).size,
+        exports: new Set(items.filter((item) => item.public).map((item) => item.name)).size,
+      };
+    });
+  }
+
+  getEntrypointFiles(module: StructuralModule | ModuleId): readonly string[] {
+    return this.entrypoints(idOf(module)).map((file) => this.fileId(file));
+  }
+
+  getPrivateModuleImports(): readonly PrivateModuleImport[] {
+    return [...this.privateImports.values()];
+  }
+
+  getAllMetrics(): readonly ModuleMetrics[] {
+    return this.getModules().map(({ id }) => moduleMetrics(this, id,
+      this.getFileMetrics(id).reduce((total, file) => total + file.declarations, 0), this.crossReferences.get(id) ?? 0));
+  }
+
+  private entrypoints(id: ModuleId): string[] {
+    return (this.modules.get(id)?.files ?? []).filter((file) => this.fileModules.get(file)!.entrypoint);
+  }
+
+  /** Consumers count once per module; a path also uses each module name it traverses. */
+  private indexReference({ from, hops, wildcard }: RustReference): [ModuleId, ModuleId] | undefined {
+    const source = this.fileModules.get(from)!.id;
+    for (const hop of hops) {
+      const owner = this.fileModules.get(hop.file)!.id;
+      if (owner === source || !hop.name) continue;
+      const names = this.consumers.get(owner) ?? new Map<string, Set<ModuleId>>();
+      names.set(hop.name, (names.get(hop.name) ?? new Set()).add(source));
+      this.consumers.set(owner, names);
+    }
+    const target = hops.at(-1)!.file;
+    const { id, entrypoint } = this.fileModules.get(target)!;
+    if (id === source) return undefined;
+    this.crossReferences.set(source, (this.crossReferences.get(source) ?? 0) + 1);
+    if (wildcard) this.globConsumers.set(id, (this.globConsumers.get(id) ?? new Set()).add(source));
+    if (!entrypoint) {
+      const privateImport = { module: source, file: this.fileId(from), targetModule: id, targetFile: this.fileId(target) };
+      this.privateImports.set(`${privateImport.file}\0${privateImport.targetFile}`, privateImport);
+    }
+    return [source, id];
+  }
+
+  private fileModule(file: string, crateRoots: ReadonlySet<string>, parents: ReadonlySet<string>): FileModule {
+    const directory = path.dirname(file);
+    const own = (relative: string): FileModule => ({ id: this.moduleId(relative), entrypoint: true });
+    const base = path.basename(file);
+    const ownsDirectory = base === 'mod.rs' || base === 'lib.rs'
+      || (base === 'main.rs' && !crateRoots.has(path.join(directory, 'lib.rs')));
+    if (crateRoots.has(file) || base === 'mod.rs') return own(ownsDirectory ? directory : file.slice(0, -3));
+    if (parents.has(file)) return own(file.slice(0, -3));
+    return { id: this.moduleId(directory), entrypoint: false };
+  }
+
+  private moduleId(directory: string): ModuleId {
+    return path.relative(this.rootDir, directory).split(path.sep).join('/') || '.';
+  }
+
+  private fileId(file: string): string {
+    return path.relative(this.rootDir, file).split(path.sep).join('/');
+  }
+}
+
+const idOf = (module: StructuralModule | ModuleId): ModuleId => typeof module === 'string' ? module : module.id;

@@ -32,7 +32,10 @@ useful, deterministic feedback.
 ## Architecture and current focus
 
 Compiler evidence, authored-file traversal, and function-call analysis have separate
-project module boundaries. The TypeScript project model owns compiler and reference evidence; registered
+project module boundaries. `StructuralModel` is the language-neutral module contract: the TypeScript
+project model owns compiler and reference evidence, and `project/rust` derives the same contract from
+tree-sitter syntax and Cargo targets. Rules typed over `StructuralModel` run on every language; others stay
+TypeScript-only until a language provides equivalent evidence conservatively. Registered
 rules produce diagnostics (including a 12-file direct ownership limit that pressures flat directories, tests included, into hierarchies), module scoring aggregates pressure, and the CLI
 records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
 without opening target policy or evidence; its catalog owns chronology exclusions.

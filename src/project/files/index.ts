@@ -1,9 +1,11 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
+// `target` is Cargo's build tree; it can hold packaged copies of whole crates.
 const IGNORED_DIRECTORIES = new Set([
   '.git', '.next', 'artifacts', 'build', 'coverage', 'dist', 'node_modules',
-  'out', 'runtime', 'playwright-report', 'test-results',
+  'out', 'runtime', 'playwright-report', 'target', 'test-results',
 ]);
 
 /** CSS and HTML share the same boundary between authored and generated trees. */
@@ -27,6 +29,23 @@ export function sourceFilePaths(root: string, directories: readonly string[]): s
     }
   }
   return files;
+}
+
+/**
+ * Files the repository authors: Git's tracked and unignored files when the root
+ * is in a work tree, so ignored vendored trees (e.g. a Cargo registry) stay out;
+ * otherwise the conventional directory walk.
+ */
+export function authoredFilePaths(root: string): string[] {
+  let listed: string;
+  try {
+    listed = execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+      { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 256 * 1024 * 1024 });
+  } catch {
+    return sourceFilePaths(root, [root]);
+  }
+  return [...new Set(listed.split('\0').filter(Boolean))].map((file) => path.join(root, file))
+    .filter((file) => isSourceDirectory(root, path.dirname(file)) && fs.existsSync(file));
 }
 
 /** Finds source-controlled stylesheets; generated and dependency trees are excluded. */

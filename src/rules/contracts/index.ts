@@ -1,10 +1,11 @@
 import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { HyperlinterConfig } from '../../config';
-import type { ProjectModel } from '../../project';
+import type { ProjectModel, StructuralModel } from '../../project';
 
-export interface HyperlintRule {
+/** Rules typed over `StructuralModel` apply to every language; the default binds TypeScript evidence. */
+export interface HyperlintRule<Model extends StructuralModel = ProjectModel> {
   readonly id: string;
-  analyze(project: ProjectModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[];
+  analyze(project: Model, config: HyperlinterConfig): readonly HyperlintDiagnostic[];
 }
 
 /** Reject ambiguous IDs where rules are registered, before analysis or recording. */

@@ -35,11 +35,10 @@ npm --prefix tools/hyperlint ci --include=dev
 ./tools/hyperlint/node_modules/.bin/tsx tools/hyperlint/src/cli.ts
 ```
 
-Each run checks the installed checkout against `origin`'s default branch using
-`git ls-remote` with a two-second timeout. When upstream updates are available,
-an advisory `INFO` on stderr provides ordered update commands (structured JSON
-in the default output mode). The check never changes files or enforcement status;
-offline checks are silently skipped. Help and discovery do not access the network.
+Hyperlinter never contacts a remote to check for its own updates. Only analysis
+with semantic embeddings enabled may reach a network (the configured provider).
+Update a submodule installation with `git -C tools/hyperlint pull --ff-only`
+followed by `npm --prefix tools/hyperlint ci --include=dev`.
 
 Run the command from the target repository root. It reads that repository's
 `tsconfig.json`, persists local run evidence in `tools/hyperlint/runtime/`, and

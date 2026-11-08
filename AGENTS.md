@@ -39,8 +39,7 @@ TypeScript-only until a language provides equivalent evidence conservatively. Re
 rules produce diagnostics (including a 12-file direct ownership limit that pressures flat directories, tests included, into hierarchies), module scoring aggregates pressure, and the CLI
 records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
 without opening target policy or evidence; its catalog owns chronology exclusions.
-Other CLI runs check the installed Git checkout for upstream updates and emit
-advisory update instructions on stderr without affecting enforcement.
+The CLI never checks remotes for its own updates; only configured semantic embedding may use the network.
 Function-call analysis enforces acyclicity and independently configurable source/test generation gaps on resolved local calls;
 cycles and their callers have no finite generation. Dynamic dispatch and external callback execution remain outside this evidence.
 Dead implementation analysis conservatively roots exports and executable

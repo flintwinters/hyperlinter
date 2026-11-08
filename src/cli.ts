@@ -15,7 +15,7 @@ import { loadHyperlinterConfig, type HyperlinterConfig } from './config';
 import { applyPrivateUnusedExportFixes } from './fixes';
 
 import { colorFileLimitRule, analyzeColorFiles, noInlineStylesRule } from './rules';
-import { cliDiscovery, printCliHelp, hyperlinterUpdateNotice } from './commands';
+import { cliDiscovery, printCliHelp } from './commands';
 import { semanticReport } from './semantic';
 
 interface Baseline {
@@ -48,12 +48,6 @@ if (commandFlags.length > 1 && commandFlags.some(({ modifiesAudit }) => !modifie
   process.stderr.write(`Use one command per invocation; ${commandFlags.map(({ flag }) => flag).join(', ')} cannot combine. `
     + `Only audit modifiers combine: ${cliDiscovery.commands.filter(command => command.modifiesAudit).map(command => command.flag).join(', ')}.\n`);
   process.exit(1);
-}
-const update = hyperlinterUpdateNotice();
-if (update) {
-  const quote = (argument: string) => "'" + argument.replaceAll("'", "'\\''") + "'";
-  process.stderr.write(json ? `${JSON.stringify(update)}\n`
-    : `INFO ${update.code}: ${update.message}\n${update.commands.map(command => command.map(quote).join(' ')).join('\n')}\n`);
 }
 if (arguments_.includes('--semantic-report')) {
   try {

@@ -3,10 +3,14 @@ import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { StructuralModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
-/** A directory module exposes exactly one API boundary file (`index.*` in TypeScript). */
+/**
+ * A directory module exposes exactly one API boundary file (`index.*` in TypeScript). Languages with
+ * compiler-enforced visibility have no such boundary file, so the rule has nothing to say about them.
+ */
 export const moduleEntrypointRule: HyperlintRule<StructuralModel> = {
   id: 'HL108',
   analyze(project: StructuralModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+    if (project.language.boundary === 'visibility') return [];
     return project.getModules().flatMap((module) => {
       const entryPoints = project.getEntrypointFiles(module);
       const diagnostics: HyperlintDiagnostic[] = [];

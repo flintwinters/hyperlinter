@@ -19,7 +19,7 @@ export interface PublicSymbol extends PublicName {
 
 /** TypeScript compiler evidence; also satisfies the language-neutral structural contract. */
 export class ProjectModel implements StructuralModel {
-  readonly language: LanguageProfile = { name: 'typescript', entrypoint: 'index' };
+  readonly language: LanguageProfile = { name: 'typescript', entrypoint: 'index', boundary: 'entrypoint' };
   readonly program: ts.Program;
   readonly checker: ts.TypeChecker;
   private readonly rootDir: string;
@@ -123,6 +123,10 @@ export class ProjectModel implements StructuralModel {
     return projectModule.sourceFiles
       .filter((sourceFile) => this.isEntryPoint(sourceFile))
       .map((sourceFile) => this.fileId(sourceFile.fileName));
+  }
+
+  getOwnedFiles(module: StructuralModule | ModuleId): readonly string[] {
+    return this.getModule(module)?.sourceFiles.map((sourceFile) => this.fileId(sourceFile.fileName)) ?? [];
   }
 
   getPrivateModuleImports(): readonly PrivateModuleImport[] {

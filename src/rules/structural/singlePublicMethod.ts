@@ -3,10 +3,11 @@ import type { HyperlintDiagnostic } from '../../diagnostics';
 import type { StructuralModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
-/** One-symbol public files are needless architectural boundaries. */
+/** One-symbol public files are needless architectural boundaries (only where a file is the boundary). */
 export const singlePublicMethodRule: HyperlintRule<StructuralModel> = {
   id: 'HL109',
   analyze(project: StructuralModel, config: HyperlinterConfig): readonly HyperlintDiagnostic[] {
+    if (project.language.boundary === 'visibility') return [];
     return project.getModules().flatMap((module) => project.getFileMetrics(module)
       .filter((file) => project.getEntrypointFiles(module).includes(file.file))
       .filter((file) => file.declarations === 1 && file.exports === 1)

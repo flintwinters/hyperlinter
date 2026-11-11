@@ -14,6 +14,8 @@ export interface StructuralModel {
   getPublicSurface(module: StructuralModule | ModuleId): readonly PublicName[];
   getFileMetrics(module: StructuralModule | ModuleId): readonly ModuleFileMetrics[];
   getEntrypointFiles(module: StructuralModule | ModuleId): readonly string[];
+  /** Source files the module directly owns, counted against the ownership budget (relative paths). */
+  getOwnedFiles(module: StructuralModule | ModuleId): readonly string[];
   getPrivateModuleImports(): readonly PrivateModuleImport[];
   getAllMetrics(): readonly ModuleMetrics[];
 }
@@ -22,9 +24,16 @@ export interface LanguageProfile {
   name: 'typescript' | 'rust';
   /** How diagnostics name a module's single public boundary file. */
   entrypoint: string;
+  /**
+   * What enforces module encapsulation. `entrypoint` languages (TypeScript) let any exported symbol be
+   * imported from anywhere, so Hyperlinter requires one boundary file per module. `visibility` languages
+   * (Rust) have compiler-checked privacy, so a module's own declarations are its boundary and
+   * entrypoint-shaped rules do not apply.
+   */
+  boundary: 'entrypoint' | 'visibility';
 }
 
-/** A directory-scoped module; `files` are absolute paths in stable order. */
+/** A module of the language's own notion (a directory in TypeScript, a `mod` in Rust); `files` are absolute paths in stable order. */
 export interface StructuralModule {
   id: ModuleId;
   files: readonly string[];

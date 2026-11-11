@@ -1,5 +1,5 @@
 export {
-  type ModuleMetrics, ProjectModel, type ProjectModule, type PublicSymbol, type StructuralModel,
+  type LanguageProfile, type ModuleMetrics, ProjectModel, type ProjectModule, type PublicSymbol, type StructuralModel,
 } from './model';
 export { loadProjects, type LoadedProjects } from './load';
 export { agentInstructionsMessage, oversizedAgentInstructions } from './agentInstructions';

@@ -1,6 +1,6 @@
 import type { HyperlinterConfig } from '../../config';
 import type { HyperlintDiagnostic } from '../../diagnostics';
-import type { StructuralModel } from '../../project';
+import type { LanguageProfile, StructuralModel } from '../../project';
 import type { HyperlintRule } from '../contracts';
 
 /**
@@ -13,20 +13,25 @@ export const moduleFileLimitRule: HyperlintRule<StructuralModel> = {
     return project.getModules().flatMap((module) => {
       // Entrypoints, styles, generated sources and tests included by the language model are
       // source files too: filename conventions must not bypass the module budget.
-      const count = module.files.length;
+      const count = project.getOwnedFiles(module).length;
       return count > config.moduleFiles.maximum ? [{
         rule: 'HL117',
         severity: config.rules.moduleFileLimit,
         module: module.id,
         score: count,
-        message: moduleFileLimitMessage(count, config.moduleFiles.maximum, project.language.entrypoint),
+        message: moduleFileLimitMessage(count, config.moduleFiles.maximum, project.language),
       }] : [];
     });
   },
 };
 
-function moduleFileLimitMessage(count: number, maximum: number, entrypoint: string): string {
+function moduleFileLimitMessage(count: number, maximum: number, language: LanguageProfile): string {
+  if (language.boundary === 'visibility') {
+    return `Module directly declares ${count} source files (its own plus child modules); maximum is ${maximum}. This limit exists to grow a hierarchy: `
+      + 'group related child modules under a new parent module (name.rs with a name/ directory) and keep each module\'s items private unless a sibling needs them. '
+      + 'Do not merge unrelated modules or pack code into existing files to lower the count.';
+  }
   return `Directory directly owns ${count} source files; maximum is ${maximum}. This limit exists to grow a hierarchy: `
-    + `move groups of related files into subdirectories, each with its own ${entrypoint} entrypoint (tests too, e.g. tests/<area>/). `
+    + `move groups of related files into subdirectories, each with its own ${language.entrypoint} entrypoint (tests too, e.g. tests/<area>/). `
     + 'Do not merge unrelated files or pack code into existing files to lower the count.';
 }

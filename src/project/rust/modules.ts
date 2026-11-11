@@ -16,8 +16,6 @@ export interface CrateModules {
   crate: RustCrate;
   /** Scopes keyed by `a::b` path; the crate root is the empty key. */
   scopes: ReadonlyMap<string, RustScope>;
-  /** Files whose `mod child;` declarations resolved to other files. */
-  parents: ReadonlySet<string>;
 }
 
 export const scopeKey = (segments: readonly string[]): string => segments.join('::');
@@ -28,7 +26,6 @@ export const scopeKey = (segments: readonly string[]): string => segments.join('
  */
 export function crateModules(crate: RustCrate, facts: (file: string) => ScopeFacts): CrateModules {
   const scopes = new Map<string, RustScope>();
-  const parents = new Set<string>();
   const pending: RustScope[] = [{ file: crate.root, path: [], childDirectory: path.dirname(crate.root), facts: facts(crate.root) }];
   while (pending.length) {
     const scope = pending.pop()!;
@@ -43,10 +40,9 @@ export function crateModules(crate: RustCrate, facts: (file: string) => ScopeFac
       const file = [path.join(scope.childDirectory, `${name}.rs`), path.join(scope.childDirectory, name, 'mod.rs')]
         .find((candidate) => fs.existsSync(candidate));
       if (!file) continue;
-      parents.add(scope.file);
       const childDirectory = path.basename(file) === 'mod.rs' ? path.dirname(file) : path.join(path.dirname(file), name);
       pending.push({ file, path: childPath, childDirectory, facts: facts(file) });
     }
   }
-  return { crate, scopes, parents };
+  return { crate, scopes };
 }

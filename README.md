@@ -10,6 +10,8 @@ It checks TypeScript and Rust repositories for dependency cycles, unused or over
 
 Baselines live in the target repository's `.git/hyperlinter/`, outside version control, so the agent being constrained cannot quietly loosen its own policy.
 
+The append-only audit ledger also lives there as `hyperlint.sqlite` (following Git metadata for worktrees and submodules). Closing SQLite cleans up its journal files. An existing `runtime/hyperlint.sqlite` migrates without copying on the next run, and its directory is removed only if empty. Migration waits while SQLite sidecars exist; filesystems that cannot hard-link to the Git directory retain the legacy location. Existing destination ledgers and unrelated runtime files are never removed.
+
 ```bash
 git submodule add https://github.com/flintwinters/hyperlinter.git tools/hyperlint
 npm --prefix tools/hyperlint ci --include=dev

@@ -23,8 +23,9 @@ useful, deterministic feedback.
   not weaken, suppress, or delete them merely to make a change pass.
 - Keep Hyperlinter self-hosting: TypeScript source should remain analyzable by
   the same principles it applies to target repositories.
-- Preserve the local SQLite evidence ledger as append-only operational data;
-  `runtime/` is intentionally ignored and is not source control history.
+- Preserve the local SQLite evidence ledger as append-only operational data
+  under the target's private Git metadata (`hyperlinter/hyperlint.sqlite`). Legacy
+  runtime ledgers migrate without copying when safe; remove only empty directories.
 - Keep target-project policy out of this repository. Local baselines live in
   the target repository's private `.git/hyperlinter/` directory, never in the
   public submodule. Invoke the tool from the target repository root.

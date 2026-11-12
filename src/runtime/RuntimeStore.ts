@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import type { ChronologyEvidence } from '../temporal';
 import type { HyperlintDiagnostic } from '../diagnostics';
 import type { ModuleMetrics } from '../project';
+import { projectStatePath } from './projectState';
 
 export interface HyperlintResult {
   diagnostics: readonly HyperlintDiagnostic[];
@@ -148,11 +149,34 @@ export class RuntimeStore {
 }
 
 function defaultRuntimeFile(): string {
+  const fileName = projectStatePath(process.cwd(), 'hyperlint.sqlite');
   const submoduleRoot = path.resolve('tools/hyperlint');
-  return path.resolve(
+  const legacy = path.resolve(
     fs.existsSync(submoduleRoot) ? submoduleRoot : process.cwd(),
     'runtime/hyperlint.sqlite',
   );
+  if (fs.existsSync(fileName) || !fs.existsSync(legacy)) return fileName;
+  // A live or uncheckpointed WAL belongs with its database. Let SQLite close it
+  // normally before attempting migration on a subsequent invocation.
+  if (['-wal', '-shm', '-journal'].some(suffix => fs.existsSync(legacy + suffix))) return legacy;
+  fs.mkdirSync(path.dirname(fileName), { recursive: true });
+  try {
+    // Linking is cheap and cannot overwrite an existing destination, even if
+    // another invocation migrated first. Never copy a potentially large ledger.
+    fs.linkSync(legacy, fileName);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'EEXIST') return fileName;
+    if (code === 'EXDEV' || code === 'EPERM' || code === 'EOPNOTSUPP') return legacy;
+    throw error;
+  }
+  fs.unlinkSync(legacy);
+  try {
+    fs.rmdirSync(path.dirname(legacy));
+  } catch (error) {
+    if (!['ENOENT', 'ENOTEMPTY', 'EEXIST'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+  }
+  return fileName;
 }
 
 function toDiagnosticRow(runId: number, diagnostic: HyperlintDiagnostic) {

@@ -51,11 +51,13 @@ remain independent; dynamic dispatch and external callback execution remain outs
 Dead implementation analysis conservatively roots exports and executable
 references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.
-Coupling preserves raw fan-in as reach/reuse evidence; it flags fan-in only alongside
-outward coupling concentration. Shared data and utility leaves should remain reusable;
-fan-out, distinct authored-contract breadth, public-surface and cohesion pressure
-remain independent. Repeated references retain frequency evidence without inflating
-coupling breadth. Historical observations never invent newly introduced metrics.
+Coupling emits one concentration diagnostic only when module reach and distinct
+authored-contract breadth are both outliers; high fan-in then adds impact. Isolated
+axes remain review evidence, not proof of safety: this favors precision over detecting
+every wide thin or deep single-provider dependency. Public-surface, cohesion and cycle
+rules remain independent; adaptive distributions can still shift with module boundaries.
+Repeated references retain frequency evidence without inflating coupling breadth.
+Historical observations never invent newly introduced metrics.
 Regular analysis includes chronolint, which reads pinned first-parent Git snapshots through `history`;
 `temporal` owns pure advisory correlation and evidence. Dedicated chronology
 and regular runs record provenance; unavailable history is advisory in regular

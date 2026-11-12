@@ -29,26 +29,26 @@ function couplingDiagnostics(
   outliers: { fanIn: ReadonlySet<number>; fanOut: ReadonlySet<number>; references: ReadonlySet<number> },
   config: HyperlinterConfig,
 ): HyperlintDiagnostic[] {
-  const diagnostics: HyperlintDiagnostic[] = [];
-  const outward = outliers.fanOut.has(module.dependencies) || outliers.references.has(module.referencedContracts);
-  // Fan-in measures change reach and reuse. A shared data/utility leaf need not
-  // be split merely because it is popular; a widely used orchestration hub is
-  // risky because changes in its many dependencies propagate to those users.
-  const measures = [
-    ['fan-in', module.dependents, outward && outliers.fanIn.has(module.dependents)],
-    ['fan-out', module.dependencies, outliers.fanOut.has(module.dependencies)],
-    ['referenced contracts', module.referencedContracts, outliers.references.has(module.referencedContracts)],
-  ] as const;
-  for (const [label, value, isOutlier] of measures) {
-    if (isOutlier) {
-      diagnostics.push({
-        rule: 'HL103',
-        severity: config.rules.couplingOutliers,
-        module: module.module,
-        score: value,
-        message: `${label} of ${value} is a repository outlier.${label === 'fan-in' ? ' Outward coupling is also concentrated in this module.' : ''}`,
-      });
-    }
+  // Broad module reach and broad contract knowledge corroborate concentration.
+  // Neither relative outlier alone establishes a consumer architecture defect.
+  if (!outliers.fanOut.has(module.dependencies) || !outliers.references.has(module.referencedContracts)) return [];
+  const diagnostics: HyperlintDiagnostic[] = [{
+    rule: 'HL103',
+    severity: config.rules.couplingOutliers,
+    module: module.module,
+    score: module.referencedContracts,
+    message: `Outward coupling concentration: fan-out of ${module.dependencies} and ${module.referencedContracts} referenced contracts are both repository outliers.`,
+  }];
+  // Reach increases the impact of an already corroborated concentration; the
+  // two correlated outward measurements produce one diagnostic, not two votes.
+  if (outliers.fanIn.has(module.dependents)) {
+    diagnostics.push({
+      rule: 'HL103',
+      severity: config.rules.couplingOutliers,
+      module: module.module,
+      score: module.dependents,
+      message: `fan-in of ${module.dependents} is a repository outlier. Outward coupling is also concentrated in this module.`,
+    });
   }
   return diagnostics;
 }

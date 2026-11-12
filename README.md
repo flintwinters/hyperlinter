@@ -8,12 +8,16 @@ Hyperlinter is a structural linter for code written by coding agents. Agents ten
 
 It checks TypeScript and Rust repositories for dependency cycles, unused or oversized public APIs, imports that bypass a module's entrypoint, overfull directories, and coupling outliers. In TypeScript it also checks function call cycles, dead code, and duplicated logic. Output is JSON by default, for agents; `--format=text` is for people. `--help` lists every command.
 
-Coupling distinguishes reuse from orchestration. Raw fan-in remains visible as
-change-reach evidence; it becomes a smell when the same module also concentrates
-outward coupling. Shared data types and utility leaves need not be duplicated or
-split merely because many modules use them. Fan-out and distinct referenced-contract
-outliers are checked independently, while public-surface and cohesion rules
-continue to assess overloaded APIs. Repeating one API is frequency, not additional
+Coupling requires corroborated breadth concentration: fan-out and distinct
+referenced-contract counts must both be repository outliers. Their joint evidence
+produces one diagnostic, rather than double-scoring correlated measurements.
+Outlier fan-in adds reach/impact only for that concentration. Isolated axes stay
+visible in metrics for review. Wide thin orchestration and deep single-provider
+coupling can still be risky; this deliberately favors precision over detecting
+every such case, because neither relative outlier alone establishes an architectural
+defect. Public-surface, cohesion and cycle rules remain independent. Repository
+outlier distributions remain adaptive, not invariant under module extraction.
+Repeating one API is frequency, not additional
 coupling breadth: reports and the ledger retain `crossModuleReferences` alongside
 `referencedContracts`. Only authored modules contribute; standard libraries and
 installed packages have no repository owner. TypeScript resolves aliases and groups

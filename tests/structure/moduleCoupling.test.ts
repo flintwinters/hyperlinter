@@ -9,7 +9,7 @@ import { RustProject } from '../../src/project/rust';
 import { moduleCouplingRule } from '../../src/rules/structural';
 
 const config = loadHyperlinterConfig();
-type Shape = 'data' | 'leaf' | 'hub' | 'references' | 'contracts' | 'unpopular';
+type Shape = 'data' | 'leaf' | 'hub' | 'references' | 'contracts' | 'unpopular' | 'thin';
 
 /** The same dependency shapes exercise both language implementations of the metric contract. */
 async function fixture(t: TestContext, language: 'typescript' | 'rust', shape: Shape): Promise<StructuralModel> {
@@ -38,7 +38,7 @@ async function fixture(t: TestContext, language: 'typescript' | 'rust', shape: S
   }
   let shared = rust ? 'pub struct Data { pub value: i32 }' : 'export interface Data { value: number }';
   if (shape !== 'data') {
-    const count = shape === 'hub' || shape === 'unpopular' ? 12 : shape === 'references' ? 32 : 0;
+    const count = shape === 'hub' || shape === 'unpopular' || shape === 'thin' ? 12 : shape === 'references' ? 32 : 0;
     const imports = !rust && count ? Array.from({ length: shape === 'references' ? 1 : count }, (_, i) =>
       `import { part as part${i} } from "../dependency${i}";`).join('\n') : '';
     const calls = Array.from({ length: count }, (_, i) => {
@@ -54,13 +54,25 @@ async function fixture(t: TestContext, language: 'typescript' | 'rust', shape: S
       shared = independentImports + (rust ? `pub fn run() -> i32 { ${independentCalls} }` : `export function run() { return ${independentCalls}; }`);
     } else shared = imports + (rust ? `pub fn run() -> i32 { ${calls} }` : `export function run() { return ${calls}; }`);
   }
+  if (shape === 'thin') {
+    // Broad single-provider clients make this shared module's contract breadth
+    // ordinary, while its twelve provider modules remain a fan-out outlier.
+    for (let i = 0; i < 12; i += 1) {
+      writeModule(`dependency${i}`, Array.from({ length: 32 }, (_, n) => rust
+        ? `pub fn api${n}() -> i32 { 1 }` : `export function api${n}() { return 1; }`).join('\n')
+        + (rust ? '\npub fn part() -> i32 { 1 }' : '\nexport function part() { return 1; }'));
+      const calls = Array.from({ length: 32 }, (_, n) => rust ? `crate::dependency${i}::api${n}()` : `api${n}()`).join(' + ');
+      writeModule(`client${i}`, rust ? `pub fn consume() -> i32 { crate::shared::run() + ${calls} }`
+        : `import { run } from "../shared"; import { ${Array.from({ length: 32 }, (_, n) => `api${n}`).join(', ')} } from "../dependency${i}"; export function consume() { return run() + ${calls}; }`);
+    }
+  }
   writeModule('shared', shared);
   return rust ? (await RustProject.load(root))! : ProjectModel.fromTsConfig(path.join(root, 'tsconfig.json'));
 }
 
 for (const language of ['typescript', 'rust'] as const) {
-  for (const shape of ['data', 'leaf', 'references'] as const) {
-    test(`${language}: widely reused ${shape} leaves retain raw fan-in without a coupling smell`, async (t) => {
+  for (const shape of ['data', 'leaf', 'references', 'contracts', 'thin'] as const) {
+    test(`${language}: ${shape} retains isolated coupling evidence without an actionable concentration`, async (t) => {
       const project = await fixture(t, language, shape);
       const before = project.getAllMetrics();
       assert.equal(before.find((module) => module.module.endsWith('shared'))!.dependents, 12);
@@ -69,17 +81,27 @@ for (const language of ['typescript', 'rust'] as const) {
         assert.ok(shared.crossModuleReferences >= 32);
         assert.equal(shared.referencedContracts, 1);
       }
+      const shared = before.find((module) => module.module.endsWith('shared'))!;
+      if (shape === 'contracts') {
+        assert.equal(shared.dependencies, 1);
+        assert.equal(shared.referencedContracts, 32);
+      }
+      if (shape === 'thin') {
+        assert.equal(shared.dependencies, 12);
+        assert.equal(shared.referencedContracts, 12);
+        assert.ok(before.filter((module) => module.referencedContracts > shared.referencedContracts).length >= 12);
+      }
       assert.deepEqual(moduleCouplingRule.analyze(project, config), []);
       assert.deepEqual(project.getAllMetrics(), before, 'policy must not alter raw structural evidence');
     });
   }
-  for (const shape of ['hub', 'contracts', 'unpopular'] as const) {
+  for (const shape of ['hub', 'unpopular'] as const) {
     test(`${language}: ${shape} retains outward coupling pressure and contextual fan-in`, async (t) => {
       const project = await fixture(t, language, shape);
       const findings = moduleCouplingRule.analyze(project, config);
-      const labels = findings.map((finding) => finding.message.split(' of ')[0]);
-      assert.deepEqual(labels, shape === 'hub' ? ['fan-in', 'fan-out', 'referenced contracts']
-        : shape === 'contracts' ? ['fan-in', 'referenced contracts'] : ['fan-out', 'referenced contracts']);
+      assert.equal(findings.length, shape === 'hub' ? 2 : 1);
+      assert.match(findings[0].message, /Outward coupling concentration: fan-out of 12 and 12 referenced contracts/);
+      assert.equal(findings[0].score, 12);
       assert.ok(findings.every((finding) => finding.module?.endsWith('shared')));
       assert.ok(findings.filter((finding) => finding.message.startsWith('fan-in')).every((finding) =>
         finding.message.includes('Outward coupling')));

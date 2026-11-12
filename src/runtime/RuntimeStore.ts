@@ -70,11 +70,17 @@ export class RuntimeStore {
         public_surface_ratio REAL NOT NULL,
         dependencies INTEGER NOT NULL,
         dependents INTEGER NOT NULL,
-        cross_module_references INTEGER NOT NULL
+        cross_module_references INTEGER NOT NULL,
+        referenced_contracts INTEGER
       );
       CREATE INDEX IF NOT EXISTS diagnostics_by_run ON diagnostics(run_id);
       CREATE INDEX IF NOT EXISTS module_metrics_by_module ON module_metrics(module);
     `);
+    const columns = this.database.pragma('table_info(module_metrics)') as { name: string }[];
+    if (!columns.some((column) => column.name === 'referenced_contracts')) {
+      // Old observations did not measure breadth. Preserve them as unknown.
+      this.database.exec('ALTER TABLE module_metrics ADD COLUMN referenced_contracts INTEGER');
+    }
   }
 
   record(result: HyperlintResult, durationMs: number, startedAt = Date.now()): RuntimeRun {
@@ -99,10 +105,10 @@ export class RuntimeStore {
     const insertMetric = this.database.prepare(`
       INSERT INTO module_metrics (
         run_id, module, declarations, public_surface, public_surface_ratio,
-        dependencies, dependents, cross_module_references
+        dependencies, dependents, cross_module_references, referenced_contracts
       ) VALUES (
         @runId, @module, @declarations, @publicSurface, @publicSurfaceRatio,
-        @dependencies, @dependents, @crossModuleReferences
+        @dependencies, @dependents, @crossModuleReferences, @referencedContracts
       )
     `);
 

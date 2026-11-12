@@ -1,0 +1,1 @@
+export { runSourceChecks } from './checks';

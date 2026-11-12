@@ -1,9 +1,9 @@
 import path from 'node:path';
-import { loadHyperlinterConfig, type ChronolintConfig } from './config';
-import { collectHistory } from './history';
-import { loadProjects, type StructuralModel } from './project';
-import { temporalRules, correlationDiagnostics, type ChronologyEvidence } from './temporal';
-import type { HyperlintResult } from './runtime';
+import { loadHyperlinterConfig, type ChronolintConfig } from '../../config';
+import { collectHistory } from '../../history';
+import { loadProjects, type StructuralModel } from '../../project';
+import { temporalRules, correlationDiagnostics, type ChronologyEvidence } from '../../temporal';
+import type { HyperlintResult } from '../../runtime';
 
 export async function analyzeChronolint(tsconfigPath?: string): Promise<HyperlintResult & { chronology: ChronologyEvidence }> {
   const { models } = await loadProjects(tsconfigPath);

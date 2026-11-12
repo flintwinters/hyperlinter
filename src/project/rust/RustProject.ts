@@ -32,6 +32,7 @@ export class RustProject implements StructuralModel {
   private readonly consumers = new Map<ModuleId, Map<string, Set<ModuleId>>>();
   private readonly globConsumers = new Map<ModuleId, Set<ModuleId>>();
   private readonly crossReferences = new Map<ModuleId, number>();
+  private readonly referencedContracts = new Map<ModuleId, Set<string>>();
   private readonly graph: ModuleGraph;
 
   private constructor(private readonly rootDir: string, crates: readonly CrateModules[], files: ReadonlyMap<string, ScopeFacts>) {
@@ -127,7 +128,8 @@ export class RustProject implements StructuralModel {
 
   getAllMetrics(): readonly ModuleMetrics[] {
     return this.getModules().map(({ id }) => moduleMetrics(this, id,
-      this.getFileMetrics(id).reduce((total, file) => total + file.declarations, 0), this.crossReferences.get(id) ?? 0));
+      this.getFileMetrics(id).reduce((total, file) => total + file.declarations, 0), this.crossReferences.get(id) ?? 0,
+      this.referencedContracts.get(id)?.size ?? 0));
   }
 
   private filesOf(id: ModuleId): readonly string[] {
@@ -148,6 +150,8 @@ export class RustProject implements StructuralModel {
     const id = this.fileModules.get(target)!;
     if (id === source) return undefined;
     this.crossReferences.set(source, (this.crossReferences.get(source) ?? 0) + 1);
+    const contract = `${target}::${hops.at(-1)!.name ?? '*'}`;
+    this.referencedContracts.set(source, (this.referencedContracts.get(source) ?? new Set()).add(contract));
     if (wildcard) this.globConsumers.set(id, (this.globConsumers.get(id) ?? new Set()).add(source));
     return [source, id];
   }

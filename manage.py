@@ -25,7 +25,7 @@ def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*
     if command == "test-semantic-report":
         environment = {**os.environ, "HYPERLINTER_REPORT_PYTHON": sys.executable}
         for arguments in (["node", "--import", "tsx", "--test", "--test-concurrency=1",
-                           "tests/cliDiscovery.test.ts", "tests/semantic/semanticReport.test.ts"],
+                           "tests/cliDiscovery.test.ts", "tests/semanticReport/semanticReport.test.ts"],
                           [sys.executable, "scripts/test_semantic_report.py"]):
             result = subprocess.run(arguments, cwd=root, env=environment)
             if result.returncode:
@@ -33,7 +33,7 @@ def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*
         return
     if command == "test-semantic-clustering":
         sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "--test-concurrency=1",
-            "tests/semantic/averageLinkage.test.ts", "tests/semantic/semanticClustering.test.ts"], cwd=root).returncode)
+            "tests/clustering/averageLinkage.test.ts", "tests/semantic/semanticClustering.test.ts"], cwd=root).returncode)
     if command == "impact-audit":
         audit(root, pattern)
         render(root / "artifacts/impact-audit")
@@ -47,8 +47,10 @@ def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*
         sys.exit(subprocess.run(["node", "--import", "tsx", "tests/calls/functionCalls.test.ts"], cwd=root).returncode)
     if command == "test":
         sys.exit(subprocess.run(["npm", "run", "test"], cwd=root).returncode)
+    if command == "lint":
+        sys.exit(subprocess.run(["node", "--import", "tsx", "src/cli.ts"], cwd=root).returncode)
     if command == "test-history":
-        sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/chronology/history.test.ts"], cwd=root).returncode)
+        sys.exit(subprocess.run(["node", "--import", "tsx", "--test", "tests/history/history.test.ts"], cwd=root).returncode)
     if command == "chronolint":
         sys.exit(subprocess.run(["node", "--import", "tsx", "src/cli.ts", "--chronolint"], cwd=root).returncode)
     operations = {"plot-call-gaps": plot_call_gaps, "site-build": build_site, "site-preview": preview_site, "site-install": check_install, "site-live": check_live}
@@ -65,7 +67,7 @@ def main(command: str = typer.Argument(...), pattern: str = typer.Argument("**/*
         operations[command](root)
         return
     if command != "check":
-        sys.exit("Use: python3 manage.py check — verify project; test-semantic-report — offline PNG regressions; test-semantic-clustering — semantic regressions; site-build — compile static StyleX assets; impact-audit [directory|cached] — aggregate local adoption evidence; impact-report — regenerate aggregate exports and reviewed report; test-impact — audit regressions; plot-call-gaps — chart generation-limit violations; test — run all regressions; test-calls — function graph regressions; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
+        sys.exit("Use: python3 manage.py check — verify project; lint — emit self-analysis JSON; test-semantic-report — offline PNG regressions; test-semantic-clustering — semantic regressions; site-build — compile static StyleX assets; impact-audit [directory|cached] — aggregate local adoption evidence; impact-report — regenerate aggregate exports and reviewed report; test-impact — audit regressions; plot-call-gaps — chart generation-limit violations; test — run all regressions; test-calls — function graph regressions; chronolint — historical ownership evidence; test-history — Git adapter regressions; test-debug — direct test diagnostics; site-preview — browser audit; site-install — installation smoke check; site-live — deployed files.")
     try:
         check_site(root)
     except (ValueError, KeyError, OSError) as error:

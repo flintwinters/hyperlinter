@@ -11,9 +11,17 @@ It checks TypeScript and Rust repositories for dependency cycles, unused or over
 Coupling distinguishes reuse from orchestration. Raw fan-in remains visible as
 change-reach evidence; it becomes a smell when the same module also concentrates
 outward coupling. Shared data types and utility leaves need not be duplicated or
-split merely because many modules use them. Fan-out and cross-module reference
+split merely because many modules use them. Fan-out and distinct referenced-contract
 outliers are checked independently, while public-surface and cohesion rules
-continue to assess overloaded APIs.
+continue to assess overloaded APIs. Repeating one API is frequency, not additional
+coupling breadth: reports and the ledger retain `crossModuleReferences` alongside
+`referencedContracts`. Only authored modules contribute; standard libraries and
+installed packages have no repository owner. TypeScript resolves aliases and groups
+members beneath their enclosing declaration. Rust counts distinct resolved
+file/top-level-name paths, grouping variants and import aliases; syntactic facade
+reexports can remain separate contracts. This is structural evidence, not a claim
+of complete compiler-level Rust name resolution. Historical ledger rows predating
+breadth measurement retain NULL (unknown), never a fabricated count.
 
 Baselines live in the target repository's `.git/hyperlinter/`, outside version control, so the agent being constrained cannot quietly loosen its own policy.
 

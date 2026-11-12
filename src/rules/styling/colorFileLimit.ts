@@ -1,8 +1,8 @@
-import { loadColorFilePolicy, type ColorFilePolicy } from '../config';
-import type { HyperlintDiagnostic } from '../diagnostics';
-import { colorLiterals, type ColorLiteral, type ProjectModel } from '../project';
+import { loadColorFilePolicy, type ColorFilePolicy } from '../../config';
+import type { HyperlintDiagnostic } from '../../diagnostics';
+import { colorLiterals, type ColorLiteral, type ProjectModel } from '../../project';
 
-import type { HyperlintRule } from './contracts';
+import type { HyperlintRule } from '../contracts';
 
 interface ColorFile {
   readonly file: string;

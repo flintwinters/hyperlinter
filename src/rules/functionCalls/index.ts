@@ -1,5 +1,5 @@
 import { cycleWitness, stronglyConnectedComponents } from '../../graphs';
-import { functionCallGraph, functionGenerations, isTestFile } from '../../project/calls';
+import { functionCallGraph, moduleGenerationGaps, isTestFile } from '../../project/calls';
 import type { HyperlintRule } from '../contracts';
 
 export const functionCyclesRule: HyperlintRule = {
@@ -27,25 +27,23 @@ export const functionGenerationGapRule: HyperlintRule = {
     const policy = config.functionCalls;
     if (policy.sourceMaximumGenerationGap === false && policy.testMaximumGenerationGap === false) return [];
     const graph = functionCallGraph(project);
-    const generations = functionGenerations(graph);
-    return [...graph.edges].flatMap(([caller, targets]) => [...targets].flatMap(target => {
+    const { generations, edges } = moduleGenerationGaps(graph);
+    return edges.flatMap(({ caller, target, from, to, gap }) => {
       const entry = graph.functions.get(caller)!;
       const maximum = isTestFile(entry.file) ? policy.testMaximumGenerationGap : policy.sourceMaximumGenerationGap;
-      if (maximum === false) return [];
-      const from = generations.get(caller);
-      const to = generations.get(target);
-      if (!from || !to || from.depth - to.depth <= maximum) return [];
+      if (maximum === false || gap <= maximum) return [];
       const destination = graph.functions.get(target)!;
       const chain: string[] = [];
       for (let node: typeof caller | undefined = caller; node; node = generations.get(node)?.next) {
         const step = graph.functions.get(node)!;
         chain.push(`${step.name} (${step.file}:${step.line})`);
+        if (step.module !== entry.module) break;
       }
       return [{ rule: 'HL121', severity: config.rules.functionGenerationGap, module: entry.module,
         file: entry.file, line: graph.sites.get(caller)!.get(target),
         message: `Call ${entry.name} -> ${destination.name} (${destination.file}:${destination.line}) spans `
-          + `${from.depth - to.depth} generations (${from.depth} -> ${to.depth}); maximum ${maximum}. `
+          + `${gap} generations (${from} -> ${to}) within module ${entry.module}; maximum ${maximum}. `
           + `Longest caller chain: ${chain.join(' -> ')}. Move the responsibility to the appropriate generation.` }];
-    }));
+    });
   },
 };

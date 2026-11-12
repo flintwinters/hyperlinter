@@ -65,11 +65,13 @@ export interface ModuleMetrics {
   dependencies: number;
   dependents: number;
   crossModuleReferences: number;
+  /** Distinct referenced authored contracts, independently of occurrence frequency. */
+  referencedContracts: number;
 }
 
 /** Metrics share one derivation so languages cannot disagree on ratios or counts. */
 export function moduleMetrics(
-  model: StructuralModel, module: ModuleId, declarations: number, crossModuleReferences: number,
+  model: StructuralModel, module: ModuleId, declarations: number, crossModuleReferences: number, referencedContracts: number,
 ): ModuleMetrics {
   const publicSurface = model.getPublicSurface(module).length;
   return {
@@ -80,6 +82,7 @@ export function moduleMetrics(
     dependencies: model.getImports(module).length,
     dependents: model.getDependencyGraph().dependents.get(module)?.length ?? 0,
     crossModuleReferences,
+    referencedContracts,
   };
 }
 

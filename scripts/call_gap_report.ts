@@ -1,16 +1,12 @@
 import { ProjectModel } from '../src/project';
-import { functionCallGraph, functionGenerations, isTestFile } from '../src/project/calls';
+import { functionCallGraph, moduleGenerationGaps, isTestFile } from '../src/project/calls';
 
 const graph = functionCallGraph(ProjectModel.fromTsConfig());
-const generations = functionGenerations(graph);
+const { generations, edges } = moduleGenerationGaps(graph);
 const histogram = new Map<number, { source: number; tests: number }>();
-let totalEdges = 0;
-let excludedEdges = 0;
-for (const [caller, targets] of graph.edges) for (const target of targets) {
-  totalEdges++;
-  const from = generations.get(caller), to = generations.get(target);
-  if (!from || !to) { excludedEdges++; continue; }
-  const gap = from.depth - to.depth;
+const totalEdges = [...graph.edges.values()].reduce((count, targets) => count + targets.size, 0);
+const excludedEdges = totalEdges - edges.length;
+for (const { caller, gap } of edges) {
   const bucket = histogram.get(gap) ?? { source: 0, tests: 0 };
   if (isTestFile(graph.functions.get(caller)!.file)) bucket.tests++;
   else bucket.source++;
@@ -23,7 +19,8 @@ const limits = Array.from({ length: maximumGap + 1 }, (_, limit) => {
   return { limit, violations: source + tests, source, tests };
 });
 console.log(JSON.stringify({
-  definition: 'One violation per distinct caller/callee edge whose generation gap exceeds the limit.',
+  scope: 'module',
+  definition: 'One violation per distinct caller/callee edge whose module-local generation gap exceeds the limit; external module interfaces are generation-zero leaves.',
   functions: graph.functions.size, finiteGenerationFunctions: generations.size, totalEdges, excludedEdges,
   maximumGap, limits,
 }, null, 2));

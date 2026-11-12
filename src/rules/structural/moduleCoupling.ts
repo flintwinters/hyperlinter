@@ -11,7 +11,7 @@ export const moduleCouplingRule: HyperlintRule<StructuralModel> = {
     const outliers = {
       fanIn: outlierValues(metrics.map((module) => module.dependents), config),
       fanOut: outlierValues(metrics.map((module) => module.dependencies), config),
-      references: outlierValues(metrics.map((module) => module.crossModuleReferences), config),
+      references: outlierValues(metrics.map((module) => module.referencedContracts), config),
     };
     return metrics.flatMap((module) => couplingDiagnostics(module, outliers, config));
   },
@@ -30,14 +30,14 @@ function couplingDiagnostics(
   config: HyperlinterConfig,
 ): HyperlintDiagnostic[] {
   const diagnostics: HyperlintDiagnostic[] = [];
-  const outward = outliers.fanOut.has(module.dependencies) || outliers.references.has(module.crossModuleReferences);
+  const outward = outliers.fanOut.has(module.dependencies) || outliers.references.has(module.referencedContracts);
   // Fan-in measures change reach and reuse. A shared data/utility leaf need not
   // be split merely because it is popular; a widely used orchestration hub is
   // risky because changes in its many dependencies propagate to those users.
   const measures = [
     ['fan-in', module.dependents, outward && outliers.fanIn.has(module.dependents)],
     ['fan-out', module.dependencies, outliers.fanOut.has(module.dependencies)],
-    ['cross-module references', module.crossModuleReferences, outliers.references.has(module.crossModuleReferences)],
+    ['referenced contracts', module.referencedContracts, outliers.references.has(module.referencedContracts)],
   ] as const;
   for (const [label, value, isOutlier] of measures) {
     if (isOutlier) {

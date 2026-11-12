@@ -183,8 +183,9 @@ export class ProjectModel implements StructuralModel {
   getMetrics(module: StructuralModule | ModuleId): ModuleMetrics {
     const projectModule = this.getModule(module);
     if (!projectModule) throw new Error(`Unknown module: ${this.moduleIdOf(module)}`);
+    const references = this.crossModuleReferences(projectModule);
     return moduleMetrics(this, projectModule.id, this.topLevelSymbolsAcross(projectModule.sourceFiles).size,
-      this.crossModuleReferenceCount(projectModule));
+      references.count, references.contracts);
   }
 
   getAllMetrics(): readonly ModuleMetrics[] {
@@ -223,7 +224,7 @@ export class ProjectModel implements StructuralModel {
             const symbol = this.checker.getSymbolAtLocation(node);
             if (symbol) {
               const target = this.unaliasedSymbol(symbol);
-              if (this.symbolDeclaredOutsideModule(target, projectModule.id)) {
+              if (this.externalDeclaration(target, projectModule.id)) {
                 const references = this.externalReferences.get(target) ?? new Set<ModuleId>();
                 references.add(projectModule.id);
                 this.externalReferences.set(target, references);
@@ -242,17 +243,38 @@ export class ProjectModel implements StructuralModel {
     }
   }
 
-  private crossModuleReferenceCount(projectModule: ProjectModule): number {
+  private crossModuleReferences(projectModule: ProjectModule): { count: number; contracts: number } {
     let count = 0;
+    const contracts = new Set<ts.Node>();
     const visit = (node: ts.Node): void => {
       if (ts.isIdentifier(node) && !this.isDeclarationName(node)) {
         const symbol = this.checker.getSymbolAtLocation(node);
-        if (symbol && this.symbolDeclaredOutsideModule(this.unaliasedSymbol(symbol), projectModule.id)) count += 1;
+        if (symbol) {
+          const resolved = this.unaliasedSymbol(symbol);
+          const declaration = this.externalDeclaration(resolved, projectModule.id);
+          if (declaration) {
+            count += 1;
+            contracts.add(this.contractDeclaration(declaration));
+          }
+        }
       }
       ts.forEachChild(node, visit);
     };
     for (const sourceFile of projectModule.sourceFiles) visit(sourceFile);
-    return count;
+    return { count, contracts: contracts.size };
+  }
+
+  /** Members and variants belong to their enclosing authored contract. */
+  private contractDeclaration(declaration: ts.Declaration): ts.Node {
+    let contract: ts.Node = declaration;
+    while (contract.parent && !ts.isSourceFile(contract.parent) && !ts.isModuleBlock(contract.parent)) {
+      // A variable statement can declare several independent contracts.
+      if (ts.isVariableDeclaration(contract) && ts.isVariableDeclarationList(contract.parent)
+        && ts.isVariableStatement(contract.parent.parent)
+        && (ts.isSourceFile(contract.parent.parent.parent) || ts.isModuleBlock(contract.parent.parent.parent))) break;
+      contract = contract.parent;
+    }
+    return contract;
   }
 
   private topLevelSymbols(sourceFile: ts.SourceFile): Set<ts.Symbol> {
@@ -320,10 +342,14 @@ export class ProjectModel implements StructuralModel {
     return symbol.flags & ts.SymbolFlags.Alias ? this.checker.getAliasedSymbol(symbol) : symbol;
   }
 
-  private symbolDeclaredOutsideModule(symbol: ts.Symbol, moduleId: ModuleId): boolean {
-    return symbol.declarations?.some((declaration) => (
-      this.moduleIdsByFile.get(this.normalizedPath(declaration.getSourceFile().fileName)) !== moduleId
-    )) ?? false;
+  private externalDeclaration(symbol: ts.Symbol, moduleId: ModuleId): ts.Declaration | undefined {
+    return symbol.declarations?.find((declaration) => {
+      const owner = this.moduleIdsByFile.get(this.normalizedPath(declaration.getSourceFile().fileName));
+      // Standard-library and package declarations are not repository modules.
+      // Match the authored-only dependency graph instead of treating undefined
+      // ownership as a foreign module on every built-in method/property access.
+      return owner !== undefined && owner !== moduleId;
+    });
   }
 
   private symbolDeclaredOutsideFile(symbol: ts.Symbol, sourceFile: ts.SourceFile): boolean {

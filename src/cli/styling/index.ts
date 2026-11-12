@@ -1,0 +1,1 @@
+export { runStylingChecks } from './checks';

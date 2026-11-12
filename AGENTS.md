@@ -36,19 +36,26 @@ Compiler evidence, authored-file traversal, and function-call analysis have sepa
 project module boundaries. `StructuralModel` is the language-neutral module contract: the TypeScript
 project model owns compiler and reference evidence, and `project/rust` derives the same contract from
 tree-sitter syntax and Cargo targets. Rules typed over `StructuralModel` run on every language; others stay
-TypeScript-only until a language provides equivalent evidence conservatively. Registered
-rules produce diagnostics (including a 12-file direct ownership limit that pressures flat directories, tests included, into hierarchies), module scoring aggregates pressure, and the CLI
+TypeScript-only until a language provides equivalent evidence conservatively. `analysis`
+composes repository, structural and TypeScript rule groups; `cli` separates source checks,
+audit execution, baseline policy and output. Registered rules produce diagnostics (including a 12-file direct ownership limit that pressures flat directories, tests included, into hierarchies), module scoring aggregates pressure, and the CLI
 records local evidence. CLI discovery (`--help`, `--discover`) exposes static capabilities
 without opening target policy or evidence; its catalog owns chronology exclusions.
 The CLI never checks remotes for its own updates; only configured semantic embedding may use the network.
-Function-call analysis enforces acyclicity and independently configurable source/test generation gaps on resolved local calls;
-cycles and their callers have no finite generation. Dynamic dispatch and external callback execution remain outside this evidence.
+Function-call analysis preserves the global resolved graph for cycle evidence and
+repository-wide generations. Gap enforcement uses module-local generations:
+external module interfaces are terminal generation-zero leaves, so private
+callee depth cannot change the caller's abstraction level. Cycles and their
+callers have no finite generation within the selected scope. Source/test limits
+remain independent; dynamic dispatch and external callback execution remain outside this evidence.
 Dead implementation analysis conservatively roots exports and executable
 references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.
 Coupling preserves raw fan-in as reach/reuse evidence; it flags fan-in only alongside
 outward coupling concentration. Shared data and utility leaves should remain reusable;
-fan-out, reference, public-surface and cohesion pressure remain independent.
+fan-out, distinct authored-contract breadth, public-surface and cohesion pressure
+remain independent. Repeated references retain frequency evidence without inflating
+coupling breadth. Historical observations never invent newly introduced metrics.
 Regular analysis includes chronolint, which reads pinned first-parent Git snapshots through `history`;
 `temporal` owns pure advisory correlation and evidence. Dedicated chronology
 and regular runs record provenance; unavailable history is advisory in regular

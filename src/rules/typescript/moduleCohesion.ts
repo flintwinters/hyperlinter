@@ -1,7 +1,7 @@
-import type { HyperlinterConfig } from '../config';
-import { type ProjectModel, moduleCohesion } from '../project';
+import type { HyperlinterConfig } from '../../config';
+import { type ProjectModel, moduleCohesion } from '../../project';
 
-import type { HyperlintRule } from './contracts';
+import type { HyperlintRule } from '../contracts';
 
 export const moduleCohesionRule: HyperlintRule = {
   id: 'HL115',

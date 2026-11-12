@@ -123,3 +123,33 @@ test('sees dependency cycles between sibling files that share a directory', asyn
   const cycles = (await analyze(path.join(root, 'tsconfig.json'))).diagnostics.filter(({ rule }) => rule === 'HL101');
   assert.equal(cycles.length > 0, true, JSON.stringify(cycles));
 });
+
+test('grouped self imports bind the module name without attributing receiver field access', async (t) => {
+  const root = await workspace(t);
+  writeFileSync(path.join(root, 'app/src/config.rs'), `
+use crate::util::{self, VERSION};
+pub struct Settings { value: usize }
+impl Settings {
+    pub fn inspect(&self) -> usize { self.value + self.value + self.value }
+    pub fn invoke(&self) { util::helper(); }
+}
+`);
+  const project = (await RustProject.load(root))!;
+  assert.deepEqual(project.getImports('app/src/config'), ['app/src/util']);
+  assert.equal(project.getAllMetrics().find(({ module }) => module === 'app/src/config')!.crossModuleReferences, 3,
+    'two use leaves and one util::helper path; receiver access is local');
+  assert.equal(project.getPublicSurface('app/src/util').find(({ name }) => name === 'helper')!.externalReferences, 2);
+});
+
+test('contract breadth deduplicates imported aliases and enum variants', async (t) => {
+  const root = await workspace(t);
+  writeFileSync(path.join(root, 'app/src/util/mod.rs'), 'pub enum Choice { Left, Right } pub fn read() {}');
+  writeFileSync(path.join(root, 'app/src/config.rs'), `
+    use crate::util::{Choice as First, Choice as Second, read as one, read as two};
+    fn consume() { let _ = First::Left; let _ = Second::Right; one(); two(); crate::util::read(); }
+  `);
+  const project = (await RustProject.load(root))!;
+  const metric = project.getAllMetrics().find(({ module }) => module === 'app/src/config')!;
+  assert.equal(metric.referencedContracts, 2);
+  assert.ok(metric.crossModuleReferences > metric.referencedContracts);
+});

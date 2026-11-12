@@ -1,1 +1,1 @@
-export { applyPrivateUnusedExportFixes } from './privateExports';
+export { applyRequestedFixes } from './requested';

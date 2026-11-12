@@ -26,5 +26,13 @@
     "test/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
     "src/check.spec.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }",
     "__tests__/helper.ts": "import { five, leaf } from '../src'; export function exercise() { five(); leaf(); }"
+  },
+  "boundaryShallow": {
+    "provider/index.ts": "export function api() { return 1; }",
+    "consumer/index.ts": "import { api } from '../provider'; function leaf() { return 0; } function middle() { return api(); } export function top() { return middle() + leaf() + api(); }"
+  },
+  "boundaryDeep": {
+    "provider/index.ts": "function zero() { return 1; } function one() { return zero(); } function two() { return one(); } function three() { return two(); } export function api() { return three(); }",
+    "consumer/index.ts": "import { api } from '../provider'; function leaf() { return 0; } function middle() { return api(); } export function top() { return middle() + leaf() + api(); }"
   }
 }

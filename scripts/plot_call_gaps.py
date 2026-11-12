@@ -37,8 +37,8 @@ def plot_call_gaps(root: Path):
     for row in rows:
         ax.annotate(str(row["violations"]), (row["limit"], row["violations"]),
                     xytext=(0, 9), textcoords="offset points", ha="center", fontsize=9)
-    ax.set(title="Hyperlinter: violations by generation-gap limit",
-           xlabel="Maximum permitted generation gap (violation when gap > limit)",
+    ax.set(title="Hyperlinter: violations by module-local generation-gap limit",
+           xlabel="Maximum permitted module-local gap (violation when gap > limit)",
            ylabel="Violating caller/callee pairs", xticks=limits, ylim=(-5, rows[0]["violations"] * 1.12))
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.grid(axis="y", alpha=0.2)

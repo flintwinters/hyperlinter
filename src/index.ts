@@ -1,2 +1,1 @@
-export { analyze } from './runner';
-export { analyzeChronolint } from './chronolint';
+export { analyze, analyzeChronolint } from './analysis';

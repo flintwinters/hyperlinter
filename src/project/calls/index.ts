@@ -42,14 +42,25 @@ export function functionCallGraph(project: ProjectModel): FunctionCallGraph {
   return graph;
 }
 
-/** Leaves are generation zero. Cycles and callers reaching them have no finite generation. */
-export function functionGenerations(graph: FunctionCallGraph): Map<ts.Node, { depth: number; next?: ts.Node }> {
+/** Leaves are generation zero. Module scope ends each external call at an interface leaf.
+ * Cycles and callers reaching them within the selected scope have no finite generation. */
+export function functionGenerations(graph: FunctionCallGraph, scope: 'repository' | 'module' = 'repository'): Map<ts.Node, { depth: number; next?: ts.Node }> {
   const generations = new Map<ts.Node, { depth: number; next?: ts.Node }>();
-  const remaining = new Map([...graph.edges].map(([node, targets]) => [node, targets.size]));
-  const callers = new Map<ts.Node, ts.Node[]>([...graph.edges.keys()].map(node => [node, []]));
-  populateCallers(graph.edges, callers);
+  const edges = new Map<ts.Node, ReadonlySet<ts.Node>>();
+  for (const [caller, targets] of graph.edges) {
+    if (scope === 'repository') { edges.set(caller, targets); continue; }
+    const internal = new Set<ts.Node>();
+    for (const target of targets) {
+      if (graph.functions.get(caller)!.module === graph.functions.get(target)!.module) internal.add(target);
+      else if (!generations.has(caller)) generations.set(caller, { depth: 1, next: target });
+    }
+    edges.set(caller, internal);
+  }
+  const remaining = new Map([...edges].map(([node, targets]) => [node, targets.size]));
+  const callers = new Map<ts.Node, ts.Node[]>([...edges.keys()].map(node => [node, []]));
+  populateCallers(edges, callers);
   const queue = [...remaining].filter(([, count]) => count === 0).map(([node]) => node);
-  for (const node of queue) generations.set(node, { depth: 0 });
+  for (const node of queue) if (!generations.has(node)) generations.set(node, { depth: 0 });
   for (let index = 0; index < queue.length; index++) {
     const node = queue[index];
     for (const caller of callers.get(node)!) {
@@ -61,6 +72,22 @@ export function functionGenerations(graph: FunctionCallGraph): Map<ts.Node, { de
   }
   for (const node of [...remaining].filter(([, count]) => count > 0).map(([node]) => node)) generations.delete(node);
   return generations;
+}
+
+/** One authoritative module-local edge gap for enforcement and sensitivity reports. */
+export function moduleGenerationGaps(graph: FunctionCallGraph) {
+  const generations = functionGenerations(graph, 'module');
+  const edges: { caller: ts.Node; target: ts.Node; from: number; to: number; gap: number }[] = [];
+  for (const [caller, targets] of graph.edges) {
+    const from = generations.get(caller)?.depth;
+    if (from === undefined) continue;
+    for (const target of targets) {
+      const to = graph.functions.get(caller)!.module === graph.functions.get(target)!.module
+        ? generations.get(target)?.depth : 0;
+      if (to !== undefined) edges.push({ caller, target, from, to, gap: from - to });
+    }
+  }
+  return { generations, edges };
 }
 
 function functionName(node: ts.SignatureDeclaration) {

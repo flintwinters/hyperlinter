@@ -4,7 +4,7 @@ import path from 'node:path';
 import test from 'node:test';
 import { loadHyperlinterConfig } from '../../src/config';
 import { ProjectModel } from '../../src/project';
-import { functionCallGraph, functionGenerations, isTestFile } from '../../src/project/calls';
+import { functionCallGraph, functionGenerations, moduleGenerationGaps, isTestFile } from '../../src/project/calls';
 import { functionCyclesRule, functionGenerationGapRule } from '../../src/rules/functionCalls';
 import { cycleWitness, stronglyConnectedComponents } from '../../src/graphs';
 
@@ -33,6 +33,10 @@ test('cycles include self-recursion and cross-module imported aliases with real 
     assert.ok(findings.every(finding => finding.rule === 'HL120' && finding.severity === 'error' && finding.line === 1));
     assert.ok(findings.some(finding => /self .* -> self /.test(finding.message)));
     assert.ok(findings.some(finding => /2 functions/.test(finding.message) && /first/.test(finding.message) && /second/.test(finding.message)));
+    const graph = functionCallGraph(project);
+    const first = [...graph.functions].find(([, entry]) => entry.name === 'first')![0];
+    assert.equal(functionGenerations(graph).get(first), undefined);
+    assert.equal(functionGenerations(graph, 'module').get(first)?.depth, 1);
   });
 });
 
@@ -92,6 +96,31 @@ test('directory reexports preserve cross-module generation edges', () => {
   });
 });
 
+test('implementation depth behind a module interface does not change caller gap findings', () => {
+  const evidence: { findings: unknown; depth: number | undefined }[] = [];
+  for (const name of ['boundaryShallow', 'boundaryDeep']) {
+    withProject(name, project => {
+      const graph = functionCallGraph(project);
+      const caller = [...graph.functions].find(([, entry]) => entry.name === 'top')![0];
+      const findings = functionGenerationGapRule.analyze(project, {
+        ...config, functionCalls: { ...config.functionCalls, sourceMaximumGenerationGap: 1 },
+      });
+      assert.equal(findings.length, 2);
+      assert.ok(findings.every(finding => finding.module === 'consumer'));
+      assert.ok(findings.some(finding => /top -> leaf/.test(finding.message)));
+      assert.ok(findings.some(finding => /top -> api/.test(finding.message)));
+      const scoped = moduleGenerationGaps(graph);
+      assert.equal(scoped.generations.get(caller)?.depth, 2);
+      const directInterface = scoped.edges.find(edge => edge.caller === caller && graph.functions.get(edge.target)!.name === 'api');
+      assert.equal(directInterface?.to, 0);
+      assert.equal(directInterface?.gap, 2);
+      evidence.push({ findings, depth: functionGenerations(graph).get(caller)?.depth });
+    });
+  }
+  assert.deepEqual(evidence[0].findings, evidence[1].findings);
+  assert.ok(evidence[1].depth! > evidence[0].depth!, 'global call-depth evidence remains available');
+});
+
 test('graph algorithms handle long chains and produce actual directed witness edges', () => {
   const graph = new Map(Array.from({ length: 15000 }, (_, i) => [i, new Set(i ? [i - 1] : [])]));
   assert.equal(stronglyConnectedComponents(graph).length, graph.size);
@@ -146,11 +175,18 @@ test('caller classification applies independent limits; disabled tests still con
     assert.equal(defaults[0].file, 'src/index.ts');
     assert.match(defaults[0].message, /5 generations.*maximum 4/);
     const all = analyze(4, 4);
-    assert.equal(all.length, 5);
-    assert.equal(all.filter(finding => isTestFile(finding.file!)).length, 4);
+    assert.equal(all.length, 2);
+    assert.equal(all.filter(finding => isTestFile(finding.file!)).length, 1);
     const testsOnly = analyze(false, 5);
-    assert.equal(testsOnly.length, 4);
+    assert.equal(testsOnly.length, 1);
     assert.ok(testsOnly.every(finding => isTestFile(finding.file!)));
+    // All test callers remain in global evidence. Only the colocated test shares
+    // the source module's private chain; other modules call interface leaves.
+    const graph = functionCallGraph(project);
+    const global = functionGenerations(graph);
+    const exercises = [...graph.functions].filter(([, entry]) => entry.name === 'exercise');
+    assert.equal(exercises.length, 4);
+    assert.ok(exercises.every(([node]) => global.get(node)?.depth === 6));
     assert.deepEqual(analyze(false, false), []);
     assert.deepEqual(analyze(5, 6), []);
     assert.deepEqual(analyze(4, false), defaults);

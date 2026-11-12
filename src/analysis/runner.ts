@@ -1,14 +1,12 @@
-import { semanticFunctions, semanticClustering, updateEmbeddingIndex } from './semantic';
-import { loadProjects, type LoadedProjects } from './project';
+import { semanticFunctions, semanticClustering, updateEmbeddingIndex } from '../semantic';
+import { loadProjects, type LoadedProjects } from '../project';
 
-import { projectStatePath, type HyperlintResult } from './runtime';
-import type { HyperlintDiagnostic } from './diagnostics';
-import { loadHyperlinterConfig } from './config';
+import { projectStatePath, type HyperlintResult } from '../runtime';
+import { loadHyperlinterConfig } from '../config';
 
-import { repositoryRules, structuralRules, typescriptRules } from './rules';
-import { moduleScoreDiagnostics } from './scoring';
-import { analyzeProjectChronology } from './chronolint';
-import type { ChronologyEvidence } from './temporal';
+import { repositoryRules, structuralRules, typescriptRules } from '../rules';
+import { moduleScoreDiagnostics } from '../scoring';
+import { analyzeProjectChronology } from './chronology';
 
 export async function analyze(tsconfigPath?: string, buildEmbeddings = false): Promise<HyperlintResult> {
   return analyzeProjects(await loadProjects(tsconfigPath), buildEmbeddings);
@@ -38,7 +36,7 @@ async function analyzeProjects(
           + 'No semantic conclusions were drawn.' });
     }
   }
-  let chronology: ChronologyEvidence | undefined;
+  let chronology: HyperlintResult['chronology'];
   try {
     const temporal = analyzeProjectChronology(models, config.chronolint);
     chronology = temporal.chronology;

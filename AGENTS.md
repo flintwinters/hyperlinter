@@ -46,6 +46,9 @@ cycles and their callers have no finite generation. Dynamic dispatch and externa
 Dead implementation analysis conservatively roots exports and executable
 references; it does not infer application entrypoints.
 Public directory indices define module boundaries; persistence owns recorded result contracts.
+Coupling preserves raw fan-in as reach/reuse evidence; it flags fan-in only alongside
+outward coupling concentration. Shared data and utility leaves should remain reusable;
+fan-out, reference, public-surface and cohesion pressure remain independent.
 Regular analysis includes chronolint, which reads pinned first-parent Git snapshots through `history`;
 `temporal` owns pure advisory correlation and evidence. Dedicated chronology
 and regular runs record provenance; unavailable history is advisory in regular

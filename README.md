@@ -8,6 +8,13 @@ Hyperlinter is a structural linter for code written by coding agents. Agents ten
 
 It checks TypeScript and Rust repositories for dependency cycles, unused or oversized public APIs, imports that bypass a module's entrypoint, overfull directories, and coupling outliers. In TypeScript it also checks function call cycles, dead code, and duplicated logic. Output is JSON by default, for agents; `--format=text` is for people. `--help` lists every command.
 
+Coupling distinguishes reuse from orchestration. Raw fan-in remains visible as
+change-reach evidence; it becomes a smell when the same module also concentrates
+outward coupling. Shared data types and utility leaves need not be duplicated or
+split merely because many modules use them. Fan-out and cross-module reference
+outliers are checked independently, while public-surface and cohesion rules
+continue to assess overloaded APIs.
+
 Baselines live in the target repository's `.git/hyperlinter/`, outside version control, so the agent being constrained cannot quietly loosen its own policy.
 
 The append-only audit ledger also lives there as `hyperlint.sqlite` (following Git metadata for worktrees and submodules). Closing SQLite cleans up its journal files. An existing `runtime/hyperlint.sqlite` migrates without copying on the next run, and its directory is removed only if empty. Migration waits while SQLite sidecars exist; filesystems that cannot hard-link to the Git directory retain the legacy location. Existing destination ledgers and unrelated runtime files are never removed.
